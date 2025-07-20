@@ -1,73 +1,193 @@
-# Welcome to your Lovable project
+# RaiderMatch - Texas Tech Internship Matching Platform
 
-## Project info
+**Upload résumé, get matched—no spam.**
 
-**URL**: https://lovable.dev/projects/df098811-0d81-45b3-ad2c-eb5e80345014
+RaiderMatch is an intelligent internship matching platform designed specifically for Texas Tech Computer Science students. Our algorithm analyzes resumes and returns exactly three internship matches ranked by HireScore (0-100), making it easier than ever to find the perfect internship opportunity.
 
-## How can I edit this code?
+## 🚀 Features
 
-There are several ways of editing your application.
+### For Students
+- **One-click resume upload** (PDF format)
+- **Smart matching algorithm** that returns exactly 3 ranked opportunities
+- **HireScore system** (0-100) showing your fit for each position
+- **Instant application** with one-click apply functionality
 
-**Use Lovable**
+### For Employers
+- **Simple job posting** with title, description, and location
+- **Candidate dashboard** showing applications sorted by HireScore
+- **Interview invitations** with one-click candidate management
+- **Resume access** and candidate communication tools
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/df098811-0d81-45b3-ad2c-eb5e80345014) and start prompting.
+### For Admins
+- **Read-only dashboard** with key metrics
+- **Application tracking** and interview rate analytics
+- **Platform usage statistics**
 
-Changes made via Lovable will be committed automatically to this repo.
+## 🛠 Technology Stack
 
-**Use your preferred IDE**
+- **Frontend**: React 18 + TypeScript + Tailwind CSS
+- **Build Tool**: Vite
+- **UI Components**: shadcn/ui with custom Texas Tech theming
+- **Authentication**: Ready for Supabase integration
+- **State Management**: React hooks with Context API ready
+- **Icons**: Lucide React
+- **Styling**: Custom design system with Texas Tech Red theme
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## 🎨 Design System
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+RaiderMatch features a professional design system built around Texas Tech's brand colors:
 
-Follow these steps:
+- **Primary Color**: Texas Tech Red (#CC0000)
+- **Typography**: Inter font family for modern readability
+- **Components**: Enhanced shadcn/ui components with custom variants
+- **Animations**: Smooth transitions and hover effects
+- **Responsive**: Mobile-first design approach
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+## 📋 Current Implementation
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+This is a fully functional frontend MVP with:
 
-# Step 3: Install the necessary dependencies.
-npm i
+- ✅ Landing page with clear value proposition
+- ✅ Student dashboard with resume upload simulation
+- ✅ Employer dashboard with job posting and candidate management
+- ✅ Authentication modal system
+- ✅ Mock data and simulated API interactions
+- ✅ Responsive design optimized for all devices
+- ✅ Professional UI with Texas Tech branding
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
+## 🚀 Getting Started
+
+### Prerequisites
+- Node.js (version 16 or higher)
+- npm or yarn package manager
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd raidermatch
+   ```
+
+2. **Install dependencies**
+   ```bash
+   npm install
+   ```
+
+3. **Start development server**
+   ```bash
+   npm run dev
+   ```
+
+4. **Open your browser**
+   Navigate to `http://localhost:8080`
+
+## 🔮 Next Steps for Full Implementation
+
+To complete the full-stack implementation, you would need to:
+
+### 1. Database Setup (Supabase)
+```sql
+-- Students table
+CREATE TABLE students (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  email TEXT UNIQUE NOT NULL,
+  first_name TEXT NOT NULL,
+  last_name TEXT NOT NULL,
+  gpa NUMERIC,
+  resume_url TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Employers table  
+CREATE TABLE employers (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  company TEXT NOT NULL,
+  contact_email TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Jobs table
+CREATE TABLE jobs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  employer_id UUID REFERENCES employers(id),
+  title TEXT NOT NULL,
+  description TEXT NOT NULL,
+  location TEXT NOT NULL,
+  posted_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Applications table
+CREATE TABLE applications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  student_id UUID REFERENCES students(id),
+  job_id UUID REFERENCES jobs(id),
+  hire_score NUMERIC,
+  status TEXT DEFAULT 'applied',
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
 ```
 
-**Edit a file directly in GitHub**
+### 2. Backend API Routes
+- `POST /api/upload-resume` - Resume storage and parsing
+- `GET /api/match?student_id=` - Matching algorithm
+- `POST /api/apply` - Application submission
+- `POST /api/employer/invite` - Interview invitations
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+### 3. Authentication Integration
+- Supabase Auth integration
+- Row Level Security (RLS) policies
+- Protected routes and middleware
 
-**Use GitHub Codespaces**
+### 4. File Storage
+- Supabase Storage for PDF resumes
+- Resume parsing with libraries like `resume-parser`
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+### 5. Matching Algorithm
+- PostgreSQL `pg_trgm` for text similarity
+- Machine learning scoring system
+- Skills and experience matching logic
 
-## What technologies are used for this project?
+### 6. Email Integration
+- SendGrid for notifications
+- Application confirmations
+- Interview invitations
 
-This project is built with:
+## 📱 Demo Usage
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+1. **Landing Page**: Visit the homepage to see the value proposition
+2. **Student Flow**: 
+   - Click "Get Started" 
+   - Create a student account
+   - Upload a resume (any PDF for demo)
+   - Click "Refresh Matches" to see mock internship matches
+   - Apply to positions with one click
 
-## How can I deploy this project?
+3. **Employer Flow**:
+   - Click "Employer" button
+   - Create an employer account
+   - Post a new internship
+   - View candidate applications and HireScores
+   - Send interview invitations
 
-Simply open [Lovable](https://lovable.dev/projects/df098811-0d81-45b3-ad2c-eb5e80345014) and click on Share -> Publish.
+## 🎯 Core Value Proposition
 
-## Can I connect a custom domain to my Lovable project?
+**For Students**: "Upload your resume and get exactly 3 perfect internship matches ranked by how likely you are to get hired - no spam, no endless scrolling."
 
-Yes, you can!
+**For Employers**: "See only the most qualified candidates for your internships, pre-ranked by our algorithm so you can focus on the best fits."
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+## 🏗 Architecture Notes
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+- **Component Structure**: Modular React components with clear separation of concerns
+- **State Management**: Local state with hooks, ready for global state management
+- **Type Safety**: Full TypeScript implementation with proper interfaces
+- **Styling**: Utility-first CSS with Tailwind and semantic design tokens
+- **Performance**: Optimized for fast loading and smooth interactions
+
+## 📞 Support
+
+For questions about RaiderMatch or Texas Tech CS internship opportunities, please contact the CS department or the platform administrators.
+
+---
+
+**Built with ❤️ for Texas Tech Red Raiders**
