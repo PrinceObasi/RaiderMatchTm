@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,27 +21,9 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
   const [lastName, setLastName] = useState("");
   const [company, setCompany] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [emailError, setEmailError] = useState("");
   const { toast } = useToast();
 
   if (!isOpen) return null;
-
-  const validateTTUEmail = (email: string) => {
-    if (!email.endsWith('@ttu.edu')) {
-      setEmailError('Please use your TTU email');
-      return false;
-    }
-    setEmailError('');
-    return true;
-  };
-
-  const handleEmailChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newEmail = e.target.value;
-    setEmail(newEmail);
-    if (emailError && newEmail.endsWith('@ttu.edu')) {
-      setEmailError('');
-    }
-  };
 
   const handleSubmit = async (type: 'login' | 'student' | 'employer') => {
     if (!email || !password) {
@@ -51,10 +32,6 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
         description: "Please fill in all required fields.",
         variant: "destructive"
       });
-      return;
-    }
-
-    if (!validateTTUEmail(email)) {
       return;
     }
 
@@ -136,14 +113,11 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
                     id="login-email"
                     type="email"
                     value={email}
-                    onChange={handleEmailChange}
-                    placeholder="your@ttu.edu"
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="your@email.com"
                     className="pl-10"
                   />
                 </div>
-                {emailError && (
-                  <p className="text-sm text-destructive">{emailError}</p>
-                )}
               </div>
 
               <div className="space-y-2">
@@ -206,14 +180,11 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
                     id="student-email"
                     type="email"
                     value={email}
-                    onChange={handleEmailChange}
+                    onChange={(e) => setEmail(e.target.value)}
                     placeholder="alex.rodriguez@ttu.edu"
                     className="pl-10"
                   />
                 </div>
-                {emailError && (
-                  <p className="text-sm text-destructive">{emailError}</p>
-                )}
               </div>
 
               <div className="space-y-2">
@@ -257,21 +228,18 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="employer-email">TTU Email</Label>
+                <Label htmlFor="employer-email">Work Email</Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                   <Input
                     id="employer-email"
                     type="email"
                     value={email}
-                    onChange={handleEmailChange}
-                    placeholder="recruiter@ttu.edu"
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="recruiter@company.com"
                     className="pl-10"
                   />
                 </div>
-                {emailError && (
-                  <p className="text-sm text-destructive">{emailError}</p>
-                )}
               </div>
 
               <div className="space-y-2">
