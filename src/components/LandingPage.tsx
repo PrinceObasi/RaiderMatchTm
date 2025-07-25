@@ -42,8 +42,7 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
             <Button 
-              variant="hero" 
-              size="xl" 
+              size="lg" 
               onClick={onStudentSignup}
               className="w-full sm:w-auto"
             >
@@ -52,7 +51,7 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
             </Button>
             <Button 
               variant="outline" 
-              size="xl" 
+              size="lg" 
               onClick={onEmployerSignup}
               className="w-full sm:w-auto"
             >
@@ -69,7 +68,7 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
           <h2 className="text-3xl font-bold text-center mb-12">How RaiderMatch Works</h2>
           
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            <Card className="card-shadow hover:shadow-lg transition-smooth border-0">
+            <Card>
               <CardContent className="p-6 text-center">
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Upload className="h-8 w-8 text-primary" />
@@ -81,7 +80,7 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
               </CardContent>
             </Card>
 
-            <Card className="card-shadow hover:shadow-lg transition-smooth border-0">
+            <Card>
               <CardContent className="p-6 text-center">
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Target className="h-8 w-8 text-primary" />
@@ -93,7 +92,7 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
               </CardContent>
             </Card>
 
-            <Card className="card-shadow hover:shadow-lg transition-smooth border-0">
+            <Card>
               <CardContent className="p-6 text-center">
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle className="h-8 w-8 text-primary" />
@@ -129,17 +128,15 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 hero-gradient text-white">
+      <section className="py-20 bg-muted">
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-6">Ready to Find Your Perfect Internship?</h2>
-          <p className="text-xl mb-8 opacity-90 max-w-2xl mx-auto">
+          <p className="text-xl mb-8 text-muted-foreground max-w-2xl mx-auto">
             Join hundreds of Texas Tech CS students who've found their dream internships through RaiderMatch.
           </p>
           <Button 
-            variant="outline" 
-            size="xl" 
+            size="lg" 
             onClick={onStudentSignup}
-            className="bg-white text-primary hover:bg-gray-50 border-white"
           >
             <Upload className="h-5 w-5" />
             Start Matching Now

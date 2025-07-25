@@ -25,7 +25,7 @@ export function Header({ onStudentSignup, onEmployerSignup, onLogin }: HeaderPro
             <UserPlus className="h-4 w-4" />
             Employer
           </Button>
-          <Button variant="hero" size="lg" onClick={onStudentSignup} className="flex items-center gap-2">
+          <Button size="lg" onClick={onStudentSignup} className="flex items-center gap-2">
             <GraduationCap className="h-4 w-4" />
             Get Started
           </Button>
