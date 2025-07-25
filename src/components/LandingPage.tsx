@@ -33,7 +33,6 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
           <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
             Upload résumé,{" "}
             <span className="text-primary">get matched</span>
-            <br />—no spam.
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
             RaiderMatch connects Texas Tech CS students with top internship opportunities 
