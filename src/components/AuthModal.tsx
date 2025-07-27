@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { isTTUEmail } from "@/lib/validators";
 import { X, Mail, Lock, User, Building } from "lucide-react";
 
 interface AuthModalProps {
@@ -24,8 +25,10 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
   const [company, setCompany] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-  // src/lib/validators.ts
 
+  const isStudentInvalidEmail = email.length > 0 && !isTTUEmail(email);
+  const isStudentDisabled =
+    isLoading || !firstName || !lastName || !password || isStudentInvalidEmail;
 
   if (!isOpen) return null;
 
@@ -43,6 +46,15 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
       toast({
         title: "Missing information", 
         description: "Please provide your first and last name.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (type === 'student' && !isTTUEmail(email)) {
+      toast({
+        title: "Invalid email",
+        description: "Only @ttu.edu addresses are allowed for students.",
         variant: "destructive"
       });
       return;
@@ -189,6 +201,11 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
                     className="pl-10"
                   />
                 </div>
+                {isStudentInvalidEmail && (
+                  <p className="text-sm text-red-500 mt-1">
+                    Please use your TTU email address.
+                  </p>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -208,7 +225,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
 
               <Button 
                 onClick={() => handleSubmit('student')}
-                disabled={isLoading}
+                disabled={isStudentDisabled}
                 className="w-full"
                 size="lg"
               >
