@@ -14,9 +14,7 @@ interface AuthModalProps {
   onSuccess: (userType: 'student' | 'employer') => void;
 }
 
-// src/lib/validators.ts
-export const isTTUEmail = (email: string) =>
-  /@ttu\.edu$/i.test(email.trim());
+
 
 export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: AuthModalProps) {
   const [email, setEmail] = useState("");
