@@ -103,13 +103,15 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
 
       // Insert student record for student users
       if (type === 'student' && data.user) {
+        const user = data.user;
         const { error: insertError } = await supabase
           .from('students')
           .insert({
-            user_id: data.user.id,
-            email: data.user.email,
+            id: user.id,
+            user_id: user.id,
+            email: user.email,
             name: `${firstName} ${lastName}`,
-            resume_url: null,
+            resume_url: '',
             skills: []
           });
         
