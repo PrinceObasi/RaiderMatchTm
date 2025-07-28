@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { isTTUEmail } from "@/lib/validators";
+import { supabase } from "@/integrations/supabase/client";
 import { X, Mail, Lock, User, Building } from "lucide-react";
 
 interface AuthModalProps {
@@ -71,27 +72,37 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
 
     setIsLoading(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    if (type === 'login') {
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       setIsLoading(false);
-      
-      if (type === 'login') {
-        // Simulate determining user type from login
-        const userType = email.includes('employer') ? 'employer' : 'student';
-        onSuccess(userType);
-      } else {
-        onSuccess(type as 'student' | 'employer');
+      if (error) {
+        toast({ title: 'Login failed', description: error.message, variant: 'destructive' });
+        return;
       }
-      
-      toast({
-        title: type === 'login' ? "Welcome back!" : "Account created!",
-        description: type === 'login' 
-          ? "You've been successfully signed in." 
-          : "Your account has been created and you're now signed in.",
-      });
-      
+      onSuccess(data.user.user_metadata.role || (email.includes('@ttu.edu') ? 'student' : 'employer'));
+      toast({ title: 'Welcome back!', description: "You've been successfully signed in." });
       onClose();
-    }, 1500);
+    } else {
+      const userMetadata = type === 'student'
+        ? { first_name: firstName, last_name: lastName, role: 'student' }
+        : { company, role: 'employer' };
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { 
+          data: userMetadata,
+          emailRedirectTo: `${window.location.origin}/`
+        }
+      });
+      setIsLoading(false);
+      if (error) {
+        toast({ title: 'Sign-up failed', description: error.message, variant: 'destructive' });
+        return;
+      }
+      onSuccess(type);
+      toast({ title: 'Account created!', description: "You're now signed in." });
+      onClose();
+    }
   };
 
   return (
