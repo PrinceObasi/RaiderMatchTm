@@ -111,7 +111,6 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
             email: user.email,
             name: `${firstName} ${lastName}`,
             resume_url: '',
-            gpa: null,
             skills: []
           });
         
