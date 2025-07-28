@@ -1,1 +1,7 @@
 project_id = "tjahvypvfrjulnqmnhsh"
+
+[functions.upload-resume]
+verify_jwt = true
+
+[functions.match]
+verify_jwt = true

@@ -120,6 +120,18 @@ export type Database = {
         Args: { "": unknown }
         Returns: unknown
       }
+      match_internships: {
+        Args: { student_skills: string[] }
+        Returns: {
+          id: string
+          title: string
+          company: string
+          city: string
+          description: string
+          skills: string[]
+          similarity: number
+        }[]
+      }
       set_limit: {
         Args: { "": number }
         Returns: number

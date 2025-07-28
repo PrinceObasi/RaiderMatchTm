@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Upload, 
   RefreshCw, 
@@ -21,9 +22,10 @@ interface Job {
   id: string;
   title: string;
   company: string;
-  location: string;
+  city: string;
   hireScore: number;
   description: string;
+  skills: string[];
 }
 
 interface StudentDashboardProps {
@@ -56,15 +58,32 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
     setResumeFile(file);
     setIsUploading(true);
 
-    // Simulate upload delay
-    setTimeout(() => {
-      setIsUploading(false);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const { data, error } = await supabase.functions.invoke('upload-resume', {
+        body: formData
+      });
+
+      if (error) throw error;
+
       setHasResume(true);
       toast({
         title: "Resume uploaded successfully!",
-        description: "Your resume has been analyzed and stored.",
+        description: `Found ${data.skills?.length || 0} skills. Your resume has been analyzed and stored.`,
       });
-    }, 2000);
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload and analyze resume. Please try again.",
+        variant: "destructive"
+      });
+      setResumeFile(null);
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleRefreshMatches = async () => {
@@ -79,42 +98,26 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
 
     setIsMatching(true);
 
-    // Mock matching delay and results
-    setTimeout(() => {
-      const mockMatches: Job[] = [
-        {
-          id: "1",
-          title: "Software Engineering Intern",
-          company: "Dell Technologies",
-          location: "Austin, TX",
-          hireScore: 94,
-          description: "Work on cutting-edge enterprise software solutions with our Austin team."
-        },
-        {
-          id: "2", 
-          title: "Full Stack Developer Intern",
-          company: "Stripe",
-          location: "Austin, TX",
-          hireScore: 87,
-          description: "Build payment infrastructure that powers millions of businesses worldwide."
-        },
-        {
-          id: "3",
-          title: "Backend Engineer Intern", 
-          company: "TTU Startup",
-          location: "Lubbock, TX",
-          hireScore: 82,
-          description: "Join our early-stage team building the next generation of EdTech solutions."
-        }
-      ];
-      
-      setMatches(mockMatches);
-      setIsMatching(false);
+    try {
+      const { data, error } = await supabase.functions.invoke('match');
+
+      if (error) throw error;
+
+      setMatches(data.jobs || []);
       toast({
         title: "Matches found!",
-        description: `Found ${mockMatches.length} perfect internship matches for you.`,
+        description: `Found ${data.jobs?.length || 0} perfect internship matches for you.`,
       });
-    }, 2500);
+    } catch (error) {
+      console.error('Matching error:', error);
+      toast({
+        title: "Matching failed",
+        description: "Failed to find matches. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsMatching(false);
+    }
   };
 
   const handleApply = (jobId: string, company: string) => {
@@ -246,7 +249,7 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
                                 </div>
                                 <div className="flex items-center gap-1">
                                   <MapPin className="h-4 w-4" />
-                                  {job.location}
+                                  {job.city}
                                 </div>
                               </div>
                             </div>
