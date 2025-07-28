@@ -107,7 +107,6 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
         const { error: insertError } = await supabase
           .from('students')
           .insert({
-            id: user.id,
             user_id: user.id,
             email: user.email,
             name: `${firstName} ${lastName}`,
