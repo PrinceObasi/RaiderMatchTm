@@ -104,22 +104,43 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
       if (type === 'student' && data.user) {
         const user = data.user;
         
-        // Wait for session to be established
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        const { error: insertError } = await supabase
-          .from('students')
-          .insert({
-            user_id: user.id,
-            email: user.email,
-            name: `${firstName} ${lastName}`,
-            resume_url: '',
-            skills: []
+        // Check if we have a valid session after signup
+        let currentSession = data.session;
+        if (!currentSession) {
+          // If no session from signup (user already exists), try to sign in
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password
           });
+          
+          if (signInError) {
+            toast({ 
+              title: 'Authentication failed', 
+              description: 'Could not authenticate user for profile creation.', 
+              variant: 'destructive' 
+            });
+            return;
+          }
+          
+          currentSession = signInData.session;
+        }
         
-        if (insertError) {
-          toast({ title: 'Profile creation failed', description: insertError.message, variant: 'destructive' });
-          return;
+        // Only proceed if we have a valid session
+        if (currentSession) {
+          const { error: insertError } = await supabase
+            .from('students')
+            .insert({
+              user_id: user.id,
+              email: user.email,
+              name: `${firstName} ${lastName}`,
+              resume_url: '',
+              skills: []
+            });
+          
+          if (insertError) {
+            toast({ title: 'Profile creation failed', description: insertError.message, variant: 'destructive' });
+            return;
+          }
         }
       }
       
