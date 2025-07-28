@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -38,11 +38,34 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
   const [isMatching, setIsMatching] = useState(false);
   const [matches, setMatches] = useState<Job[]>([]);
   const [hasResume, setHasResume] = useState(false);
+  const [profile, setProfile] = useState<any>(null);
   const { toast } = useToast();
 
-  // Mock student data
-  const studentName = "Alex Rodriguez";
-  const studentGPA = "3.8";
+  // Load user profile
+  useEffect(() => {
+    const loadProfile = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user) {
+        const { data: profile, error } = await supabase
+          .from('students')
+          .select('*')
+          .eq('user_id', session.user.id)
+          .single();
+        
+        if (error) {
+          console.error('Error loading profile:', error);
+        } else {
+          setProfile(profile);
+          setHasResume(!!profile.resume_url);
+        }
+      }
+    };
+    
+    loadProfile();
+  }, []);
+
+  const studentName = profile?.name || "Student";
+  const studentGPA = profile?.graduation_year ? `Class of ${profile.graduation_year}` : "TTU Student";
 
   const handleResumeUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

@@ -94,11 +94,33 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
           emailRedirectTo: `${window.location.origin}/`
         }
       });
-      setIsLoading(false);
+      
       if (error) {
+        setIsLoading(false);
         toast({ title: 'Sign-up failed', description: error.message, variant: 'destructive' });
         return;
       }
+
+      // Insert student record for student users
+      if (type === 'student' && data.user) {
+        const { error: insertError } = await supabase
+          .from('students')
+          .insert({
+            user_id: data.user.id,
+            email: data.user.email,
+            name: `${firstName} ${lastName}`,
+            resume_url: null,
+            skills: []
+          });
+        
+        if (insertError) {
+          setIsLoading(false);
+          toast({ title: 'Profile creation failed', description: insertError.message, variant: 'destructive' });
+          return;
+        }
+      }
+      
+      setIsLoading(false);
       onSuccess(type);
       toast({ title: 'Account created!', description: "You're now signed in." });
       onClose();
