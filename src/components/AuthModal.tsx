@@ -90,30 +90,19 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
         email,
         password,
         options: { 
-          data: userMetadata,
-          emailRedirectTo: `${window.location.origin}/`
+          data: userMetadata
         }
       });
       
+      setIsLoading(false);
       if (error) {
-        setIsLoading(false);
         toast({ title: 'Sign-up failed', description: error.message, variant: 'destructive' });
         return;
       }
 
       // Insert student record for student users
       if (type === 'student' && data.user) {
-        // auto-signin so auth.uid() is set
-        const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-        if (loginError) {
-          setIsLoading(false);
-          toast({ title: 'Profile creation failed', description: loginError.message, variant: 'destructive' });
-          return;
-        }
-        const user = loginData.user;
+        const user = data.user;
         
         const { error: insertError } = await supabase
           .from('students')
@@ -127,13 +116,11 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
           });
         
         if (insertError) {
-          setIsLoading(false);
           toast({ title: 'Profile creation failed', description: insertError.message, variant: 'destructive' });
           return;
         }
       }
       
-      setIsLoading(false);
       onSuccess(type);
       toast({ title: 'Account created!', description: "You're now signed in." });
       onClose();
