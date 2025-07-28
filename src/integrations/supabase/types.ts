@@ -14,13 +14,124 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      jobs: {
+        Row: {
+          city: string
+          company: string
+          created_at: string
+          deadline: string | null
+          description: string
+          id: string
+          posted_date: string
+          skills: string[]
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          city: string
+          company: string
+          created_at?: string
+          deadline?: string | null
+          description: string
+          id?: string
+          posted_date?: string
+          skills?: string[]
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          city?: string
+          company?: string
+          created_at?: string
+          deadline?: string | null
+          description?: string
+          id?: string
+          posted_date?: string
+          skills?: string[]
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      students: {
+        Row: {
+          created_at: string
+          email: string
+          graduation_year: number | null
+          id: string
+          major: string | null
+          name: string
+          resume_url: string | null
+          skills: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          graduation_year?: number | null
+          id?: string
+          major?: string | null
+          name: string
+          resume_url?: string | null
+          skills?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          graduation_year?: number | null
+          id?: string
+          major?: string | null
+          name?: string
+          resume_url?: string | null
+          skills?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      gtrgm_compress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_decompress: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_in: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      gtrgm_options: {
+        Args: { "": unknown }
+        Returns: undefined
+      }
+      gtrgm_out: {
+        Args: { "": unknown }
+        Returns: unknown
+      }
+      set_limit: {
+        Args: { "": number }
+        Returns: number
+      }
+      show_limit: {
+        Args: Record<PropertyKey, never>
+        Returns: number
+      }
+      show_trgm: {
+        Args: { "": string }
+        Returns: string[]
+      }
     }
     Enums: {
       [_ in never]: never
