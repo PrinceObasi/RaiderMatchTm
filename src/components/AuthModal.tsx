@@ -25,6 +25,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
   const [lastName, setLastName] = useState("");
   const [company, setCompany] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
   const { toast } = useToast();
 
   const isStudentInvalidEmail = email.length > 0 && !isTTUEmail(email);
@@ -76,7 +77,15 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       setIsLoading(false);
       if (error) {
-        toast({ title: 'Login failed', description: error.message, variant: 'destructive' });
+        if (error.message.includes('Invalid login credentials')) {
+          toast({ 
+            title: 'Login failed', 
+            description: 'Invalid email or password. Click "Forgot Password?" below to reset your password.', 
+            variant: 'destructive' 
+          });
+        } else {
+          toast({ title: 'Login failed', description: error.message, variant: 'destructive' });
+        }
         return;
       }
       onSuccess(data.user.user_metadata.role || (email.includes('@ttu.edu') ? 'student' : 'employer'));
@@ -96,7 +105,15 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
       
       setIsLoading(false);
       if (error) {
-        toast({ title: 'Sign-up failed', description: error.message, variant: 'destructive' });
+        if (error.message.includes('User already registered')) {
+          toast({ 
+            title: 'Account exists', 
+            description: 'An account with this email already exists. Please use the "Sign In" tab or reset your password if needed.', 
+            variant: 'destructive' 
+          });
+        } else {
+          toast({ title: 'Sign-up failed', description: error.message, variant: 'destructive' });
+        }
         return;
       }
 
@@ -115,8 +132,8 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
           
           if (signInError) {
             toast({ 
-              title: 'Authentication failed', 
-              description: 'Could not authenticate user for profile creation.', 
+              title: 'Account exists but login failed', 
+              description: 'Your account exists but we could not sign you in. Please use the "Sign In" tab or reset your password.', 
               variant: 'destructive' 
             });
             return;
@@ -127,19 +144,29 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
         
         // Only proceed if we have a valid session
         if (currentSession) {
-          const { error: insertError } = await supabase
+          // Check if student profile already exists
+          const { data: existingStudent } = await supabase
             .from('students')
-            .insert({
-              user_id: user.id,
-              email: user.email,
-              name: `${firstName} ${lastName}`,
-              resume_url: '',
-              skills: []
-            });
-          
-          if (insertError) {
-            toast({ title: 'Profile creation failed', description: insertError.message, variant: 'destructive' });
-            return;
+            .select('id')
+            .eq('user_id', user.id)
+            .single();
+            
+          // Only create profile if it doesn't exist
+          if (!existingStudent) {
+            const { error: insertError } = await supabase
+              .from('students')
+              .insert({
+                user_id: user.id,
+                email: user.email,
+                name: `${firstName} ${lastName}`,
+                resume_url: '',
+                skills: []
+              });
+            
+            if (insertError) {
+              toast({ title: 'Profile creation failed', description: insertError.message, variant: 'destructive' });
+              return;
+            }
           }
         }
       }
@@ -147,6 +174,37 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
       onSuccess(type);
       toast({ title: 'Account created!', description: "You're now signed in." });
       onClose();
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!email) {
+      toast({
+        title: "Email required",
+        description: "Please enter your email address first.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/`
+    });
+    setIsLoading(false);
+
+    if (error) {
+      toast({ 
+        title: 'Password reset failed', 
+        description: error.message, 
+        variant: 'destructive' 
+      });
+    } else {
+      toast({ 
+        title: 'Password reset sent', 
+        description: 'Check your email for password reset instructions.' 
+      });
+      setShowPasswordReset(false);
     }
   };
 
@@ -215,6 +273,40 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
               >
                 {isLoading ? "Signing in..." : "Sign In"}
               </Button>
+
+              <div className="text-center">
+                <Button
+                  variant="link"
+                  onClick={() => setShowPasswordReset(true)}
+                  className="text-sm text-muted-foreground"
+                >
+                  Forgot Password?
+                </Button>
+              </div>
+
+              {showPasswordReset && (
+                <div className="space-y-4 p-4 border rounded-lg bg-muted/50">
+                  <div className="text-sm text-muted-foreground">
+                    Enter your email address and we'll send you a password reset link.
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={handlePasswordReset}
+                      disabled={isLoading}
+                      size="sm"
+                    >
+                      {isLoading ? "Sending..." : "Send Reset Email"}
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowPasswordReset(false)}
+                      size="sm"
+                    >
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="student" className="space-y-4 mt-6">
