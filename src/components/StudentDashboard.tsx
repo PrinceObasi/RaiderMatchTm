@@ -4,8 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ApplicationList } from "./ApplicationList";
 import { 
   Upload, 
   RefreshCw, 
@@ -15,7 +17,8 @@ import {
   Target,
   ExternalLink,
   User,
-  LogOut
+  LogOut,
+  ClipboardList
 } from "lucide-react";
 
 interface Job {
@@ -143,11 +146,28 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
     }
   };
 
-  const handleApply = (jobId: string, company: string) => {
-    toast({
-      title: "Application submitted!",
-      description: `Your application to ${company} has been sent. They'll see your HireScore and may invite you for an interview.`,
-    });
+  const handleApply = async (jobId: string, company: string) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session?.user) return;
+
+      await supabase.from('applications').insert({
+        user_id: session.user.id,
+        job_id: jobId
+      });
+
+      toast({
+        title: "Application submitted!",
+        description: `Your application to ${company} has been recorded. They'll see your HireScore and may invite you for an interview.`,
+      });
+    } catch (error) {
+      console.error('Application error:', error);
+      toast({
+        title: "Application failed",
+        description: "Failed to submit application. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const getScoreColor = (score: number) => {
@@ -241,70 +261,87 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
             </Card>
           </div>
 
-          {/* Matches Section */}
+          {/* Main Content with Tabs */}
           <div className="lg:col-span-2">
-            <Card className="card-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Your Matches ({matches.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {matches.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg mb-2">No matches yet</p>
-                    <p>Upload your resume and click "Refresh Matches" to find perfect internships!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {matches.map((job) => (
-                      <Card key={job.id} className="border hover:shadow-md transition-smooth">
-                        <CardContent className="p-6">
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex-1">
-                              <h3 className="text-lg font-semibold mb-1">{job.title}</h3>
-                              <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                <div className="flex items-center gap-1">
-                                  <Building className="h-4 w-4" />
-                                  {job.company}
+            <Tabs defaultValue="matches" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="matches" className="flex items-center gap-2">
+                  <Target className="h-4 w-4" />
+                  Matches ({matches.length})
+                </TabsTrigger>
+                <TabsTrigger value="applications" className="flex items-center gap-2">
+                  <ClipboardList className="h-4 w-4" />
+                  My Applications
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="matches" className="mt-6">
+                <Card className="card-shadow">
+                  <CardContent className="pt-6">
+                    {matches.length === 0 ? (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p className="text-lg mb-2">No matches yet</p>
+                        <p>Upload your resume and click "Refresh Matches" to find perfect internships!</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4">
+                        {matches.map((job) => (
+                          <Card key={job.id} className="border hover:shadow-md transition-smooth">
+                            <CardContent className="p-6">
+                              <div className="flex items-start justify-between mb-4">
+                                <div className="flex-1">
+                                  <h3 className="text-lg font-semibold mb-1">{job.title}</h3>
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <div className="flex items-center gap-1">
+                                      <Building className="h-4 w-4" />
+                                      {job.company}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <MapPin className="h-4 w-4" />
+                                      {job.city}
+                                    </div>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-1">
-                                  <MapPin className="h-4 w-4" />
-                                  {job.city}
+                                <div className="text-right">
+                                  <div className="text-2xl font-bold text-primary mb-1">
+                                    {job.hireScore}
+                                  </div>
+                                  <Badge 
+                                    className={`${getScoreColor(job.hireScore)} text-white`}
+                                  >
+                                    HireScore
+                                  </Badge>
                                 </div>
                               </div>
-                            </div>
-                            <div className="text-right">
-                              <div className="text-2xl font-bold text-primary mb-1">
-                                {job.hireScore}
-                              </div>
-                              <Badge 
-                                className={`${getScoreColor(job.hireScore)} text-white`}
+                              
+                              <p className="text-muted-foreground mb-4">{job.description}</p>
+                              
+                              <Button 
+                                onClick={() => handleApply(job.id, job.company)}
+                                className="w-full"
+                                size="lg"
                               >
-                                HireScore
-                              </Badge>
-                            </div>
-                          </div>
-                          
-                          <p className="text-muted-foreground mb-4">{job.description}</p>
-                          
-                          <Button 
-                            onClick={() => handleApply(job.id, job.company)}
-                            className="w-full"
-                            size="lg"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            Apply Now
-                          </Button>
-                        </CardContent>
-                      </Card>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                                <ExternalLink className="h-4 w-4" />
+                                Apply Now
+                              </Button>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="applications" className="mt-6">
+                <Card className="card-shadow">
+                  <CardContent className="pt-6">
+                    <ApplicationList />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
           </div>
         </div>
       </div>

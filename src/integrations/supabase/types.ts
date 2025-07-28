@@ -14,6 +14,38 @@ export type Database = {
   }
   public: {
     Tables: {
+      applications: {
+        Row: {
+          applied_at: string | null
+          id: string
+          job_id: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          id?: string
+          job_id?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          id?: string
+          job_id?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           city: string
