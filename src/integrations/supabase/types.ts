@@ -49,11 +49,13 @@ export type Database = {
       jobs: {
         Row: {
           city: string
+          closes_at: string | null
           company: string
           created_at: string
           deadline: string | null
           description: string
           id: string
+          opens_at: string | null
           posted_date: string
           skills: string[]
           title: string
@@ -62,11 +64,13 @@ export type Database = {
         }
         Insert: {
           city: string
+          closes_at?: string | null
           company: string
           created_at?: string
           deadline?: string | null
           description: string
           id?: string
+          opens_at?: string | null
           posted_date?: string
           skills?: string[]
           title: string
@@ -75,11 +79,13 @@ export type Database = {
         }
         Update: {
           city?: string
+          closes_at?: string | null
           company?: string
           created_at?: string
           deadline?: string | null
           description?: string
           id?: string
+          opens_at?: string | null
           posted_date?: string
           skills?: string[]
           title?: string
