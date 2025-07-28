@@ -104,6 +104,9 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
       if (type === 'student' && data.user) {
         const user = data.user;
         
+        // Wait for session to be established
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         const { error: insertError } = await supabase
           .from('students')
           .insert({
