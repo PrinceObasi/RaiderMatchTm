@@ -247,7 +247,7 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="h-5 w-5" />
-                  Your Matches ({matches.length}/3)
+                  Your Matches ({matches.length})
                 </CardTitle>
               </CardHeader>
               <CardContent>
