@@ -103,7 +103,18 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
 
       // Insert student record for student users
       if (type === 'student' && data.user) {
-        const user = data.user;
+        // auto-signin so auth.uid() is set
+        const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        if (loginError) {
+          setIsLoading(false);
+          toast({ title: 'Profile creation failed', description: loginError.message, variant: 'destructive' });
+          return;
+        }
+        const user = loginData.user;
+        
         const { error: insertError } = await supabase
           .from('students')
           .insert({
@@ -111,6 +122,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
             email: user.email,
             name: `${firstName} ${lastName}`,
             resume_url: '',
+            gpa: null,
             skills: []
           });
         
