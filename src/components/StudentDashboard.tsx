@@ -29,6 +29,7 @@ interface Job {
   hireScore: number;
   description: string;
   skills: string[];
+  apply_url: string;
 }
 
 interface StudentDashboardProps {
@@ -146,22 +147,28 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
     }
   };
 
-  const handleApply = async (jobId: string, company: string) => {
+  const handleApply = async (jobId: string, applyUrl: string) => {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) return;
 
+      // 1. Record application in database
       await supabase.from('applications').insert({
         user_id: session.user.id,
         job_id: jobId
       });
 
+      // 2. Open external application URL in new tab
+      if (applyUrl) {
+        window.open(applyUrl, '_blank');
+      }
+
       toast({
-        title: "Application submitted!",
-        description: `Your application to ${company} has been recorded. They'll see your HireScore and may invite you for an interview.`,
+        title: "Application logged",
+        description: "Good luck!",
       });
     } catch (error) {
-      console.error('Application error:', error);
+      console.error('Error applying to job:', error);
       toast({
         title: "Application failed",
         description: "Failed to submit application. Please try again.",
@@ -318,7 +325,7 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
                               <p className="text-muted-foreground mb-4">{job.description}</p>
                               
                               <Button 
-                                onClick={() => handleApply(job.id, job.company)}
+                                onClick={() => handleApply(job.id, job.apply_url)}
                                 className="w-full"
                                 size="lg"
                               >
