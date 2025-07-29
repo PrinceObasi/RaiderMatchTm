@@ -6,6 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { format } from "date-fns";
+import { cn } from "@/lib/utils";
 import { 
   Plus, 
   Building, 
@@ -15,7 +19,8 @@ import {
   LogOut,
   Star,
   MapPin,
-  ExternalLink
+  ExternalLink,
+  CalendarIcon
 } from "lucide-react";
 
 interface Candidate {
@@ -73,7 +78,9 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
   const [newJob, setNewJob] = useState({
     title: "",
     description: "",
-    location: ""
+    location: "",
+    opensAt: new Date(),
+    closesAt: undefined as Date | undefined
   });
   const [isPosting, setIsPosting] = useState(false);
   const { toast } = useToast();
@@ -104,7 +111,13 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
       };
       
       setJobs([job, ...jobs]);
-      setNewJob({ title: "", description: "", location: "" });
+      setNewJob({ 
+        title: "", 
+        description: "", 
+        location: "", 
+        opensAt: new Date(), 
+        closesAt: undefined 
+      });
       setIsPosting(false);
       
       toast({
@@ -216,7 +229,61 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
                   />
                 </div>
 
-                <Button 
+                <div>
+                  <Label>Open Date</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal mt-1",
+                          !newJob.opensAt && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {newJob.opensAt ? format(newJob.opensAt, "PPP") : <span>Pick a date</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={newJob.opensAt}
+                        onSelect={(date) => setNewJob({ ...newJob, opensAt: date || new Date() })}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div>
+                  <Label>Close Date (Optional)</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        className={cn(
+                          "w-full justify-start text-left font-normal mt-1",
+                          !newJob.closesAt && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {newJob.closesAt ? format(newJob.closesAt, "PPP") : <span>Pick a date (optional)</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={newJob.closesAt}
+                        onSelect={(date) => setNewJob({ ...newJob, closesAt: date })}
+                        initialFocus
+                        className="p-3 pointer-events-auto"
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <Button
                   onClick={handlePostJob}
                   disabled={isPosting}
                   className="w-full"
