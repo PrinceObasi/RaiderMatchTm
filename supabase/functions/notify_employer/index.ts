@@ -13,7 +13,9 @@ const supabaseAdmin = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 );
 
-const resend = new Resend(Deno.env.get('RESEND_API_KEY')!);
+const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
+if (!RESEND_API_KEY) throw new Error('Missing RESEND_API_KEY');
+const resend = new Resend(RESEND_API_KEY);
 
 const handler = async (req: Request): Promise<Response> => {
   // Handle CORS preflight requests

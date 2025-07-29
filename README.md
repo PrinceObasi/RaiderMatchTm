@@ -82,6 +82,22 @@ This is a fully functional frontend MVP with:
 4. **Open your browser**
    Navigate to `http://localhost:8080`
 
+## 📧 Email Setup
+
+1. Copy `.env.example` to `.env.local` and set `RESEND_API_KEY`:
+   ```bash
+   cp .env.example .env.local
+   # then open .env.local and paste your key
+   ```
+
+Or via Supabase CLI:
+```bash
+supabase functions secrets set RESEND_API_KEY <your-key>
+supabase functions deploy notify_employer
+```
+
+Or via Supabase Dashboard → Edge Functions → Settings → Secrets → add RESEND_API_KEY.
+
 ## 🔮 Next Steps for Full Implementation
 
 To complete the full-stack implementation, you would need to:
