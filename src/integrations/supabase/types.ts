@@ -48,12 +48,14 @@ export type Database = {
       }
       jobs: {
         Row: {
+          apply_url: string | null
           city: string
           closes_at: string | null
           company: string
           created_at: string
           deadline: string | null
           description: string
+          employer_id: string | null
           id: string
           is_active: boolean | null
           opens_at: string | null
@@ -64,12 +66,14 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          apply_url?: string | null
           city: string
           closes_at?: string | null
           company: string
           created_at?: string
           deadline?: string | null
           description: string
+          employer_id?: string | null
           id?: string
           is_active?: boolean | null
           opens_at?: string | null
@@ -80,12 +84,14 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          apply_url?: string | null
           city?: string
           closes_at?: string | null
           company?: string
           created_at?: string
           deadline?: string | null
           description?: string
+          employer_id?: string | null
           id?: string
           is_active?: boolean | null
           opens_at?: string | null

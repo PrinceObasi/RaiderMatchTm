@@ -26,26 +26,23 @@ import {
   CalendarIcon
 } from "lucide-react";
 
-interface Candidate {
-  id: string;
-  name: string;
-  gpa: number;
-  hireScore: number;
-  resumeUrl: string;
-  appliedAt: string;
-  status: 'applied' | 'interview' | 'rejected';
-}
-
 interface Job {
   id: string;
   title: string;
   description: string;
-  location: string;
+  city: string;
   company: string;
   opens_at: string;
   closes_at: string | null;
   is_active: boolean;
   apply_url: string;
+  employer_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  posted_date?: string;
+  deadline?: string;
+  skills?: string[];
+  type?: string;
 }
 
 interface EmployerDashboardProps {
@@ -63,6 +60,18 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
     opensAt: new Date(),
     closesAt: undefined as Date | undefined
   });
+  const [companyName, setCompanyName] = useState("");
+
+  // Get company name from user session
+  useEffect(() => {
+    const getCompanyName = async () => {
+      const { data: session } = await supabase.auth.getSession();
+      if (session?.session?.user?.user_metadata?.company) {
+        setCompanyName(session.session.user.user_metadata.company);
+      }
+    };
+    getCompanyName();
+  }, []);
   const [isPosting, setIsPosting] = useState(false);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -129,7 +138,7 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
         employer_id: session.session.user.id,
         title: newJob.title,
         description: newJob.description,
-        location: newJob.location,
+        city: newJob.location,
         company: session.session.user.user_metadata?.company || 'Unknown Company',
         apply_url: newJob.applyUrl,
         opens_at: newJob.opensAt.toISOString().split('T')[0],
@@ -197,42 +206,7 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
     }
   };
 
-  const handleInviteToInterview = (jobId: string, candidateId: string, candidateName: string) => {
-    setJobs(jobs.map(job => 
-      job.id === jobId 
-        ? {
-            ...job,
-            candidates: job.candidates.map(candidate =>
-              candidate.id === candidateId
-                ? { ...candidate, status: 'interview' as const }
-                : candidate
-            )
-          }
-        : job
-    ));
 
-    toast({
-      title: "Interview invitation sent!",
-      description: `${candidateName} has been invited for an interview and will be notified via email.`,
-    });
-  };
-
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return "bg-green-500";
-    if (score >= 80) return "bg-yellow-500";
-    return "bg-blue-500";
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'interview':
-        return <Badge className="bg-success">Interview Scheduled</Badge>;
-      case 'rejected':
-        return <Badge variant="destructive">Rejected</Badge>;
-      default:
-        return <Badge variant="secondary">Applied</Badge>;
-    }
-  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -353,8 +327,19 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
                   </Popover>
                 </div>
 
+                <div>
+                  <Label htmlFor="applyUrl">Application URL</Label>
+                  <Input
+                    id="applyUrl"
+                    value={newJob.applyUrl}
+                    onChange={(e) => setNewJob({ ...newJob, applyUrl: e.target.value })}
+                    placeholder="https://company.com/apply"
+                    className="mt-1"
+                  />
+                </div>
+
                 <Button
-                  onClick={handlePostJob}
+                  onClick={handleCreateJob}
                   disabled={isPosting}
                   className="w-full"
                   size="lg"
@@ -395,77 +380,44 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
                   <div className="space-y-6">
                     {jobs.map((job) => (
                       <div key={job.id} className="border rounded-lg p-6">
-                        <div className="mb-4">
-                          <h3 className="text-lg font-semibold mb-2">{job.title}</h3>
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                            <MapPin className="h-4 w-4" />
-                            {job.location}
-                          </div>
-                          <p className="text-muted-foreground text-sm">{job.description}</p>
-                        </div>
-
-                        <div className="space-y-3">
-                          <h4 className="font-medium flex items-center gap-2">
-                            <Users className="h-4 w-4" />
-                            Candidates ({job.candidates.length})
-                          </h4>
-                          
-                          {job.candidates.length === 0 ? (
-                            <p className="text-sm text-muted-foreground">No applications yet</p>
-                          ) : (
-                            <div className="space-y-3">
-                              {job.candidates
-                                .sort((a, b) => b.hireScore - a.hireScore)
-                                .map((candidate) => (
-                                <Card key={candidate.id} className="border hover:shadow-sm transition-smooth">
-                                  <CardContent className="p-4">
-                                    <div className="flex items-center justify-between">
-                                      <div className="flex-1">
-                                        <div className="flex items-center gap-3 mb-2">
-                                          <h5 className="font-medium">{candidate.name}</h5>
-                                          <Badge variant="outline">GPA: {candidate.gpa}</Badge>
-                                          {getStatusBadge(candidate.status)}
-                                        </div>
-                                        <p className="text-sm text-muted-foreground">
-                                          Applied on {new Date(candidate.appliedAt).toLocaleDateString()}
-                                        </p>
-                                      </div>
-                                      
-                                      <div className="flex items-center gap-3">
-                                        <div className="text-center">
-                                          <div className="text-xl font-bold text-primary">
-                                            {candidate.hireScore}
-                                          </div>
-                                          <Badge 
-                                            className={`${getScoreColor(candidate.hireScore)} text-white text-xs`}
-                                          >
-                                            HireScore
-                                          </Badge>
-                                        </div>
-                                        
-                                        <div className="flex gap-2">
-                                          <Button variant="outline" size="sm">
-                                            <FileText className="h-4 w-4" />
-                                            Resume
-                                          </Button>
-                                          {candidate.status === 'applied' && (
-                                            <Button 
-                                              onClick={() => handleInviteToInterview(job.id, candidate.id, candidate.name)}
-                                              size="sm"
-                                            >
-                                              <Mail className="h-4 w-4" />
-                                              Invite
-                                            </Button>
-                                          )}
-                                        </div>
-                                      </div>
-                                    </div>
-                                  </CardContent>
-                                </Card>
-                              ))}
-                            </div>
-                          )}
-                        </div>
+                         <div className="flex items-center justify-between mb-4">
+                           <div className="flex-1">
+                             <h3 className="text-lg font-semibold mb-2">{job.title}</h3>
+                             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+                               <MapPin className="h-4 w-4" />
+                               {job.city}
+                             </div>
+                             <p className="text-muted-foreground text-sm">{job.description}</p>
+                             <div className="flex items-center gap-2 mt-2">
+                               <Badge variant="outline">Opens: {new Date(job.opens_at).toLocaleDateString()}</Badge>
+                               {job.closes_at && (
+                                 <Badge variant="outline">Closes: {new Date(job.closes_at).toLocaleDateString()}</Badge>
+                               )}
+                               <Badge variant={job.is_active ? "default" : "secondary"}>
+                                 {job.is_active ? "Active" : "Inactive"}
+                               </Badge>
+                             </div>
+                           </div>
+                           
+                           <div className="flex items-center gap-3">
+                             <div className="flex items-center space-x-2">
+                               <Label htmlFor={`active-${job.id}`} className="text-sm">
+                                 {job.is_active ? "Active" : "Inactive"}
+                               </Label>
+                               <Switch
+                                 id={`active-${job.id}`}
+                                 checked={job.is_active}
+                                 onCheckedChange={() => toggleJobActive(job.id, job.is_active)}
+                               />
+                             </div>
+                             <Button variant="outline" size="sm" asChild>
+                               <a href={job.apply_url} target="_blank" rel="noopener noreferrer">
+                                 <ExternalLink className="h-4 w-4" />
+                                 View Application
+                               </a>
+                             </Button>
+                           </div>
+                         </div>
                       </div>
                     ))}
                   </div>
