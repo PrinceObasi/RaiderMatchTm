@@ -173,13 +173,11 @@ Deno.serve(async (req) => {
     // Update student record with skills and resume URL
     const { error: updateError } = await supabase
       .from('students')
-      .upsert({
-        user_id: user.id,
-        name: user.user_metadata?.full_name || user.email?.split('@')[0] || 'Student',
-        email: user.email!,
+      .update({
         skills: skills,
         resume_url: urlData.publicUrl
       })
+      .eq('user_id', user.id)
 
     if (updateError) {
       console.error('Update error:', updateError)
