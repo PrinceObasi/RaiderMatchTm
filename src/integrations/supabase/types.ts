@@ -55,6 +55,7 @@ export type Database = {
           deadline: string | null
           description: string
           id: string
+          is_active: boolean | null
           opens_at: string | null
           posted_date: string
           skills: string[]
@@ -70,6 +71,7 @@ export type Database = {
           deadline?: string | null
           description: string
           id?: string
+          is_active?: boolean | null
           opens_at?: string | null
           posted_date?: string
           skills?: string[]
@@ -85,6 +87,7 @@ export type Database = {
           deadline?: string | null
           description?: string
           id?: string
+          is_active?: boolean | null
           opens_at?: string | null
           posted_date?: string
           skills?: string[]

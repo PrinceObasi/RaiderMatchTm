@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,8 +8,11 @@ import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 import { 
   Plus, 
   Building, 
@@ -38,7 +41,11 @@ interface Job {
   title: string;
   description: string;
   location: string;
-  candidates: Candidate[];
+  company: string;
+  opens_at: string;
+  closes_at: string | null;
+  is_active: boolean;
+  apply_url: string;
 }
 
 interface EmployerDashboardProps {
@@ -46,50 +53,52 @@ interface EmployerDashboardProps {
 }
 
 export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
-  const [jobs, setJobs] = useState<Job[]>([
-    {
-      id: "1",
-      title: "Software Engineering Intern",
-      description: "Work on cutting-edge enterprise software solutions with our Austin team.",
-      location: "Austin, TX",
-      candidates: [
-        {
-          id: "1",
-          name: "Alex Rodriguez",
-          gpa: 3.8,
-          hireScore: 94,
-          resumeUrl: "#",
-          appliedAt: "2024-01-15",
-          status: "applied"
-        },
-        {
-          id: "2", 
-          name: "Sarah Chen",
-          gpa: 3.9,
-          hireScore: 89,
-          resumeUrl: "#",
-          appliedAt: "2024-01-14",
-          status: "applied"
-        }
-      ]
-    }
-  ]);
-  
+  const [jobs, setJobs] = useState<Job[]>([]);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [newJob, setNewJob] = useState({
     title: "",
     description: "",
     location: "",
+    applyUrl: "",
     opensAt: new Date(),
     closesAt: undefined as Date | undefined
   });
   const [isPosting, setIsPosting] = useState(false);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Mock company data
-  const companyName = "Dell Technologies";
+  // Load employer's jobs
+  useEffect(() => {
+    loadJobs();
+  }, []);
 
-  const handlePostJob = async () => {
-    if (!newJob.title || !newJob.description || !newJob.location) {
+  const loadJobs = async () => {
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user) return;
+
+      const { data, error } = await supabase
+        .from('jobs')
+        .select('*')
+        .eq('employer_id', session.session.user.id)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setJobs(data || []);
+    } catch (error) {
+      console.error('Error loading jobs:', error);
+      toast({
+        title: "Error loading jobs",
+        description: "Could not load your job postings.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCreateJob = async () => {
+    if (!newJob.title || !newJob.description || !newJob.location || !newJob.applyUrl) {
       toast({
         title: "Missing information",
         description: "Please fill in all job details.",
@@ -98,33 +107,94 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
       return;
     }
 
+    // Basic URL validation
+    try {
+      new URL(newJob.applyUrl);
+    } catch {
+      toast({
+        title: "Invalid URL",
+        description: "Please enter a valid application URL.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsPosting(true);
 
-    // Simulate posting delay
-    setTimeout(() => {
-      const job: Job = {
-        id: Date.now().toString(),
+    try {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.user) throw new Error('Not authenticated');
+
+      const { error } = await supabase.from('jobs').insert({
+        employer_id: session.session.user.id,
         title: newJob.title,
         description: newJob.description,
         location: newJob.location,
-        candidates: []
-      };
-      
-      setJobs([job, ...jobs]);
+        company: session.session.user.user_metadata?.company || 'Unknown Company',
+        apply_url: newJob.applyUrl,
+        opens_at: newJob.opensAt.toISOString().split('T')[0],
+        closes_at: newJob.closesAt?.toISOString().split('T')[0] || null,
+        is_active: true,
+        type: 'internship',
+        skills: []
+      });
+
+      if (error) throw error;
+
+      await loadJobs();
       setNewJob({ 
         title: "", 
         description: "", 
         location: "", 
+        applyUrl: "",
         opensAt: new Date(), 
         closesAt: undefined 
       });
-      setIsPosting(false);
+      setShowCreateModal(false);
       
       toast({
         title: "Job posted successfully!",
         description: "Your internship posting is now live and visible to students.",
       });
-    }, 1500);
+    } catch (error) {
+      console.error('Error creating job:', error);
+      toast({
+        title: "Error posting job",
+        description: "Could not create job posting.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsPosting(false);
+    }
+  };
+
+  const toggleJobActive = async (jobId: string, currentStatus: boolean) => {
+    try {
+      const { error } = await supabase
+        .from('jobs')
+        .update({ is_active: !currentStatus })
+        .eq('id', jobId);
+
+      if (error) throw error;
+
+      setJobs(jobs.map(job => 
+        job.id === jobId 
+          ? { ...job, is_active: !currentStatus }
+          : job
+      ));
+
+      toast({
+        title: "Job status updated",
+        description: `Job ${!currentStatus ? 'activated' : 'deactivated'} successfully.`,
+      });
+    } catch (error) {
+      console.error('Error updating job status:', error);
+      toast({
+        title: "Error updating job",
+        description: "Could not update job status.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleInviteToInterview = (jobId: string, candidateId: string, candidateName: string) => {
