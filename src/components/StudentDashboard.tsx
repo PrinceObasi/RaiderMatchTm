@@ -148,33 +148,36 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
   };
 
   const handleApply = async (jobId: string, applyUrl: string) => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session?.user) return;
 
-      // 1. Record application in database
-      await supabase.from('applications').insert({
+    // 1. Record application in database
+    const { error } = await supabase
+      .from('applications')
+      .insert({
         user_id: session.user.id,
         job_id: jobId
       });
 
-      // 2. Open external application URL in new tab
-      if (applyUrl) {
-        window.open(applyUrl, '_blank');
-      }
-
+    if (error) {
+      console.error(error);
       toast({
-        title: "Application logged",
-        description: "Good luck!",
+        title: 'Application failed',
+        description: error.message,
+        variant: 'destructive'
       });
-    } catch (error) {
-      console.error('Error applying to job:', error);
-      toast({
-        title: "Application failed",
-        description: "Failed to submit application. Please try again.",
-        variant: "destructive"
-      });
+      return;
     }
+
+    // 2. Open external application URL in new tab
+    if (applyUrl) {
+      window.open(applyUrl, '_blank', 'noopener');
+    }
+
+    toast({ 
+      title: 'Application logged', 
+      description: 'Good luck!' 
+    });
   };
 
   const getScoreColor = (score: number) => {
