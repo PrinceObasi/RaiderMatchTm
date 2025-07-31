@@ -188,7 +188,7 @@ CREATE TABLE applications (
 
 ## 🎯 Core Value Proposition
 
-**For Students**: "Upload your resume and get exactly 3 perfect internship matches ranked by how likely you are to get hired - no spam, no endless scrolling."
+**For Students**: "Upload your resume and get perfect internship matches ranked by how likely you are to get hired - no spam, no endless scrolling."
 
 **For Employers**: "See only the most qualified candidates for your internships, pre-ranked by our algorithm so you can focus on the best fits."
 
