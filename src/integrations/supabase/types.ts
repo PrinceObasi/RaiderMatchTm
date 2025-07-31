@@ -157,7 +157,9 @@ export type Database = {
     }
     Functions: {
       match_internships: {
-        Args: { student_skills: string[] }
+        Args:
+          | { student_skills: string[] }
+          | { student_skills: string[]; is_international?: boolean }
         Returns: {
           id: string
           title: string

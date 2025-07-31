@@ -74,7 +74,8 @@ Deno.serve(async (req) => {
 
     // Use pg_trgm similarity matching for internship jobs with date filtering
     const { data: jobs, error: jobsError } = await supabase.rpc('match_internships', {
-      student_skills: studentSkills
+      student_skills: studentSkills,
+      is_international: isInternational
     })
 
     if (jobsError) {
