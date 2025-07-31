@@ -13,6 +13,7 @@ import { Switch } from "@/components/ui/switch";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { JobApplicants } from "@/components/JobApplicants";
 import { 
   Plus, 
   Building, 
@@ -23,7 +24,8 @@ import {
   Star,
   MapPin,
   ExternalLink,
-  CalendarIcon
+  CalendarIcon,
+  Eye
 } from "lucide-react";
 
 interface Job {
@@ -43,6 +45,7 @@ interface Job {
   deadline?: string;
   skills?: string[];
   type?: string;
+  applications?: { count: number }[];
 }
 
 interface EmployerDashboardProps {
@@ -52,6 +55,8 @@ interface EmployerDashboardProps {
 export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [selectedJob, setSelectedJob] = useState<{ id: string; title: string } | null>(null);
+  const [showApplicants, setShowApplicants] = useState(false);
   const [newJob, setNewJob] = useState({
     title: "",
     description: "",
@@ -88,7 +93,7 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
 
       const { data, error } = await supabase
         .from('jobs')
-        .select('*')
+        .select('*, applications(count)')
         .eq('employer_id', session.session.user.id)
         .order('created_at', { ascending: false });
 
@@ -388,35 +393,50 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
                                {job.city}
                              </div>
                              <p className="text-muted-foreground text-sm">{job.description}</p>
-                             <div className="flex items-center gap-2 mt-2">
-                               <Badge variant="outline">Opens: {new Date(job.opens_at).toLocaleDateString()}</Badge>
-                               {job.closes_at && (
-                                 <Badge variant="outline">Closes: {new Date(job.closes_at).toLocaleDateString()}</Badge>
-                               )}
-                               <Badge variant={job.is_active ? "default" : "secondary"}>
-                                 {job.is_active ? "Active" : "Inactive"}
-                               </Badge>
-                             </div>
+                              <div className="flex items-center gap-2 mt-2">
+                                <Badge variant="outline">Opens: {new Date(job.opens_at).toLocaleDateString()}</Badge>
+                                {job.closes_at && (
+                                  <Badge variant="outline">Closes: {new Date(job.closes_at).toLocaleDateString()}</Badge>
+                                )}
+                                <Badge variant={job.is_active ? "default" : "secondary"}>
+                                  {job.is_active ? "Active" : "Inactive"}
+                                </Badge>
+                                <Badge variant="outline" className="bg-blue-50 text-blue-700">
+                                  {job.applications?.[0]?.count || 0} applicant{(job.applications?.[0]?.count || 0) !== 1 ? 's' : ''}
+                                </Badge>
+                              </div>
                            </div>
                            
-                           <div className="flex items-center gap-3">
-                             <div className="flex items-center space-x-2">
-                               <Label htmlFor={`active-${job.id}`} className="text-sm">
-                                 {job.is_active ? "Active" : "Inactive"}
-                               </Label>
-                               <Switch
-                                 id={`active-${job.id}`}
-                                 checked={job.is_active}
-                                 onCheckedChange={() => toggleJobActive(job.id, job.is_active)}
-                               />
-                             </div>
-                             <Button variant="outline" size="sm" asChild>
-                               <a href={job.apply_url} target="_blank" rel="noopener noreferrer">
-                                 <ExternalLink className="h-4 w-4" />
-                                 View Application
-                               </a>
-                             </Button>
-                           </div>
+                            <div className="flex items-center gap-3">
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                onClick={() => {
+                                  setSelectedJob({ id: job.id, title: job.title });
+                                  setShowApplicants(true);
+                                }}
+                                disabled={(job.applications?.[0]?.count || 0) === 0}
+                              >
+                                <Eye className="h-4 w-4" />
+                                View ({job.applications?.[0]?.count || 0})
+                              </Button>
+                              <div className="flex items-center space-x-2">
+                                <Label htmlFor={`active-${job.id}`} className="text-sm">
+                                  {job.is_active ? "Active" : "Inactive"}
+                                </Label>
+                                <Switch
+                                  id={`active-${job.id}`}
+                                  checked={job.is_active}
+                                  onCheckedChange={() => toggleJobActive(job.id, job.is_active)}
+                                />
+                              </div>
+                              <Button variant="outline" size="sm" asChild>
+                                <a href={job.apply_url} target="_blank" rel="noopener noreferrer">
+                                  <ExternalLink className="h-4 w-4" />
+                                  View Application
+                                </a>
+                              </Button>
+                            </div>
                          </div>
                       </div>
                     ))}
@@ -427,6 +447,18 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
           </div>
         </div>
       </div>
+
+      {/* Job Applicants Drawer */}
+      {selectedJob && (
+        <JobApplicants
+          job={selectedJob}
+          open={showApplicants}
+          onClose={() => {
+            setShowApplicants(false);
+            setSelectedJob(null);
+          }}
+        />
+      )}
     </div>
   );
 }

@@ -147,7 +147,7 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
     }
   };
 
-  const handleApply = async (jobId: string, applyUrl: string) => {
+  const handleApply = async (jobId: string, applyUrl: string, hireScore?: number) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
@@ -156,7 +156,8 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
       .from('applications')
       .insert({
         user_id: session.user.id,
-        job_id: jobId
+        job_id: jobId,
+        hire_score: hireScore
       });
 
     if (error) {
@@ -328,7 +329,7 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
                               <p className="text-muted-foreground mb-4">{job.description}</p>
                               
                               <Button 
-                                onClick={() => handleApply(job.id, job.apply_url)}
+                                onClick={() => handleApply(job.id, job.apply_url, job.hireScore)}
                                 className="w-full"
                                 size="lg"
                               >

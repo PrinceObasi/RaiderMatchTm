@@ -17,6 +17,7 @@ export type Database = {
       applications: {
         Row: {
           applied_at: string | null
+          hire_score: number | null
           id: string
           job_id: string | null
           status: string | null
@@ -24,6 +25,7 @@ export type Database = {
         }
         Insert: {
           applied_at?: string | null
+          hire_score?: number | null
           id?: string
           job_id?: string | null
           status?: string | null
@@ -31,6 +33,7 @@ export type Database = {
         }
         Update: {
           applied_at?: string | null
+          hire_score?: number | null
           id?: string
           job_id?: string | null
           status?: string | null
