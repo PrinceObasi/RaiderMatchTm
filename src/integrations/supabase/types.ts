@@ -64,6 +64,7 @@ export type Database = {
           opens_at: string | null
           posted_date: string
           skills: string[]
+          sponsors_visa: boolean | null
           title: string
           type: string
           updated_at: string
@@ -82,6 +83,7 @@ export type Database = {
           opens_at?: string | null
           posted_date?: string
           skills?: string[]
+          sponsors_visa?: boolean | null
           title: string
           type?: string
           updated_at?: string
@@ -100,6 +102,7 @@ export type Database = {
           opens_at?: string | null
           posted_date?: string
           skills?: string[]
+          sponsors_visa?: boolean | null
           title?: string
           type?: string
           updated_at?: string
@@ -112,6 +115,7 @@ export type Database = {
           email: string
           graduation_year: number | null
           id: string
+          is_international: boolean | null
           major: string | null
           name: string
           resume_url: string | null
@@ -124,6 +128,7 @@ export type Database = {
           email: string
           graduation_year?: number | null
           id?: string
+          is_international?: boolean | null
           major?: string | null
           name: string
           resume_url?: string | null
@@ -136,6 +141,7 @@ export type Database = {
           email?: string
           graduation_year?: number | null
           id?: string
+          is_international?: boolean | null
           major?: string | null
           name?: string
           resume_url?: string | null

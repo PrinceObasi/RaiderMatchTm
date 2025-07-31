@@ -63,7 +63,8 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
     location: "",
     applyUrl: "",
     opensAt: new Date(),
-    closesAt: undefined as Date | undefined
+    closesAt: undefined as Date | undefined,
+    sponsorsVisa: false
   });
   const [companyName, setCompanyName] = useState("");
 
@@ -150,7 +151,8 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
         closes_at: newJob.closesAt?.toISOString().split('T')[0] || null,
         is_active: true,
         type: 'internship',
-        skills: []
+        skills: [],
+        sponsors_visa: newJob.sponsorsVisa
       });
 
       if (error) throw error;
@@ -162,7 +164,8 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
         location: "", 
         applyUrl: "",
         opensAt: new Date(), 
-        closesAt: undefined 
+        closesAt: undefined,
+        sponsorsVisa: false
       });
       setShowCreateModal(false);
       
@@ -340,6 +343,17 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
                     onChange={(e) => setNewJob({ ...newJob, applyUrl: e.target.value })}
                     placeholder="https://company.com/apply"
                     className="mt-1"
+                  />
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="sponsorsVisa" className="text-sm">
+                    Visa sponsorship available
+                  </Label>
+                  <Switch
+                    id="sponsorsVisa"
+                    checked={newJob.sponsorsVisa}
+                    onCheckedChange={(checked) => setNewJob({ ...newJob, sponsorsVisa: checked })}
                   />
                 </div>
 

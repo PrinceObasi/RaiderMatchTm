@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
 import { isTTUEmail } from "@/lib/validators";
 import { supabase } from "@/integrations/supabase/client";
@@ -24,6 +25,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [company, setCompany] = useState("");
+  const [isInternational, setIsInternational] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const { toast } = useToast();
@@ -160,7 +162,8 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
                 email: user.email,
                 name: `${firstName} ${lastName}`,
                 resume_url: '',
-                skills: []
+                skills: [],
+                is_international: isInternational
               });
             
             if (insertError) {
@@ -369,6 +372,17 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
                     className="pl-10"
                   />
                 </div>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="intl"
+                  checked={isInternational}
+                  onCheckedChange={(checked) => setIsInternational(checked === true)}
+                />
+                <Label htmlFor="intl" className="text-sm">
+                  I'm an international student
+                </Label>
               </div>
 
               <Button 

@@ -48,10 +48,10 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Get student's skills
+    // Get student's skills and international status
     const { data: studentData, error: studentError } = await supabase
       .from('students')
-      .select('skills')
+      .select('skills, is_international')
       .eq('user_id', user.id)
       .single()
 
@@ -63,6 +63,7 @@ Deno.serve(async (req) => {
     }
 
     const studentSkills = studentData.skills || []
+    const isInternational = studentData.is_international || false
     
     if (studentSkills.length === 0) {
       return new Response(
@@ -80,13 +81,19 @@ Deno.serve(async (req) => {
       console.error('Jobs query error:', jobsError)
       
       // Fallback to simple matching if RPC fails
-      const { data: fallbackJobs, error: fallbackError } = await supabase
+      let jobQuery = supabase
         .from('jobs')
         .select('*')
         .ilike('title', '%intern%')
         .lte('opens_at', new Date().toISOString().split('T')[0])
         .or('closes_at.is.null,closes_at.gte.' + new Date().toISOString().split('T')[0])
-        .limit(5)
+
+      // Apply visa sponsorship filter for international students
+      if (isInternational) {
+        jobQuery = jobQuery.eq('sponsors_visa', true)
+      }
+
+      const { data: fallbackJobs, error: fallbackError } = await jobQuery.limit(5)
 
       if (fallbackError) {
         return new Response(
