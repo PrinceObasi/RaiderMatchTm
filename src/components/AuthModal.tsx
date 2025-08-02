@@ -90,7 +90,8 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
         }
         return;
       }
-      onSuccess(data.user.user_metadata.role || (email.includes('@ttu.edu') ? 'student' : 'employer'));
+      const role = data.user.user_metadata?.role ?? 'student';
+      onSuccess(role as 'student' | 'employer');
       toast({ title: 'Welcome back!', description: "You've been successfully signed in." });
       onClose();
     } else {
