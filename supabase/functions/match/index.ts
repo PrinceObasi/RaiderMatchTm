@@ -13,6 +13,7 @@ interface JobMatch {
   description: string
   skills: string[]
   hireScore: number
+  apply_url: string
 }
 
 Deno.serve(async (req) => {
@@ -123,7 +124,8 @@ Deno.serve(async (req) => {
           city: job.city,
           description: job.description,
           skills: jobSkills,
-          hireScore: Math.max(hireScore, 65) // Ensure minimum score for demo
+          hireScore: Math.max(hireScore, 65), // Ensure minimum score for demo
+          apply_url: job.apply_url
         }
       })
 
@@ -141,7 +143,8 @@ Deno.serve(async (req) => {
       city: job.city,
       description: job.description,
       skills: job.skills,
-      hireScore: Math.round(job.similarity * 100)
+      hireScore: Math.round(job.similarity * 100),
+      apply_url: job.apply_url
     }))
 
     return new Response(
