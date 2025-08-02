@@ -151,7 +151,12 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
-    // 1. Record application in database
+    // 1️⃣ Open the external page immediately (within the user gesture)
+    if (applyUrl) {
+      window.open(applyUrl, '_blank', 'noopener,noreferrer');
+    }
+
+    // 2️⃣ THEN record the application
     const { error } = await supabase
       .from('applications')
       .insert({
@@ -161,18 +166,21 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
       });
 
     if (error) {
-      console.error(error);
-      toast({
-        title: 'Application failed',
-        description: error.message,
-        variant: 'destructive'
-      });
+      // 23505 = unique_violation in Postgres
+      if (error.code === '23505') {
+        toast({
+          title: 'Already applied',
+          description: 'You\'ve already logged an application for this job.',
+          variant: 'destructive'
+        });
+      } else {
+        toast({
+          title: 'Application failed',
+          description: error.message,
+          variant: 'destructive'
+        });
+      }
       return;
-    }
-
-    // 2. Open external application URL in new tab
-    if (applyUrl) {
-      window.open(applyUrl, '_blank', 'noopener');
     }
 
     toast({ 
