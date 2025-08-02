@@ -112,6 +112,9 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
     }
   };
 
+  const isValidHttps = (url: string) =>
+    /^https:\/\/[^\s]+$/i.test(url.trim());
+
   const handleCreateJob = async () => {
     if (!newJob.title || !newJob.description || !newJob.location || !newJob.applyUrl) {
       toast({
@@ -122,14 +125,11 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
       return;
     }
 
-    // Basic URL validation
-    try {
-      new URL(newJob.applyUrl);
-    } catch {
+    if (!isValidHttps(newJob.applyUrl)) {
       toast({
-        title: "Invalid URL",
-        description: "Please enter a valid application URL.",
-        variant: "destructive"
+        title: 'Invalid URL',
+        description: 'Application URL must start with https://',
+        variant: 'destructive'
       });
       return;
     }
@@ -146,7 +146,7 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
         description: newJob.description,
         city: newJob.location,
         company: session.session.user.user_metadata?.company || 'Unknown Company',
-        apply_url: newJob.applyUrl,
+        apply_url: newJob.applyUrl.trim().toLowerCase(),
         opens_at: newJob.opensAt.toISOString().split('T')[0],
         closes_at: newJob.closesAt?.toISOString().split('T')[0] || null,
         is_active: true,

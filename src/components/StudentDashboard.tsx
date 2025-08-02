@@ -152,8 +152,15 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
     if (!session?.user) return;
 
     // 1️⃣ Open the external page immediately (within the user gesture)
-    if (applyUrl) {
+    if (applyUrl?.startsWith('https://')) {
       window.open(applyUrl, '_blank', 'noopener,noreferrer');
+    } else {
+      toast({
+        title: 'Missing application link',
+        description: 'The employer did not provide a valid URL.',
+        variant: 'destructive'
+      });
+      return; // skip DB insert in this edge-case
     }
 
     // 2️⃣ THEN record the application
