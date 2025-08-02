@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
         jobQuery = jobQuery.eq('sponsors_visa', true)
       }
 
-      const { data: fallbackJobs, error: fallbackError } = await jobQuery.limit(5)
+      const { data: fallbackJobs, error: fallbackError } = await jobQuery.limit(10)
 
       if (fallbackError) {
         return new Response(
