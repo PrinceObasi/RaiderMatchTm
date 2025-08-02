@@ -86,7 +86,7 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
                 </div>
                 <h3 className="text-xl font-semibold mb-3">2. Get Perfect Matches</h3>
                 <p className="text-muted-foreground">
-                  Our algorithm finds exactly 3 internships ranked by HireScore (0-100) based on your profile.
+                  Our algorithm finds exactly 10 internships ranked by HireScore (0-100) based on your profile.
                 </p>
               </CardContent>
             </Card>
