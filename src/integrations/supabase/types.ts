@@ -113,6 +113,7 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          github: string | null
           gpa: number | null
           graduation_year: number | null
           has_prev_intern: boolean | null
@@ -129,6 +130,7 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
+          github?: string | null
           gpa?: number | null
           graduation_year?: number | null
           has_prev_intern?: boolean | null
@@ -145,6 +147,7 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
+          github?: string | null
           gpa?: number | null
           graduation_year?: number | null
           has_prev_intern?: boolean | null

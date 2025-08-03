@@ -4,8 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import { fetchProjectDepth } from "@/lib/githubDepth";
 
 interface ProfileWizardProps {
   isOpen: boolean;
@@ -17,45 +18,34 @@ interface ProfileWizardProps {
 export function ProfileWizard({ isOpen, onClose, userId, onComplete }: ProfileWizardProps) {
   const [gpa, setGpa] = useState("");
   const [hasPrevIntern, setHasPrevIntern] = useState(false);
-  const [githubUsername, setGithubUsername] = useState("");
+  const [github, setGithub] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
-
-  const fetchProjectDepth = async (username: string): Promise<number> => {
-    try {
-      const response = await fetch(`https://api.github.com/users/${username}/repos`);
-      if (!response.ok) return 0;
-      
-      const repos = await response.json();
-      const totalStars = repos.reduce((sum: number, repo: any) => sum + (repo.stargazers_count || 0), 0);
-      return Math.min(totalStars / 50, 1);
-    } catch (error) {
-      console.error('Error fetching GitHub data:', error);
-      return 0;
-    }
-  };
 
   const handleSave = async () => {
     setIsLoading(true);
     
     try {
       const gpaValue = parseFloat(gpa);
-      if (isNaN(gpaValue) || gpaValue < 0 || gpaValue > 4) {
+      if (gpa && (isNaN(gpaValue) || gpaValue < 0 || gpaValue > 4)) {
         toast({
           title: "Invalid GPA",
           description: "Please enter a GPA between 0.0 and 4.0",
           variant: "destructive"
         });
+        setIsLoading(false);
         return;
       }
 
-      const projectDepth = githubUsername ? await fetchProjectDepth(githubUsername) : 0;
+      // Fetch project depth from GitHub
+      const projectDepth = await fetchProjectDepth(github);
 
       const { error } = await supabase
         .from('students')
         .update({
-          gpa: gpaValue,
+          gpa: gpa ? gpaValue : null,
           has_prev_intern: hasPrevIntern,
+          github: github.trim() || null,
           project_depth: projectDepth
         })
         .eq('user_id', userId);
@@ -63,8 +53,8 @@ export function ProfileWizard({ isOpen, onClose, userId, onComplete }: ProfileWi
       if (error) throw error;
 
       toast({
-        title: "Profile updated",
-        description: "Your profile features have been saved successfully!"
+        title: "Profile updated!",
+        description: `GitHub projects analyzed. Project depth: ${Math.round(projectDepth * 100)}%`,
       });
 
       onComplete();
@@ -113,15 +103,15 @@ export function ProfileWizard({ isOpen, onClose, userId, onComplete }: ProfileWi
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="github">GitHub Username (optional)</Label>
+            <Label htmlFor="github">GitHub username (public)</Label>
             <Input
               id="github"
-              value={githubUsername}
-              onChange={(e) => setGithubUsername(e.target.value)}
-              placeholder="your-username"
+              placeholder="torvalds"
+              value={github}
+              onChange={(e) => setGithub(e.target.value.trim())}
             />
-            <p className="text-sm text-muted-foreground">
-              We'll analyze your public repositories to assess project depth
+            <p className="text-xs text-muted-foreground">
+              We'll analyze your public repositories to calculate project depth
             </p>
           </div>
 

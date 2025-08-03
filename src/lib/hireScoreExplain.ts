@@ -39,11 +39,11 @@ export function buildExplanation(f: Factors) {
 
   // 5. Project depth
   if (f.projectDepth >= 0.7)
-    lines.push('GitHub projects show substantial real-world code.');
+    lines.push('Your GitHub shows substantial, starred projects—great signal.');
   else if (f.projectDepth >= 0.3)
-    lines.push('Projects are OK—adding larger repos would help.');
+    lines.push('Some repos detected; adding larger projects would improve visibility.');
   else
-    lines.push('Lack of visible projects hurts your profile.');
+    lines.push('Few public GitHub projects found—consider open-sourcing work.');
 
   return lines;
 }
