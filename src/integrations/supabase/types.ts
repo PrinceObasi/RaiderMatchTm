@@ -113,11 +113,14 @@ export type Database = {
         Row: {
           created_at: string
           email: string
+          gpa: number | null
           graduation_year: number | null
+          has_prev_intern: boolean | null
           id: string
           is_international: boolean | null
           major: string | null
           name: string
+          project_depth: number | null
           resume_url: string | null
           skills: string[] | null
           updated_at: string
@@ -126,11 +129,14 @@ export type Database = {
         Insert: {
           created_at?: string
           email: string
+          gpa?: number | null
           graduation_year?: number | null
+          has_prev_intern?: boolean | null
           id?: string
           is_international?: boolean | null
           major?: string | null
           name: string
+          project_depth?: number | null
           resume_url?: string | null
           skills?: string[] | null
           updated_at?: string
@@ -139,11 +145,14 @@ export type Database = {
         Update: {
           created_at?: string
           email?: string
+          gpa?: number | null
           graduation_year?: number | null
+          has_prev_intern?: boolean | null
           id?: string
           is_international?: boolean | null
           major?: string | null
           name?: string
+          project_depth?: number | null
           resume_url?: string | null
           skills?: string[] | null
           updated_at?: string

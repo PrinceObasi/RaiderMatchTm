@@ -8,6 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ApplicationList } from "./ApplicationList";
+import { ProfileWizard } from "./ProfileWizard";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Upload, 
   RefreshCw, 
@@ -18,7 +20,8 @@ import {
   ExternalLink,
   User,
   LogOut,
-  ClipboardList
+  ClipboardList,
+  Info
 } from "lucide-react";
 
 interface Job {
@@ -30,6 +33,15 @@ interface Job {
   description: string;
   skills: string[];
   apply_url: string;
+  explanation: {
+    contributions: {
+      overlap: number;
+      gpa: number;
+      prevIntern: number;
+      projectDepth: number;
+    };
+    missingSkills: string[];
+  };
 }
 
 interface StudentDashboardProps {
@@ -43,6 +55,7 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
   const [matches, setMatches] = useState<Job[]>([]);
   const [hasResume, setHasResume] = useState(false);
   const [profile, setProfile] = useState<any>(null);
+  const [showProfileWizard, setShowProfileWizard] = useState(false);
   const { toast } = useToast();
 
   // Load user profile
@@ -203,7 +216,8 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <TooltipProvider>
+      <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
@@ -265,24 +279,36 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
                   </div>
                 )}
 
-                <Button 
-                  onClick={handleRefreshMatches}
-                  disabled={!hasResume || isMatching}
-                  className="w-full"
-                  size="lg"
-                >
-                  {isMatching ? (
-                    <>
-                      <RefreshCw className="h-4 w-4 animate-spin" />
-                      Finding Matches...
-                    </>
-                  ) : (
-                    <>
-                      <Target className="h-4 w-4" />
-                      Refresh Matches
-                    </>
-                  )}
-                </Button>
+                <div className="space-y-2">
+                  <Button 
+                    onClick={handleRefreshMatches}
+                    disabled={!hasResume || isMatching}
+                    className="w-full"
+                    size="lg"
+                  >
+                    {isMatching ? (
+                      <>
+                        <RefreshCw className="h-4 w-4 animate-spin" />
+                        Finding Matches...
+                      </>
+                    ) : (
+                      <>
+                        <Target className="h-4 w-4" />
+                        Refresh Matches
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button 
+                    onClick={() => setShowProfileWizard(true)}
+                    variant="outline"
+                    className="w-full"
+                    size="sm"
+                  >
+                    <User className="h-4 w-4" />
+                    Complete Profile
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -330,8 +356,30 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
                                   </div>
                                 </div>
                                 <div className="text-right">
-                                  <div className="text-2xl font-bold text-primary mb-1">
-                                    {job.hireScore}
+                                  <div className="flex items-center gap-2">
+                                    <div className="text-2xl font-bold text-primary">
+                                      {job.hireScore}
+                                    </div>
+                                    <Tooltip>
+                                      <TooltipTrigger>
+                                        <Info className="h-4 w-4 text-muted-foreground hover:text-foreground" />
+                                      </TooltipTrigger>
+                                      <TooltipContent className="max-w-xs text-sm">
+                                        <p><b>Why this score?</b></p>
+                                        <ul className="list-disc ml-4 mt-1">
+                                          <li>Skills overlap: {job.explanation.contributions.overlap}%</li>
+                                          <li>GPA factor: {job.explanation.contributions.gpa}%</li>
+                                          <li>Prev intern: {job.explanation.contributions.prevIntern}%</li>
+                                          <li>Project depth: {job.explanation.contributions.projectDepth}%</li>
+                                        </ul>
+                                        {job.explanation.missingSkills.length > 0 && (
+                                          <>
+                                            <p className="mt-2"><b>Boost tips:</b></p>
+                                            <p>Add or highlight: {job.explanation.missingSkills.slice(0,3).join(', ')}.</p>
+                                          </>
+                                        )}
+                                      </TooltipContent>
+                                    </Tooltip>
                                   </div>
                                   <Badge 
                                     className={`${getScoreColor(job.hireScore)} text-white`}
@@ -371,6 +419,28 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
           </div>
         </div>
       </div>
+
+      <ProfileWizard 
+        isOpen={showProfileWizard}
+        onClose={() => setShowProfileWizard(false)}
+        userId={profile?.user_id || ''}
+        onComplete={() => {
+          // Reload profile after completion
+          const loadProfile = async () => {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.user) {
+              const { data: updatedProfile } = await supabase
+                .from('students')
+                .select('*')
+                .eq('user_id', session.user.id)
+                .single();
+              setProfile(updatedProfile);
+            }
+          };
+          loadProfile();
+        }}
+      />
     </div>
+    </TooltipProvider>
   );
 }

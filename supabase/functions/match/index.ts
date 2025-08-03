@@ -14,6 +14,35 @@ interface JobMatch {
   skills: string[]
   hireScore: number
   apply_url: string
+  explanation: {
+    contributions: {
+      overlap: number
+      gpa: number
+      prevIntern: number
+      projectDepth: number
+    }
+    missingSkills: string[]
+  }
+}
+
+function computeHireScore(factors: {
+  skillOverlap: number
+  gpa: number
+  prevIntern: boolean
+  projectDepth: number
+}) {
+  const score =
+    0.40 * factors.skillOverlap +
+    0.25 * factors.gpa +
+    0.20 * (factors.prevIntern ? 1 : 0) +
+    0.15 * factors.projectDepth;
+  return Math.round(score * 100);
+}
+
+function normalizeGPA(gpa: number): number {
+  if (!gpa || gpa < 2.0) return 0;
+  if (gpa > 4.0) return 1;
+  return (gpa - 2.0) / 2.0;
 }
 
 Deno.serve(async (req) => {
@@ -49,10 +78,10 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Get student's skills and international status
+    // Get student's profile data including new features
     const { data: studentData, error: studentError } = await supabase
       .from('students')
-      .select('skills, is_international')
+      .select('skills, is_international, gpa, has_prev_intern, project_depth')
       .eq('user_id', user.id)
       .single()
 
@@ -104,7 +133,7 @@ Deno.serve(async (req) => {
         )
       }
 
-      // Calculate simple overlap score for fallback
+      // Calculate explainable score for fallback
       const jobMatches: JobMatch[] = fallbackJobs.map((job: any) => {
         const jobSkills = job.skills || []
         const overlap = studentSkills.filter(skill => 
@@ -115,7 +144,34 @@ Deno.serve(async (req) => {
         ).length
         
         const maxSkills = Math.max(studentSkills.length, jobSkills.length)
-        const hireScore = maxSkills > 0 ? Math.round((overlap / maxSkills) * 100) : 0
+        const skillOverlap = maxSkills > 0 ? overlap / maxSkills : 0
+        const normalizedGPA = normalizeGPA(studentData.gpa || 0)
+        const prevIntern = studentData.has_prev_intern || false
+        const projectDepth = studentData.project_depth || 0
+
+        const missingSkills = jobSkills.filter(skill => 
+          !studentSkills.some(studentSkill => 
+            studentSkill.toLowerCase().includes(skill.toLowerCase()) ||
+            skill.toLowerCase().includes(studentSkill.toLowerCase())
+          )
+        )
+
+        const hireScore = computeHireScore({
+          skillOverlap,
+          gpa: normalizedGPA,
+          prevIntern,
+          projectDepth
+        })
+
+        const explanation = {
+          contributions: {
+            overlap: Math.round(skillOverlap * 100),
+            gpa: Math.round(normalizedGPA * 100),
+            prevIntern: prevIntern ? 100 : 0,
+            projectDepth: Math.round(projectDepth * 100)
+          },
+          missingSkills
+        }
 
         return {
           id: job.id,
@@ -124,8 +180,9 @@ Deno.serve(async (req) => {
           city: job.city,
           description: job.description,
           skills: jobSkills,
-          hireScore: Math.max(hireScore, 65), // Ensure minimum score for demo
-          apply_url: job.apply_url
+          hireScore,
+          apply_url: job.apply_url,
+          explanation
         }
       })
 
@@ -135,17 +192,50 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Convert pg_trgm similarity to hire score (0-100)
-    const jobMatches: JobMatch[] = jobs.map((job: any) => ({
-      id: job.id,
-      title: job.title,
-      company: job.company,
-      city: job.city,
-      description: job.description,
-      skills: job.skills,
-      hireScore: Math.round(job.similarity * 100),
-      apply_url: job.apply_url
-    }))
+    // Convert pg_trgm similarity and compute explainable hire score
+    const jobMatches: JobMatch[] = jobs.map((job: any) => {
+      const jobSkills = job.skills || []
+      const skillOverlap = job.similarity || 0
+      const normalizedGPA = normalizeGPA(studentData.gpa || 0)
+      const prevIntern = studentData.has_prev_intern || false
+      const projectDepth = studentData.project_depth || 0
+
+      const missingSkills = jobSkills.filter(skill => 
+        !studentSkills.some(studentSkill => 
+          studentSkill.toLowerCase().includes(skill.toLowerCase()) ||
+          skill.toLowerCase().includes(studentSkill.toLowerCase())
+        )
+      )
+
+      const hireScore = computeHireScore({
+        skillOverlap,
+        gpa: normalizedGPA,
+        prevIntern,
+        projectDepth
+      })
+
+      const explanation = {
+        contributions: {
+          overlap: Math.round(skillOverlap * 100),
+          gpa: Math.round(normalizedGPA * 100),
+          prevIntern: prevIntern ? 100 : 0,
+          projectDepth: Math.round(projectDepth * 100)
+        },
+        missingSkills
+      }
+
+      return {
+        id: job.id,
+        title: job.title,
+        company: job.company,
+        city: job.city,
+        description: job.description,
+        skills: jobSkills,
+        hireScore,
+        apply_url: job.apply_url,
+        explanation
+      }
+    })
 
     return new Response(
       JSON.stringify({ jobs: jobMatches }),
