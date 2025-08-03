@@ -33,15 +33,7 @@ interface Job {
   description: string;
   skills: string[];
   apply_url: string;
-  explanation: {
-    contributions: {
-      overlap: number;
-      gpa: number;
-      prevIntern: number;
-      projectDepth: number;
-    };
-    missingSkills: string[];
-  };
+  explanationLines: string[];
 }
 
 interface StudentDashboardProps {
@@ -364,20 +356,13 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
                                       <TooltipTrigger>
                                         <Info className="h-4 w-4 text-muted-foreground hover:text-foreground" />
                                       </TooltipTrigger>
-                                      <TooltipContent className="max-w-xs text-sm">
-                                        <p><b>Why this score?</b></p>
-                                        <ul className="list-disc ml-4 mt-1">
-                                          <li>Skills overlap: {job.explanation.contributions.overlap}%</li>
-                                          <li>GPA factor: {job.explanation.contributions.gpa}%</li>
-                                          <li>Prev intern: {job.explanation.contributions.prevIntern}%</li>
-                                          <li>Project depth: {job.explanation.contributions.projectDepth}%</li>
+                                      <TooltipContent className="max-w-xs text-sm leading-snug">
+                                        <p className="font-bold mb-1">Why this score?</p>
+                                        <ul className="list-disc ml-4 space-y-1">
+                                          {job.explanationLines.map((line, i) => (
+                                            <li key={i}>{line}</li>
+                                          ))}
                                         </ul>
-                                        {job.explanation.missingSkills.length > 0 && (
-                                          <>
-                                            <p className="mt-2"><b>Boost tips:</b></p>
-                                            <p>Add or highlight: {job.explanation.missingSkills.slice(0,3).join(', ')}.</p>
-                                          </>
-                                        )}
                                       </TooltipContent>
                                     </Tooltip>
                                   </div>
