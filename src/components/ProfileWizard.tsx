@@ -3,10 +3,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchProjectDepth } from "@/lib/githubDepth";
+import { isPhone } from "@/lib/validators";
 
 interface ProfileWizardProps {
   isOpen: boolean;
@@ -19,6 +21,8 @@ export function ProfileWizard({ isOpen, onClose, userId, onComplete }: ProfileWi
   const [gpa, setGpa] = useState("");
   const [hasPrevIntern, setHasPrevIntern] = useState(false);
   const [github, setGithub] = useState("");
+  const [phone, setPhone] = useState("");
+  const [smsOptIn, setSmsOptIn] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
@@ -37,6 +41,17 @@ export function ProfileWizard({ isOpen, onClose, userId, onComplete }: ProfileWi
         return;
       }
 
+      // Validate phone number if provided
+      if (phone && !isPhone(phone)) {
+        toast({
+          title: "Invalid phone number",
+          description: "Please enter a valid US phone number",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        return;
+      }
+
       // Fetch project depth from GitHub
       const projectDepth = await fetchProjectDepth(github);
 
@@ -46,7 +61,9 @@ export function ProfileWizard({ isOpen, onClose, userId, onComplete }: ProfileWi
           gpa: gpa ? gpaValue : null,
           has_prev_intern: hasPrevIntern,
           github: github.trim() || null,
-          project_depth: projectDepth
+          project_depth: projectDepth,
+          phone: phone.trim() || null,
+          sms_opt_in: smsOptIn
         })
         .eq('user_id', userId);
 
@@ -113,6 +130,28 @@ export function ProfileWizard({ isOpen, onClose, userId, onComplete }: ProfileWi
             <p className="text-xs text-muted-foreground">
               We'll analyze your public repositories to calculate project depth
             </p>
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="phone">Phone (optional)</Label>
+            <Input
+              id="phone"
+              type="tel"
+              placeholder="(555) 123-4567"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+            />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="sms-consent"
+              checked={smsOptIn}
+              onCheckedChange={(checked) => setSmsOptIn(checked === true)}
+            />
+            <Label htmlFor="sms-consent" className="text-sm leading-relaxed">
+              I agree to receive SMS about applications/interviews. Msg & data rates may apply.
+            </Label>
           </div>
 
           <div className="flex justify-end space-x-2">

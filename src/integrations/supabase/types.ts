@@ -121,9 +121,11 @@ export type Database = {
           is_international: boolean | null
           major: string | null
           name: string
+          phone: string | null
           project_depth: number | null
           resume_url: string | null
           skills: string[] | null
+          sms_opt_in: boolean | null
           updated_at: string
           user_id: string
         }
@@ -138,9 +140,11 @@ export type Database = {
           is_international?: boolean | null
           major?: string | null
           name: string
+          phone?: string | null
           project_depth?: number | null
           resume_url?: string | null
           skills?: string[] | null
+          sms_opt_in?: boolean | null
           updated_at?: string
           user_id: string
         }
@@ -155,9 +159,11 @@ export type Database = {
           is_international?: boolean | null
           major?: string | null
           name?: string
+          phone?: string | null
           project_depth?: number | null
           resume_url?: string | null
           skills?: string[] | null
+          sms_opt_in?: boolean | null
           updated_at?: string
           user_id?: string
         }
