@@ -115,7 +115,7 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
               <div className="text-muted-foreground">CS Students Matched</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-primary mb-2">5</div>
+              <div className="text-4xl font-bold text-primary mb-2">10+</div>
               <div className="text-muted-foreground">Partner Companies</div>
             </div>
             <div>
