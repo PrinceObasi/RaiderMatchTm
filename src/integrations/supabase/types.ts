@@ -171,35 +171,27 @@ export type Database = {
       }
     }
     Views: {
-      student_application_view: {
-        Row: {
-          application_id: string | null
-          applied_at: string | null
-          email: string | null
-          graduation_year: number | null
-          hire_score: number | null
-          id: string | null
-          job_id: string | null
-          major: string | null
-          name: string | null
-          skills: string[] | null
-          status: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "applications_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "jobs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
+      [_ in never]: never
     }
     Functions: {
       can_view_applicant_data: {
         Args: { application_job_id: string }
         Returns: boolean
+      }
+      get_applicant_info: {
+        Args: { p_job_id: string }
+        Returns: {
+          student_id: string
+          name: string
+          email: string
+          major: string
+          graduation_year: number
+          skills: string[]
+          application_id: string
+          status: string
+          hire_score: number
+          applied_at: string
+        }[]
       }
       match_internships: {
         Args:
