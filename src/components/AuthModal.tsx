@@ -6,7 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { isTTUEmail } from "@/lib/validators";
+import { isTTUEmail, validatePassword } from "@/lib/validators";
+import { PasswordStrengthIndicator } from "@/components/PasswordStrengthIndicator";
 import { supabase } from "@/integrations/supabase/client";
 import { X, Mail, Lock, User, Building } from "lucide-react";
 
@@ -30,9 +31,14 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
   const [showPasswordReset, setShowPasswordReset] = useState(false);
   const { toast } = useToast();
 
+  // Password validation
+  const passwordValidation = validatePassword(password);
+  
   const isStudentInvalidEmail = email.length > 0 && !isTTUEmail(email);
   const isStudentDisabled =
-    isLoading || !firstName || !lastName || !password || isStudentInvalidEmail;
+    isLoading || !firstName || !lastName || !password || !passwordValidation.isValid || isStudentInvalidEmail;
+  const isEmployerDisabled = 
+    isLoading || !company || !email || !password || !passwordValidation.isValid;
 
   if (!isOpen) return null;
 
@@ -41,6 +47,16 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
       toast({
         title: "Missing information",
         description: "Please fill in all required fields.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Password validation for signup only (not login)
+    if (type !== 'login' && !passwordValidation.isValid) {
+      toast({
+        title: "Password requirements not met",
+        description: "Please ensure your password meets all the security requirements.",
         variant: "destructive"
       });
       return;
@@ -373,6 +389,10 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
                     className="pl-10"
                   />
                 </div>
+                <PasswordStrengthIndicator 
+                  password={password} 
+                  validation={passwordValidation}
+                />
               </div>
 
               <div className="flex items-center space-x-2">
@@ -439,11 +459,15 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
                     className="pl-10"
                   />
                 </div>
+                <PasswordStrengthIndicator 
+                  password={password} 
+                  validation={passwordValidation}
+                />
               </div>
 
               <Button 
                 onClick={() => handleSubmit('employer')}
-                disabled={isLoading}
+                disabled={isEmployerDisabled}
                 className="w-full"
                 size="lg"
               >
