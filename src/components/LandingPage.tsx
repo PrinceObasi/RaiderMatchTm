@@ -111,15 +111,15 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
         <div className="container mx-auto px-6">
           <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto text-center">
             <div>
-              <div className="text-4xl font-bold text-primary mb-2">500+</div>
+              <div className="text-4xl font-bold text-primary mb-2">100+</div>
               <div className="text-muted-foreground">CS Students Matched</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-primary mb-2">50+</div>
+              <div className="text-4xl font-bold text-primary mb-2">5</div>
               <div className="text-muted-foreground">Partner Companies</div>
             </div>
             <div>
-              <div className="text-4xl font-bold text-primary mb-2">85%</div>
+              <div className="text-4xl font-bold text-primary mb-2">65%</div>
               <div className="text-muted-foreground">Interview Rate</div>
             </div>
           </div>
