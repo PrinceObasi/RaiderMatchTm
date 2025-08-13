@@ -118,7 +118,8 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
         email,
         password,
         options: { 
-          data: userMetadata
+          data: userMetadata,
+          emailRedirectTo: `${window.location.origin}/`
         }
       });
       
