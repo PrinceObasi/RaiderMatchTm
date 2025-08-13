@@ -171,9 +171,36 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      student_application_view: {
+        Row: {
+          application_id: string | null
+          applied_at: string | null
+          email: string | null
+          graduation_year: number | null
+          hire_score: number | null
+          id: string | null
+          job_id: string | null
+          major: string | null
+          name: string | null
+          skills: string[] | null
+          status: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "applications_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
+      can_view_applicant_data: {
+        Args: { application_job_id: string }
+        Returns: boolean
+      }
       match_internships: {
         Args:
           | { student_skills: string[] }
