@@ -18,12 +18,16 @@ interface JobApplicantsProps {
 }
 
 interface Application {
-  id: string;
+  student_id: string;
+  name: string;
+  email: string;
+  major: string | null;
+  graduation_year: number | null;
+  skills: string[] | null;
+  application_id: string;
+  status: string;
   hire_score: number | null;
   applied_at: string;
-  user_id: string;
-  student_name?: string;
-  student_resume_url?: string | null;
 }
 
 export function JobApplicants({ job, open, onClose }: JobApplicantsProps) {
@@ -40,33 +44,13 @@ export function JobApplicants({ job, open, onClose }: JobApplicantsProps) {
   const loadApplications = async () => {
     setLoading(true);
     try {
-      // First get applications
-      const { data: applications, error: appsError } = await supabase
-        .from('applications')
-        .select('id, hire_score, applied_at, user_id')
-        .eq('job_id', job.id)
-        .order('hire_score', { ascending: false });
+      // Use the secure function to get applicant info
+      const { data: applicants, error } = await supabase
+        .rpc('get_applicant_info', { p_job_id: job.id });
 
-      if (appsError) throw appsError;
+      if (error) throw error;
 
-      // Then get student details for each application
-      const enrichedApplications = await Promise.all(
-        (applications || []).map(async (app) => {
-          const { data: student } = await supabase
-            .from('students')
-            .select('name, resume_url')
-            .eq('user_id', app.user_id)
-            .single();
-
-          return {
-            ...app,
-            student_name: student?.name || 'Unknown',
-            student_resume_url: student?.resume_url || null
-          };
-        })
-      );
-
-      setApplications(enrichedApplications);
+      setApplications(applicants || []);
     } catch (error) {
       console.error('Error loading applications:', error);
       toast({
@@ -100,10 +84,10 @@ export function JobApplicants({ job, open, onClose }: JobApplicantsProps) {
           ) : (
             <div className="space-y-3">
               {applications.map((app) => (
-                <Card key={app.id} className="border hover:shadow-sm transition-colors">
+                <Card key={app.application_id} className="border hover:shadow-sm transition-colors">
                   <CardContent className="p-4">
                     <div className="flex items-center justify-between mb-2">
-                      <h4 className="font-medium">{app.student_name}</h4>
+                      <h4 className="font-medium">{app.name}</h4>
                       {app.hire_score !== null && (
                         <Badge className="bg-primary text-primary-foreground">
                           {Math.round(app.hire_score)}
@@ -111,24 +95,37 @@ export function JobApplicants({ job, open, onClose }: JobApplicantsProps) {
                       )}
                     </div>
                     
-                    <div className="flex items-center gap-1 text-xs text-muted-foreground mb-3">
-                      <Calendar className="h-3 w-3" />
-                      Applied {format(new Date(app.applied_at), 'MMM d, yyyy')}
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                        <Calendar className="h-3 w-3" />
+                        Applied {format(new Date(app.applied_at), 'MMM d, yyyy')}
+                      </div>
+                      {app.major && (
+                        <span className="text-xs text-muted-foreground">{app.major}</span>
+                      )}
                     </div>
-                    
-                    {app.student_resume_url && (
-                      <Button asChild size="sm" variant="secondary" className="w-full">
-                        <a 
-                          href={app.student_resume_url} 
-                          target="_blank" 
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2"
-                        >
-                          <ExternalLink className="h-3 w-3" />
-                          View Resume
-                        </a>
-                      </Button>
+
+                    {app.skills && app.skills.length > 0 && (
+                      <div className="flex flex-wrap gap-1 mb-3">
+                        {app.skills.slice(0, 3).map((skill, index) => (
+                          <Badge key={index} variant="secondary" className="text-xs">
+                            {skill}
+                          </Badge>
+                        ))}
+                        {app.skills.length > 3 && (
+                          <Badge variant="secondary" className="text-xs">
+                            +{app.skills.length - 3} more
+                          </Badge>
+                        )}
+                      </div>
                     )}
+                    
+                    <Button size="sm" variant="secondary" className="w-full">
+                      <span className="flex items-center gap-2">
+                        <ExternalLink className="h-3 w-3" />
+                        Contact: {app.email}
+                      </span>
+                    </Button>
                   </CardContent>
                 </Card>
               ))}
