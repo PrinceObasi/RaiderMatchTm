@@ -7,7 +7,7 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "12.2.12 (cd3cf9e)"
@@ -181,30 +181,30 @@ export type Database = {
       get_applicant_info: {
         Args: { p_job_id: string }
         Returns: {
-          student_id: string
-          name: string
-          email: string
-          major: string
-          graduation_year: number
-          skills: string[]
           application_id: string
-          status: string
-          hire_score: number
           applied_at: string
+          email: string
+          graduation_year: number
+          hire_score: number
+          major: string
+          name: string
+          skills: string[]
+          status: string
+          student_id: string
         }[]
       }
       match_internships: {
         Args:
+          | { is_international?: boolean; student_skills: string[] }
           | { student_skills: string[] }
-          | { student_skills: string[]; is_international?: boolean }
         Returns: {
-          id: string
-          title: string
-          company: string
           city: string
+          company: string
           description: string
-          skills: string[]
+          id: string
           similarity: number
+          skills: string[]
+          title: string
         }[]
       }
     }

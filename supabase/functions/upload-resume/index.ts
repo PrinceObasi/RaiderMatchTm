@@ -137,6 +137,15 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Check file size (max 4MB)
+    const maxSize = 4 * 1024 * 1024 // 4MB in bytes
+    if (file.size > maxSize) {
+      return new Response(
+        JSON.stringify({ error: 'File size must be less than 4MB' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Read file content
     const arrayBuffer = await file.arrayBuffer()
     
@@ -148,8 +157,8 @@ Deno.serve(async (req) => {
 
     console.log('Extracted skills:', skills)
 
-    // Upload file to Supabase Storage
-    const fileName = `${user.id}/${Date.now()}-${file.name}`
+    // Upload file to Supabase Storage with standardized path
+    const fileName = `${user.id}/resume.pdf`
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('resumes')
       .upload(fileName, arrayBuffer, {
