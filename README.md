@@ -1,10 +1,10 @@
 # RaiderMatch - Texas Tech Internship Matching Platform
 
-**Upload résumé, get matched—no spam.**
+**Upload résumé, get matched.**
 
 RaiderMatch is an intelligent internship matching platform designed specifically for Texas Tech Computer Science students. Our algorithm analyzes resumes and returns exactly three internship matches ranked by HireScore (0-100), making it easier than ever to find the perfect internship opportunity.
 
-## 🚀 Features
+## Features
 
 ### For Students
 - **One-click resume upload** (PDF format)
@@ -33,7 +33,7 @@ RaiderMatch is an intelligent internship matching platform designed specifically
 - **Icons**: Lucide React
 - **Styling**: Custom design system with Texas Tech Red theme
 
-## 🎨 Design System
+## Design System
 
 RaiderMatch features a professional design system built around Texas Tech's brand colors:
 
@@ -47,15 +47,15 @@ RaiderMatch features a professional design system built around Texas Tech's bran
 
 This is a fully functional frontend MVP with:
 
-- ✅ Landing page with clear value proposition
-- ✅ Student dashboard with resume upload simulation
-- ✅ Employer dashboard with job posting and candidate management
-- ✅ Authentication modal system
-- ✅ Mock data and simulated API interactions
-- ✅ Responsive design optimized for all devices
-- ✅ Professional UI with Texas Tech branding
+- Landing page with clear value proposition
+- Student dashboard with resume upload simulation
+- Employer dashboard with job posting and candidate management
+- Authentication modal system
+- Mock data and simulated API interactions
+- Responsive design optimized for all devices
+- Professional UI with Texas Tech branding
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Node.js (version 16 or higher)
@@ -82,7 +82,7 @@ This is a fully functional frontend MVP with:
 4. **Open your browser**
    Navigate to `http://localhost:8080`
 
-## 📧 Email Setup
+## Email Setup
 
 1. Copy `.env.example` to `.env.local` and set `RESEND_API_KEY`:
    ```bash
@@ -98,7 +98,7 @@ supabase functions deploy notify_employer
 
 Or via Supabase Dashboard → Edge Functions → Settings → Secrets → add RESEND_API_KEY.
 
-## 🔮 Next Steps for Full Implementation
+## Next Steps for Full Implementation
 
 To complete the full-stack implementation, you would need to:
 
@@ -186,13 +186,13 @@ CREATE TABLE applications (
    - View candidate applications and HireScores
    - Send interview invitations
 
-## 🎯 Core Value Proposition
+## Core Value Proposition
 
 **For Students**: "Upload your resume and get perfect internship matches ranked by how likely you are to get hired - no spam, no endless scrolling."
 
 **For Employers**: "See only the most qualified candidates for your internships, pre-ranked by our algorithm so you can focus on the best fits."
 
-## 🏗 Architecture Notes
+## Architecture Notes
 
 - **Component Structure**: Modular React components with clear separation of concerns
 - **State Management**: Local state with hooks, ready for global state management
@@ -200,10 +200,10 @@ CREATE TABLE applications (
 - **Styling**: Utility-first CSS with Tailwind and semantic design tokens
 - **Performance**: Optimized for fast loading and smooth interactions
 
-## 📞 Support
+## Support
 
-For questions about RaiderMatch or Texas Tech CS internship opportunities, please contact the CS department or the platform administrators.
+For questions about RaiderMatch or Texas Tech CS internship opportunities, please contact the founder Prince Onyedikachi Emeka-Obasi (premekao@ttu.edu) on his ttech email.
 
 ---
 
-**Built with ❤️ for Texas Tech Red Raiders**
+**Built for Texas Tech Red Raiders**
