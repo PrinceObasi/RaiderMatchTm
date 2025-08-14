@@ -27,7 +27,7 @@ export function ApplicationList() {
           id,
           applied_at,
           status,
-          jobs (
+          jobs!job_id (
             title,
             company,
             city
