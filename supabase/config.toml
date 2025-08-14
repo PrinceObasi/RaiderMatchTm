@@ -5,3 +5,6 @@ verify_jwt = true
 
 [functions.match]
 verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true

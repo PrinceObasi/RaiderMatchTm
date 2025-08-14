@@ -22,7 +22,8 @@ import {
   User,
   LogOut,
   ClipboardList,
-  Info
+  Info,
+  Settings2
 } from "lucide-react";
 import { renderSafeHTML } from "@/lib/sanitize";
 
@@ -40,9 +41,10 @@ interface Job {
 
 interface StudentDashboardProps {
   onLogout: () => void;
+  onOpenSettings: () => void;
 }
 
-export function StudentDashboard({ onLogout }: StudentDashboardProps) {
+export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardProps) {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
@@ -242,6 +244,10 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
             <Badge variant="secondary" className="text-sm">
               GPA: {studentGPA}
             </Badge>
+            <Button variant="ghost" onClick={onOpenSettings} size="sm">
+              <Settings2 className="h-4 w-4" />
+              Settings
+            </Button>
             <Button variant="ghost" onClick={onLogout} size="sm">
               <LogOut className="h-4 w-4" />
               Sign Out

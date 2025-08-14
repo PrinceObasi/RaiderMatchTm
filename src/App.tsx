@@ -7,6 +7,7 @@ import { LandingPage } from "./components/LandingPage";
 import { StudentDashboard } from "./components/StudentDashboard";
 import { EmployerDashboard } from "./components/EmployerDashboard";
 import { AuthModal } from "./components/AuthModal";
+import { Settings } from "./components/Settings";
 
 const queryClient = new QueryClient();
 
@@ -14,6 +15,7 @@ type UserType = 'student' | 'employer' | null;
 
 const App = () => {
   const [user, setUser] = useState<UserType>(null);
+  const [currentView, setCurrentView] = useState<'main' | 'settings'>('main');
   const [authModal, setAuthModal] = useState<{
     isOpen: boolean;
     defaultTab: 'student' | 'employer' | 'login';
@@ -41,15 +43,40 @@ const App = () => {
 
   const handleLogout = () => {
     setUser(null);
+    setCurrentView('main');
+  };
+
+  const handleAccountDeleted = () => {
+    setUser(null);
+    setCurrentView('main');
   };
 
   const renderCurrentView = () => {
+    if (currentView === 'settings' && user) {
+      return (
+        <Settings 
+          userType={user} 
+          onAccountDeleted={handleAccountDeleted}
+        />
+      );
+    }
+
     if (user === 'student') {
-      return <StudentDashboard onLogout={handleLogout} />;
+      return (
+        <StudentDashboard 
+          onLogout={handleLogout} 
+          onOpenSettings={() => setCurrentView('settings')}
+        />
+      );
     }
     
     if (user === 'employer') {
-      return <EmployerDashboard onLogout={handleLogout} />;
+      return (
+        <EmployerDashboard 
+          onLogout={handleLogout}
+          onOpenSettings={() => setCurrentView('settings')}
+        />
+      );
     }
 
     return (

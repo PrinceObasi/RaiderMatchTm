@@ -26,7 +26,8 @@ import {
   MapPin,
   ExternalLink,
   CalendarIcon,
-  Eye
+  Eye,
+  Settings2
 } from "lucide-react";
 
 interface Job {
@@ -51,9 +52,10 @@ interface Job {
 
 interface EmployerDashboardProps {
   onLogout: () => void;
+  onOpenSettings: () => void;
 }
 
-export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
+export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboardProps) {
   const [jobs, setJobs] = useState<Job[]>([]);
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedJob, setSelectedJob] = useState<{ id: string; title: string } | null>(null);
@@ -240,10 +242,16 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
             </div>
           </div>
           
-          <Button variant="ghost" onClick={onLogout} size="sm">
-            <LogOut className="h-4 w-4" />
-            Sign Out
-          </Button>
+          <div className="flex items-center space-x-2">
+            <Button variant="ghost" onClick={onOpenSettings} size="sm">
+              <Settings2 className="h-4 w-4" />
+              Settings
+            </Button>
+            <Button variant="ghost" onClick={onLogout} size="sm">
+              <LogOut className="h-4 w-4" />
+              Sign Out
+            </Button>
+          </div>
         </div>
       </header>
 
