@@ -24,6 +24,7 @@ import {
   ClipboardList,
   Info
 } from "lucide-react";
+import { renderSafeHTML } from "@/lib/sanitize";
 
 interface Job {
   id: string;
@@ -390,7 +391,17 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
                                 </div>
                               </div>
                               
-                              <p className="text-muted-foreground mb-4">{job.description}</p>
+                              {(() => {
+                                const safeHTML = renderSafeHTML(job.description);
+                                return safeHTML ? (
+                                  <p 
+                                    className="text-muted-foreground mb-4"
+                                    dangerouslySetInnerHTML={safeHTML}
+                                  />
+                                ) : (
+                                  <p className="text-muted-foreground mb-4">{job.description}</p>
+                                );
+                              })()}
                               
                               <Button 
                                 onClick={() => handleApply(job.id, job.apply_url, job.hireScore)}
