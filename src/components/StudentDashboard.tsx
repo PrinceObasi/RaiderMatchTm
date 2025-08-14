@@ -166,45 +166,55 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
         description: 'The employer did not provide a valid URL.',
         variant: 'destructive'
       });
-      return; // skip DB insert in this edge-case
-    }
-
-    // 2️⃣ THEN record the application
-    const applicationData = {
-      user_id: session.user.id,
-      job_id: jobId,
-      hire_score: hireScore
-    };
-
-    // Validate data before inserting
-    ApplicationSchema.parse(applicationData);
-
-    const { error } = await supabase
-      .from('applications')
-      .insert(applicationData);
-
-    if (error) {
-      // 23505 = unique_violation in Postgres
-      if (error.code === '23505') {
-        toast({
-          title: 'Already applied',
-          description: 'You\'ve already logged an application for this job.',
-          variant: 'destructive'
-        });
-      } else {
-        toast({
-          title: 'Application failed',
-          description: error.message,
-          variant: 'destructive'
-        });
-      }
       return;
     }
 
-    toast({ 
-      title: 'Application logged', 
-      description: 'Good luck!' 
-    });
+    // 2️⃣ Use Edge Function to record application with rate limiting
+    try {
+      const { data, error } = await supabase.functions.invoke('apply', {
+        body: {
+          job_id: jobId,
+          hire_score: hireScore,
+          apply_url: applyUrl
+        }
+      });
+
+      if (error) {
+        // Handle rate limiting
+        if (error.message?.includes('Rate limit')) {
+          toast({
+            title: 'Too many applications',
+            description: 'Please wait a minute before applying to more jobs.',
+            variant: 'destructive'
+          });
+        } else if (error.message?.includes('Already applied')) {
+          toast({
+            title: 'Already applied',
+            description: 'You\'ve already applied to this job.',
+            variant: 'destructive'
+          });
+        } else {
+          toast({
+            title: 'Application failed',
+            description: error.message || 'Failed to record application',
+            variant: 'destructive'
+          });
+        }
+        return;
+      }
+
+      toast({ 
+        title: 'Application logged', 
+        description: 'Good luck!' 
+      });
+    } catch (error) {
+      console.error('Application error:', error);
+      toast({
+        title: 'Application failed',
+        description: 'Failed to record application. Please try again.',
+        variant: 'destructive'
+      });
+    }
   };
 
   const getScoreColor = (score: number) => {
