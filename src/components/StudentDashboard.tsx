@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ApplicationList } from "./ApplicationList";
 import { ProfileWizard } from "./ProfileWizard";
+import { ApplicationSchema } from "@/lib/schemas";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { 
   Upload, 
@@ -169,13 +170,18 @@ export function StudentDashboard({ onLogout }: StudentDashboardProps) {
     }
 
     // 2️⃣ THEN record the application
+    const applicationData = {
+      user_id: session.user.id,
+      job_id: jobId,
+      hire_score: hireScore
+    };
+
+    // Validate data before inserting
+    ApplicationSchema.parse(applicationData);
+
     const { error } = await supabase
       .from('applications')
-      .insert({
-        user_id: session.user.id,
-        job_id: jobId,
-        hire_score: hireScore
-      });
+      .insert(applicationData);
 
     if (error) {
       // 23505 = unique_violation in Postgres

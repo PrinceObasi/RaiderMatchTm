@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { fetchProjectDepth } from "@/lib/githubDepth";
 import { isPhone } from "@/lib/validators";
+import { StudentUpdateSchema } from "@/lib/schemas";
 
 interface ProfileWizardProps {
   isOpen: boolean;
@@ -55,16 +56,22 @@ export function ProfileWizard({ isOpen, onClose, userId, onComplete }: ProfileWi
       // Fetch project depth from GitHub
       const projectDepth = await fetchProjectDepth(github);
 
+      // Validate update data with Zod
+      const updateData = {
+        gpa: gpa ? gpaValue : null,
+        has_prev_intern: hasPrevIntern,
+        github: github.trim() || null,
+        project_depth: projectDepth,
+        phone: phone.trim() || null,
+        sms_opt_in: smsOptIn
+      };
+
+      // Validate data before updating
+      StudentUpdateSchema.parse(updateData);
+
       const { error } = await supabase
         .from('students')
-        .update({
-          gpa: gpa ? gpaValue : null,
-          has_prev_intern: hasPrevIntern,
-          github: github.trim() || null,
-          project_depth: projectDepth,
-          phone: phone.trim() || null,
-          sms_opt_in: smsOptIn
-        })
+        .update(updateData)
         .eq('user_id', userId);
 
       if (error) throw error;

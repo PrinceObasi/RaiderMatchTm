@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { isTTUEmail, validatePassword } from "@/lib/validators";
 import { PasswordStrengthIndicator } from "@/components/PasswordStrengthIndicator";
 import { supabase } from "@/integrations/supabase/client";
+import { StudentCreateSchema } from "@/lib/schemas";
 import { X, Mail, Lock, User, Building } from "lucide-react";
 
 interface AuthModalProps {
@@ -173,16 +174,22 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
             
           // Only create profile if it doesn't exist
           if (!existingStudent) {
+            // Validate and create student profile
+            const profileData = {
+              user_id: user.id,
+              name: `${firstName} ${lastName}`,
+              email: user.email!,
+              resume_url: '',
+              skills: [],
+              is_international: isInternational
+            };
+
+            // Validate data before inserting
+            StudentCreateSchema.parse(profileData);
+
             const { error: insertError } = await supabase
               .from('students')
-              .insert({
-                user_id: user.id,
-                email: user.email,
-                name: `${firstName} ${lastName}`,
-                resume_url: '',
-                skills: [],
-                is_international: isInternational
-              });
+              .insert(profileData);
             
             if (insertError) {
               toast({ title: 'Profile creation failed', description: insertError.message, variant: 'destructive' });

@@ -14,6 +14,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { JobApplicants } from "@/components/JobApplicants";
+import { JobCreateSchema, JobUpdateSchema } from "@/lib/schemas";
 import { 
   Plus, 
   Building, 
@@ -140,20 +141,26 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.user) throw new Error('Not authenticated');
 
-      const { error } = await supabase.from('jobs').insert({
+      // Validate job data with Zod
+      const jobData = {
         employer_id: session.session.user.id,
         title: newJob.title,
-        description: newJob.description,
-        city: newJob.location,
         company: session.session.user.user_metadata?.company || 'Unknown Company',
+        city: newJob.location,
+        description: newJob.description,
         apply_url: newJob.applyUrl.trim().toLowerCase(),
         opens_at: newJob.opensAt.toISOString().split('T')[0],
         closes_at: newJob.closesAt?.toISOString().split('T')[0] || null,
         is_active: true,
-        type: 'internship',
+        sponsors_visa: newJob.sponsorsVisa,
         skills: [],
-        sponsors_visa: newJob.sponsorsVisa
-      });
+        type: 'internship'
+      };
+
+      // Validate data before inserting
+      JobCreateSchema.parse(jobData);
+
+      const { error } = await supabase.from('jobs').insert(jobData);
 
       if (error) throw error;
 
@@ -187,9 +194,13 @@ export function EmployerDashboard({ onLogout }: EmployerDashboardProps) {
 
   const toggleJobActive = async (jobId: string, currentStatus: boolean) => {
     try {
+      // Validate update data
+      const updateData = { is_active: !currentStatus };
+      JobUpdateSchema.parse(updateData);
+      
       const { error } = await supabase
         .from('jobs')
-        .update({ is_active: !currentStatus })
+        .update(updateData)
         .eq('id', jobId);
 
       if (error) throw error;
