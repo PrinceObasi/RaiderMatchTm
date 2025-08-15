@@ -35,7 +35,7 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
             <span className="text-primary">get matched</span>
           </h1>
           <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-            RaiderMatch connects Texas Tech CS students with top internship opportunities 
+            RaiderMatch™ connects Texas Tech CS students with top internship opportunities 
             through intelligent matching. Get your perfect fit in seconds.
           </p>
           
@@ -64,7 +64,7 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
       {/* How It Works */}
       <section className="py-20 bg-muted/30">
         <div className="container mx-auto px-6">
-          <h2 className="text-3xl font-bold text-center mb-12">How RaiderMatch Works</h2>
+          <h2 className="text-3xl font-bold text-center mb-12">How RaiderMatch™ Works</h2>
           
           <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
             <Card>
@@ -131,7 +131,7 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
         <div className="container mx-auto px-6 text-center">
           <h2 className="text-4xl font-bold mb-6">Ready to Find Your Perfect Internship?</h2>
           <p className="text-xl mb-8 text-muted-foreground max-w-2xl mx-auto">
-            Join hundreds of Texas Tech CS students who've found their dream internships through RaiderMatch.
+            Join hundreds of Texas Tech CS students who've found their dream internships through RaiderMatch™.
           </p>
           <Button 
             size="lg" 
@@ -148,7 +148,7 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
         <div className="container mx-auto px-6 text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
             <Star className="h-6 w-6 text-primary" />
-            <span className="text-lg font-semibold">RaiderMatch</span>
+            <span className="text-lg font-semibold">RaiderMatch<span className="align-super text-[0.6em] ml-0.5">™</span></span>
           </div>
           <p className="text-muted-foreground">
             Built for Texas Tech Computer Science Students

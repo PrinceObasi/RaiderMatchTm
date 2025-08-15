@@ -250,7 +250,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
 
         <CardHeader>
           <CardTitle className="text-center text-2xl font-bold">
-            Welcome to RaiderMatch
+            Welcome to RaiderMatch<span className="align-super text-[0.6em] ml-0.5">™</span>
           </CardTitle>
         </CardHeader>
 

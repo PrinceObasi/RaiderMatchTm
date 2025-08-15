@@ -13,7 +13,7 @@ export function Header({ onStudentSignup, onEmployerSignup, onLogin }: HeaderPro
       <div className="container mx-auto px-6 h-16 flex items-center justify-between">
         <div className="flex items-center space-x-2">
           <GraduationCap className="h-8 w-8 text-primary" />
-          <span className="text-2xl font-bold text-primary">RaiderMatch</span>
+          <span className="text-2xl font-bold text-primary">RaiderMatch<span className="align-super text-[0.6em] ml-0.5">™</span></span>
         </div>
         
         <div className="flex items-center space-x-4">
