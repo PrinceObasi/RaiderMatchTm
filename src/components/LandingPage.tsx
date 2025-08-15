@@ -28,18 +28,15 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
       />
       
       {/* Hero Section */}
-      <section className="relative py-20 px-6">
-        <div className="container mx-auto text-center max-w-4xl">
-          <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold leading-tight text-balance mb-6">
-            Upload résumé,{" "}
-            <span className="text-primary">get matched</span>
+      <section className="container mx-auto px-4 sm:px-6 py-10 sm:py-16">
+        <div className="text-center max-w-4xl mx-auto">
+          <h1 className="text-4xl sm:text-6xl font-extrabold leading-tight text-balance mb-6">
+            Upload résumé, <span className="text-primary">get matched</span>
           </h1>
-          <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-relaxed">
-            RaiderMatch™ connects Texas Tech CS students with top internship opportunities 
-            through intelligent matching. Get your perfect fit in seconds.
+          <p className="mt-3 sm:mt-4 max-w-prose text-base sm:text-lg text-muted-foreground mb-8 mx-auto">
+            RaiderMatch™ connects Texas Tech CS students with top internship opportunities through intelligent matching.
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
+          <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <Button 
               size="lg" 
               onClick={onStudentSignup}

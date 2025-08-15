@@ -330,16 +330,16 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
           {/* Main Content with Tabs */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="matches" className="w-full">
-              <div className="flex gap-2 overflow-x-auto sm:overflow-visible">
-                <TabsList className="grid w-full grid-cols-2 shrink-0">
-                <TabsTrigger value="matches" className="flex items-center gap-2">
-                  <Target className="h-4 w-4" />
-                  Matches ({matches.length})
-                </TabsTrigger>
-                <TabsTrigger value="applications" className="flex items-center gap-2">
-                  <ClipboardList className="h-4 w-4" />
-                  My Applications
-                </TabsTrigger>
+              <div className="flex gap-2 overflow-x-auto sm:overflow-visible px-1">
+                <TabsList className="flex shrink-0 gap-2">
+                  <TabsTrigger value="matches" className="shrink-0 flex items-center gap-2">
+                    <Target className="h-4 w-4" />
+                    Matches ({matches.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="applications" className="shrink-0 flex items-center gap-2">
+                    <ClipboardList className="h-4 w-4" />
+                    My Applications
+                  </TabsTrigger>
                 </TabsList>
               </div>
               
@@ -356,10 +356,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                       <div className="space-y-4 sm:space-y-6">
                         {matches.map((job) => (
                            <Card key={job.id} className="border hover:shadow-md transition-smooth">
-                             <CardContent className="p-4 sm:p-6">
-                               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
-                                 <div className="flex-1">
-                                   <h3 className="text-lg sm:text-xl font-semibold leading-tight mb-1">{job.title}</h3>
+                              <CardContent className="p-4 sm:p-6">
+                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                                  <div className="flex-1">
+                                    <h3 className="text-lg sm:text-xl font-semibold leading-tight mb-1">{job.title}</h3>
                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                      <div className="flex items-center gap-1">
                                        <Building className="h-4 w-4" />
@@ -397,26 +397,28 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                  </div>
                                </div>
                               
-                               {(() => {
-                                 const safeHTML = renderSafeHTML(job.description);
-                                 return safeHTML ? (
-                                   <p 
-                                     className="text-muted-foreground mb-4 line-clamp-3 sm:line-clamp-none"
-                                     dangerouslySetInnerHTML={safeHTML}
-                                   />
-                                 ) : (
-                                   <p className="text-muted-foreground mb-4 line-clamp-3 sm:line-clamp-none">{job.description}</p>
-                                 );
-                               })()}
-                              
-                               <Button 
-                                 onClick={() => handleApply(job.id, job.apply_url, job.hireScore)}
-                                 className="w-full sm:w-auto h-11"
-                                 size="lg"
-                               >
-                                <ExternalLink className="h-4 w-4" />
-                                Apply Now
-                              </Button>
+                                {(() => {
+                                  const safeHTML = renderSafeHTML(job.description);
+                                  return safeHTML ? (
+                                    <p 
+                                      className="mt-2 text-sm sm:text-base text-muted-foreground line-clamp-3 sm:line-clamp-none mb-4"
+                                      dangerouslySetInnerHTML={safeHTML}
+                                    />
+                                  ) : (
+                                    <p className="mt-2 text-sm sm:text-base text-muted-foreground line-clamp-3 sm:line-clamp-none mb-4">{job.description}</p>
+                                  );
+                                })()}
+                               
+                                <div className="mt-4">
+                                  <Button 
+                                    onClick={() => handleApply(job.id, job.apply_url, job.hireScore)}
+                                    className="w-full sm:w-auto h-11"
+                                    size="lg"
+                                  >
+                                   <ExternalLink className="h-4 w-4" />
+                                   Apply Now
+                                 </Button>
+                                </div>
                             </CardContent>
                           </Card>
                         ))}
