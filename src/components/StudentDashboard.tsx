@@ -230,7 +230,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
+        <div className="container mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-4">
             <Target className="h-8 w-8 text-primary" />
             <div>
@@ -239,17 +239,17 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
             </div>
           </div>
           
-          <div className="flex items-center space-x-4">
-            <Badge variant="secondary" className="text-sm">
+          <div className="flex items-center gap-2 sm:gap-4">
+            <Badge variant="secondary" className="hidden sm:inline-flex text-xs sm:text-sm">
               GPA: {studentGPA}
             </Badge>
-            <Button variant="ghost" onClick={onOpenSettings} size="sm">
-              <Settings2 className="h-4 w-4" />
-              Settings
+            <Button variant="ghost" onClick={onOpenSettings} size="sm" className="text-xs sm:text-sm">
+              <Settings2 className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Settings</span>
             </Button>
-            <Button variant="ghost" onClick={onLogout} size="sm">
-              <LogOut className="h-4 w-4" />
-              Sign Out
+            <Button variant="ghost" onClick={onLogout} size="sm" className="text-xs sm:text-sm">
+              <LogOut className="h-4 w-4 sm:mr-2" />
+              <span className="hidden sm:inline">Sign Out</span>
             </Button>
           </div>
         </div>

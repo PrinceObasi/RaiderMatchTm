@@ -91,17 +91,19 @@ const App = () => {
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        
-        {renderCurrentView()}
-        
-        <AuthModal
-          isOpen={authModal.isOpen}
-          onClose={() => setAuthModal({ ...authModal, isOpen: false })}
-          defaultTab={authModal.defaultTab}
-          onSuccess={handleAuthSuccess}
-        />
+        <div className="min-h-screen overflow-x-hidden bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+          <Toaster />
+          <Sonner />
+          
+          {renderCurrentView()}
+          
+          <AuthModal
+            isOpen={authModal.isOpen}
+            onClose={() => setAuthModal({ ...authModal, isOpen: false })}
+            defaultTab={authModal.defaultTab}
+            onSuccess={handleAuthSuccess}
+          />
+        </div>
       </TooltipProvider>
     </QueryClientProvider>
   );
