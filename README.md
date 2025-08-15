@@ -23,7 +23,7 @@ RaiderMatch is an intelligent internship matching platform designed specifically
 - **Application tracking** and interview rate analytics
 - **Platform usage statistics**
 
-## 🛠 Technology Stack
+## Technology Stack
 
 - **Frontend**: React 18 + TypeScript + Tailwind CSS
 - **Build Tool**: Vite
@@ -43,7 +43,7 @@ RaiderMatch features a professional design system built around Texas Tech's bran
 - **Animations**: Smooth transitions and hover effects
 - **Responsive**: Mobile-first design approach
 
-## 📋 Current Implementation
+## Current Implementation
 
 This is a fully functional frontend MVP with:
 
