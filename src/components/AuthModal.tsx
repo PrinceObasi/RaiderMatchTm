@@ -237,8 +237,9 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <Card className="w-full max-w-md card-shadow relative">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 overflow-y-auto">
+      <div className="min-h-screen flex items-center justify-center p-4">
+        <Card className="w-full max-w-sm sm:max-w-md mx-4 my-6 card-shadow relative">
         <Button
           variant="ghost"
           size="icon"
@@ -254,9 +255,9 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
           </CardTitle>
         </CardHeader>
 
-        <CardContent>
+        <CardContent className="p-4 sm:p-6">
           <Tabs defaultValue={defaultTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3">
+            <TabsList className="grid w-full grid-cols-3 text-xs sm:text-sm">
               <TabsTrigger value="login">Sign In</TabsTrigger>
               <TabsTrigger value="student">Student</TabsTrigger>
               <TabsTrigger value="employer">Employer</TabsTrigger>
@@ -296,7 +297,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
               <Button 
                 onClick={() => handleSubmit('login')}
                 disabled={isLoading}
-                className="w-full"
+                className="w-full sm:w-auto"
                 size="lg"
               >
                 {isLoading ? "Signing in..." : "Sign In"}
@@ -417,7 +418,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
               <Button 
                 onClick={() => handleSubmit('student')}
                 disabled={isStudentDisabled}
-                className="w-full"
+                className="w-full sm:w-auto"
                 size="lg"
               >
                 {isLoading ? "Creating account..." : "Create Student Account"}
@@ -476,7 +477,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
               <Button 
                 onClick={() => handleSubmit('employer')}
                 disabled={isEmployerDisabled}
-                className="w-full"
+                className="w-full sm:w-auto"
                 size="lg"
               >
                 {isLoading ? "Creating account..." : "Create Employer Account"}
@@ -484,7 +485,8 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
             </TabsContent>
           </Tabs>
         </CardContent>
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

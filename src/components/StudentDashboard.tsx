@@ -10,7 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ApplicationList } from "./ApplicationList";
 import { ProfileWizard } from "./ProfileWizard";
 import { ApplicationSchema } from "@/lib/schemas";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   Upload, 
   RefreshCw, 
@@ -227,7 +227,6 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   };
 
   return (
-    <TooltipProvider>
       <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur">
@@ -256,8 +255,8 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
         </div>
       </header>
 
-      <div className="container mx-auto px-6 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
+      <div className="container mx-auto px-4 sm:px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-[360px,1fr] gap-4 sm:gap-6">
           {/* Resume Upload Section */}
           <div className="lg:col-span-1">
             <Card className="card-shadow">
@@ -267,7 +266,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                   Resume
                 </CardTitle>
               </CardHeader>
-              <CardContent className="space-y-4">
+              <CardContent className="p-4 sm:p-6 space-y-4">
                 <div>
                   <Label htmlFor="resume">Upload Resume (PDF)</Label>
                   <Input
@@ -331,7 +330,8 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
           {/* Main Content with Tabs */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="matches" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <div className="flex gap-2 overflow-x-auto sm:overflow-visible">
+                <TabsList className="grid w-full grid-cols-2 shrink-0">
                 <TabsTrigger value="matches" className="flex items-center gap-2">
                   <Target className="h-4 w-4" />
                   Matches ({matches.length})
@@ -340,7 +340,8 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                   <ClipboardList className="h-4 w-4" />
                   My Applications
                 </TabsTrigger>
-              </TabsList>
+                </TabsList>
+              </div>
               
               <TabsContent value="matches" className="mt-6">
                 <Card className="card-shadow">
@@ -352,68 +353,67 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                         <p>Upload your resume and click "Refresh Matches" to find perfect internships!</p>
                       </div>
                     ) : (
-                      <div className="space-y-4">
+                      <div className="space-y-4 sm:space-y-6">
                         {matches.map((job) => (
-                          <Card key={job.id} className="border hover:shadow-md transition-smooth">
-                            <CardContent className="p-6">
-                              <div className="flex items-start justify-between mb-4">
-                                <div className="flex-1">
-                                  <h3 className="text-lg font-semibold mb-1">{job.title}</h3>
-                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                    <div className="flex items-center gap-1">
-                                      <Building className="h-4 w-4" />
-                                      {job.company}
-                                    </div>
-                                    <div className="flex items-center gap-1">
-                                      <MapPin className="h-4 w-4" />
-                                      {job.city}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="text-right">
-                                  <div className="flex items-center gap-2">
-                                    <div className="text-2xl font-bold text-primary">
-                                      {job.hireScore}
-                                    </div>
-                                    <Tooltip>
-                                      <TooltipTrigger>
-                                        <Info className="h-4 w-4 text-muted-foreground hover:text-foreground" />
-                                      </TooltipTrigger>
-                                      <TooltipContent className="max-w-xs text-sm leading-snug">
-                                        <p className="font-bold mb-1">Why this score?</p>
-                                        <ul className="list-disc ml-4 space-y-1">
-                                          {job.explanationLines.map((line, i) => (
-                                            <li key={i}>{line}</li>
-                                          ))}
-                                        </ul>
-                                      </TooltipContent>
-                                    </Tooltip>
-                                  </div>
-                                  <Badge 
-                                    className={`${getScoreColor(job.hireScore)} text-white`}
-                                  >
-                                    HireScore
-                                  </Badge>
-                                </div>
-                              </div>
+                           <Card key={job.id} className="border hover:shadow-md transition-smooth">
+                             <CardContent className="p-4 sm:p-6">
+                               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+                                 <div className="flex-1">
+                                   <h3 className="text-lg sm:text-xl font-semibold leading-tight mb-1">{job.title}</h3>
+                                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                     <div className="flex items-center gap-1">
+                                       <Building className="h-4 w-4" />
+                                       {job.company}
+                                     </div>
+                                     <div className="flex items-center gap-1">
+                                       <MapPin className="h-4 w-4" />
+                                       {job.city}
+                                     </div>
+                                   </div>
+                                 </div>
+                                 <div className="flex items-center gap-4 sm:flex-col sm:text-right">
+                                   <div className="flex items-center gap-2">
+                                     <div className="text-2xl font-bold text-primary">
+                                       {job.hireScore}
+                                     </div>
+                                     <Badge 
+                                       className={`${getScoreColor(job.hireScore)} text-white`}
+                                     >
+                                       HireScore
+                                     </Badge>
+                                   </div>
+                                   <Popover>
+                                     <PopoverTrigger className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-2 hover:underline">
+                                       Why this score?
+                                     </PopoverTrigger>
+                                     <PopoverContent className="w-72 sm:w-96 text-sm">
+                                       <ul className="list-disc pl-4 space-y-1">
+                                         {job.explanationLines.map((line, i) => (
+                                           <li key={i}>{line}</li>
+                                         ))}
+                                       </ul>
+                                     </PopoverContent>
+                                   </Popover>
+                                 </div>
+                               </div>
                               
-                              {(() => {
-                                const safeHTML = renderSafeHTML(job.description);
-                                return safeHTML ? (
-                                  <p 
-                                    className="text-muted-foreground mb-4"
-                                    dangerouslySetInnerHTML={safeHTML}
-                                  />
-                                ) : (
-                                  <p className="text-muted-foreground mb-4">{job.description}</p>
-                                );
-                              })()}
+                               {(() => {
+                                 const safeHTML = renderSafeHTML(job.description);
+                                 return safeHTML ? (
+                                   <p 
+                                     className="text-muted-foreground mb-4 line-clamp-3 sm:line-clamp-none"
+                                     dangerouslySetInnerHTML={safeHTML}
+                                   />
+                                 ) : (
+                                   <p className="text-muted-foreground mb-4 line-clamp-3 sm:line-clamp-none">{job.description}</p>
+                                 );
+                               })()}
                               
-                              <Button 
-                                onClick={() => handleApply(job.id, job.apply_url, job.hireScore)}
-                                className="w-full"
-                                size="lg"
-                              >
+                               <Button 
+                                 onClick={() => handleApply(job.id, job.apply_url, job.hireScore)}
+                                 className="w-full sm:w-auto h-11"
+                                 size="lg"
+                               >
                                 <ExternalLink className="h-4 w-4" />
                                 Apply Now
                               </Button>
@@ -459,6 +459,5 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
         }}
       />
     </div>
-    </TooltipProvider>
   );
 }

@@ -30,7 +30,7 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
       {/* Hero Section */}
       <section className="relative py-20 px-6">
         <div className="container mx-auto text-center max-w-4xl">
-          <h1 className="text-5xl md:text-6xl font-bold text-foreground mb-6 leading-tight">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-extrabold leading-tight text-balance mb-6">
             Upload résumé,{" "}
             <span className="text-primary">get matched</span>
           </h1>
@@ -39,11 +39,11 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
             through intelligent matching. Get your perfect fit in seconds.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
             <Button 
               size="lg" 
               onClick={onStudentSignup}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto h-11"
             >
               <Upload className="h-5 w-5" />
               Upload Résumé & Get Matched
@@ -52,7 +52,7 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
               variant="outline" 
               size="lg" 
               onClick={onEmployerSignup}
-              className="w-full sm:w-auto"
+              className="w-full sm:w-auto h-11"
             >
               <Building className="h-5 w-5" />
               Post Internships
