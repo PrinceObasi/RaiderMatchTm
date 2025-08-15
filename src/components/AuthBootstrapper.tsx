@@ -1,14 +1,13 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { ensureStudentProfile } from "@/lib/ensureProfile";
 
 export function AuthBootstrapper() {
   useEffect(() => {
-    const sub = supabase.auth.onAuthStateChange(async (event) => {
-      if (event === "SIGNED_IN") await ensureStudentProfile();
+    // Simple auth state listener - no need to manually create profiles
+    // The database trigger handles student profile creation automatically
+    const sub = supabase.auth.onAuthStateChange(() => {
+      // Just listen for auth changes, trigger handles the rest
     });
-
-    ensureStudentProfile(); // handle refresh with existing session
 
     return () => sub.data.subscription.unsubscribe();
   }, []);
