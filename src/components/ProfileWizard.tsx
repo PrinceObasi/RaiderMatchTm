@@ -97,7 +97,7 @@ export function ProfileWizard({ isOpen, onClose, userId, onComplete }: ProfileWi
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="w-full sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Complete Your Profile</DialogTitle>
         </DialogHeader>
@@ -161,11 +161,11 @@ export function ProfileWizard({ isOpen, onClose, userId, onComplete }: ProfileWi
             </Label>
           </div>
 
-          <div className="flex justify-end space-x-2">
-            <Button variant="outline" onClick={onClose}>
+          <div className="flex flex-col sm:flex-row justify-end gap-2">
+            <Button variant="outline" onClick={onClose} className="h-11 min-w-[44px]">
               Skip for now
             </Button>
-            <Button onClick={handleSave} disabled={isLoading}>
+            <Button onClick={handleSave} disabled={isLoading} className="h-11 min-w-[44px]">
               {isLoading ? "Saving..." : "Save Profile"}
             </Button>
           </div>

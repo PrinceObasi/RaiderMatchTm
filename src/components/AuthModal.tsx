@@ -238,19 +238,18 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 overflow-y-auto">
-      <div className="min-h-screen flex items-center justify-center p-4">
-        <Card className="w-full max-w-sm sm:max-w-md mx-4 my-6 card-shadow relative">
+      <Card className="w-full max-w-sm sm:max-w-md mx-4 my-6 card-shadow relative">
         <Button
           variant="ghost"
           size="icon"
           onClick={onClose}
-          className="absolute right-2 top-2 z-10"
+          className="absolute right-2 top-2 z-10 h-11 min-w-[44px]"
         >
           <X className="h-4 w-4" />
         </Button>
 
         <CardHeader>
-          <CardTitle className="text-center text-2xl font-bold">
+          <CardTitle className="text-center text-xl sm:text-2xl font-bold">
             Welcome to RaiderMatch<span className="align-super text-[0.6em] ml-0.5">™</span>
           </CardTitle>
         </CardHeader>
@@ -297,7 +296,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
               <Button 
                 onClick={() => handleSubmit('login')}
                 disabled={isLoading}
-                className="w-full sm:w-auto"
+                className="w-full h-11 min-w-[44px]"
                 size="lg"
               >
                 {isLoading ? "Signing in..." : "Sign In"}
@@ -323,6 +322,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
                       onClick={handlePasswordReset}
                       disabled={isLoading}
                       size="sm"
+                      className="h-11 min-w-[44px]"
                     >
                       {isLoading ? "Sending..." : "Send Reset Email"}
                     </Button>
@@ -330,6 +330,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
                       variant="outline"
                       onClick={() => setShowPasswordReset(false)}
                       size="sm"
+                      className="h-11 min-w-[44px]"
                     >
                       Cancel
                     </Button>
@@ -418,7 +419,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
               <Button 
                 onClick={() => handleSubmit('student')}
                 disabled={isStudentDisabled}
-                className="w-full sm:w-auto"
+                className="w-full h-11 min-w-[44px]"
                 size="lg"
               >
                 {isLoading ? "Creating account..." : "Create Student Account"}
@@ -477,7 +478,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
               <Button 
                 onClick={() => handleSubmit('employer')}
                 disabled={isEmployerDisabled}
-                className="w-full sm:w-auto"
+                className="w-full h-11 min-w-[44px]"
                 size="lg"
               >
                 {isLoading ? "Creating account..." : "Create Employer Account"}
@@ -486,7 +487,6 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
           </Tabs>
         </CardContent>
         </Card>
-      </div>
     </div>
   );
 }
