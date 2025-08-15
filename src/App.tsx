@@ -9,6 +9,7 @@ import { StudentDashboard } from "./components/StudentDashboard";
 import { EmployerDashboard } from "./components/EmployerDashboard";
 import { AuthModal } from "./components/AuthModal";
 import { Settings } from "./components/Settings";
+import { AuthBootstrapper } from "./components/AuthBootstrapper";
 
 const queryClient = new QueryClient();
 
@@ -95,6 +96,7 @@ const App = () => {
         <div className="min-h-screen overflow-x-hidden bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
           <Toaster />
           <Sonner />
+          <AuthBootstrapper />
           
           {renderCurrentView()}
           

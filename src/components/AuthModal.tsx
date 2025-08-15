@@ -113,7 +113,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
       onClose();
     } else {
       const userMetadata = type === 'student'
-        ? { first_name: firstName, last_name: lastName, role: 'student' }
+        ? { first_name: firstName, last_name: lastName, role: 'student', is_international: isInternational }
         : { company, role: 'employer' };
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -138,65 +138,13 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
         return;
       }
 
-      // Insert student record for student users
-      if (type === 'student' && data.user) {
-        const user = data.user;
-        
-        // Check if we have a valid session after signup
-        let currentSession = data.session;
-        if (!currentSession) {
-          // If no session from signup (user already exists), try to sign in
-          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-            email,
-            password
-          });
-          
-          if (signInError) {
-            toast({ 
-              title: 'Account exists but login failed', 
-              description: 'Your account exists but we could not sign you in. Please use the "Sign In" tab or reset your password.', 
-              variant: 'destructive' 
-            });
-            return;
-          }
-          
-          currentSession = signInData.session;
-        }
-        
-        // Only proceed if we have a valid session
-        if (currentSession) {
-          // Check if student profile already exists
-          const { data: existingStudent } = await supabase
-            .from('students')
-            .select('id')
-            .eq('user_id', user.id)
-            .single();
-            
-          // Only create profile if it doesn't exist
-          if (!existingStudent) {
-            // Validate and create student profile
-            const profileData = {
-              user_id: user.id,
-              name: `${firstName} ${lastName}`,
-              email: user.email!,
-              resume_url: '',
-              skills: [],
-              is_international: isInternational
-            };
-
-            // Validate data before inserting
-            StudentCreateSchema.parse(profileData);
-
-            const { error: insertError } = await supabase
-              .from('students')
-              .insert(profileData);
-            
-            if (insertError) {
-              toast({ title: 'Profile creation failed', description: insertError.message, variant: 'destructive' });
-              return;
-            }
-          }
-        }
+      // Show confirmation message for students to check email
+      if (type === 'student') {
+        toast({ 
+          title: 'Account created!', 
+          description: "Check your TTU inbox to confirm your account.",
+          variant: 'default'
+        });
       }
       
       onSuccess(type);
