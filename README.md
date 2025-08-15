@@ -202,7 +202,7 @@ CREATE TABLE applications (
 
 ## Support
 
-For questions about RaiderMatch or Texas Tech CS internship opportunities, please contact the founder Prince Onyedikachi Emeka-Obasi (premekao@ttu.edu) on his ttech email.
+For questions about RaiderMatch or Texas Tech CS internship opportunities, please contact the founder, Prince Onyedikachi Emeka-Obasi (premekao@ttu.edu) on his email.
 
 ---
 
