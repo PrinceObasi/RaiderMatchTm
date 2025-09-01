@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,6 +10,7 @@ import { EmployerDashboard } from "./components/EmployerDashboard";
 import { AuthModal } from "./components/AuthModal";
 import { Settings } from "./components/Settings";
 import { AuthBootstrapper } from "./components/AuthBootstrapper";
+import { AdminImport } from "./components/AdminImport";
 
 const queryClient = new QueryClient();
 
@@ -17,7 +18,7 @@ type UserType = 'student' | 'employer' | null;
 
 const App = () => {
   const [user, setUser] = useState<UserType>(null);
-  const [currentView, setCurrentView] = useState<'main' | 'settings'>('main');
+  const [currentView, setCurrentView] = useState<'main' | 'settings' | 'admin'>('main');
   const [authModal, setAuthModal] = useState<{
     isOpen: boolean;
     defaultTab: 'student' | 'employer' | 'login';
@@ -53,7 +54,31 @@ const App = () => {
     setCurrentView('main');
   };
 
+  // Check for admin access via URL hash
+  useEffect(() => {
+    const checkAdminAccess = () => {
+      if (window.location.hash === '#admin') {
+        setCurrentView('admin');
+        // Clear the hash to avoid bookmarking
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    };
+
+    checkAdminAccess();
+    window.addEventListener('hashchange', checkAdminAccess);
+    
+    return () => window.removeEventListener('hashchange', checkAdminAccess);
+  }, []);
+
   const renderCurrentView = () => {
+    if (currentView === 'admin') {
+      return (
+        <AdminImport 
+          onBack={() => setCurrentView('main')}
+        />
+      );
+    }
+
     if (currentView === 'settings' && user) {
       return (
         <Settings 
