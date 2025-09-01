@@ -56,6 +56,66 @@ export type Database = {
           },
         ]
       }
+      internships: {
+        Row: {
+          apply_url: string | null
+          category: string | null
+          company: string
+          created_at: string | null
+          date_posted: string | null
+          deadline: string | null
+          employment_type: string | null
+          id: string
+          is_texas: boolean | null
+          last_checked_utc: string | null
+          location: string | null
+          notes: string | null
+          remote_flag: boolean | null
+          role_title: string | null
+          source_url: string | null
+          sponsorship_flag: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          apply_url?: string | null
+          category?: string | null
+          company: string
+          created_at?: string | null
+          date_posted?: string | null
+          deadline?: string | null
+          employment_type?: string | null
+          id?: string
+          is_texas?: boolean | null
+          last_checked_utc?: string | null
+          location?: string | null
+          notes?: string | null
+          remote_flag?: boolean | null
+          role_title?: string | null
+          source_url?: string | null
+          sponsorship_flag?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          apply_url?: string | null
+          category?: string | null
+          company?: string
+          created_at?: string | null
+          date_posted?: string | null
+          deadline?: string | null
+          employment_type?: string | null
+          id?: string
+          is_texas?: boolean | null
+          last_checked_utc?: string | null
+          location?: string | null
+          notes?: string | null
+          remote_flag?: boolean | null
+          role_title?: string | null
+          source_url?: string | null
+          sponsorship_flag?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       jobs: {
         Row: {
           apply_url: string | null
