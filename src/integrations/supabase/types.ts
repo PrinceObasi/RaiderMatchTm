@@ -58,6 +58,7 @@ export type Database = {
       }
       internships: {
         Row: {
+          application_link: string
           apply_url: string | null
           category: string | null
           company: string
@@ -72,11 +73,15 @@ export type Database = {
           notes: string | null
           remote_flag: boolean | null
           role_title: string | null
+          search_tsv: unknown | null
           source_url: string | null
           sponsorship_flag: string | null
+          tech_stack: string[] | null
           updated_at: string | null
+          visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
         }
         Insert: {
+          application_link?: string
           apply_url?: string | null
           category?: string | null
           company: string
@@ -91,11 +96,15 @@ export type Database = {
           notes?: string | null
           remote_flag?: boolean | null
           role_title?: string | null
+          search_tsv?: unknown | null
           source_url?: string | null
           sponsorship_flag?: string | null
+          tech_stack?: string[] | null
           updated_at?: string | null
+          visa_sponsorship?: Database["public"]["Enums"]["visa_sponsorship_status"]
         }
         Update: {
+          application_link?: string
           apply_url?: string | null
           category?: string | null
           company?: string
@@ -110,9 +119,12 @@ export type Database = {
           notes?: string | null
           remote_flag?: boolean | null
           role_title?: string | null
+          search_tsv?: unknown | null
           source_url?: string | null
           sponsorship_flag?: string | null
+          tech_stack?: string[] | null
           updated_at?: string | null
+          visa_sponsorship?: Database["public"]["Enums"]["visa_sponsorship_status"]
         }
         Relationships: []
       }
@@ -276,7 +288,7 @@ export type Database = {
       }
     }
     Enums: {
-      [_ in never]: never
+      visa_sponsorship_status: "Yes" | "No" | "Unspecified"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -403,6 +415,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      visa_sponsorship_status: ["Yes", "No", "Unspecified"],
+    },
   },
 } as const
