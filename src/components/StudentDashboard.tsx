@@ -49,36 +49,77 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [isUploading, setIsUploading] = useState(false);
   const [isMatching, setIsMatching] = useState(false);
   const [matches, setMatches] = useState<Job[]>([]);
-  const [hasResume, setHasResume] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
+  const [student, setStudent] = useState<any>(null);
+  const [resumeAnalyzed, setResumeAnalyzed] = useState(false);
   const [showProfileWizard, setShowProfileWizard] = useState(false);
   const { toast } = useToast();
 
-  // Load user profile
+  // Auto-load matches function
+  const loadMatches = async (studentData?: any, forceLoad = false) => {
+    const currentStudent = studentData || student;
+    if (!currentStudent?.id || (!resumeAnalyzed && !forceLoad)) return;
+    
+    setIsMatching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('match');
+      if (error) throw error;
+
+      setMatches(data.jobs || []);
+      toast({
+        title: "Matches loaded!",
+        description: `Found ${data.jobs?.length || 0} internship matches for you.`,
+      });
+    } catch (error) {
+      console.error('Matching error:', error);
+      toast({
+        title: "Matching failed",
+        description: "Failed to load matches. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsMatching(false);
+    }
+  };
+
+  // Initialize profile and auto-load matches
   useEffect(() => {
-    const loadProfile = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        const { data: profile, error } = await supabase
-          .from('students')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single();
-        
-        if (error) {
-          console.error('Error loading profile:', error);
-        } else {
-          setProfile(profile);
-          setHasResume(!!profile.resume_url);
-        }
+    const init = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      
+      const { data: s, error } = await supabase
+        .from('students')
+        .select('*')
+        .eq('user_id', user.id)
+        .single();
+      
+      if (error) {
+        console.error('Error loading profile:', error);
+        return;
+      }
+      
+      setStudent(s);
+      const hasResumeData = !!(s?.resume_url || (s?.skills?.length ?? 0) > 0);
+      setResumeAnalyzed(hasResumeData);
+      
+      // Auto-load matches if resume is already analyzed
+      if (hasResumeData) {
+        await loadMatches(s, true);
       }
     };
     
-    loadProfile();
+    init();
+    
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(() => {
+      init();
+    });
+    
+    return () => subscription?.unsubscribe();
   }, []);
 
-  const studentName = profile?.name || "Student";
-  const studentGPA = profile?.graduation_year ? `Class of ${profile.graduation_year}` : "TTU Student";
+  const studentName = student?.name || "Student";
+  const studentGPA = student?.graduation_year ? `Class of ${student.graduation_year}` : "TTU Student";
 
   const handleResumeUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -104,7 +145,23 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
 
       if (error) throw error;
 
-      setHasResume(true);
+      // Update states and reload student data
+      setResumeAnalyzed(true);
+      
+      // Reload student data to get updated skills/resume_url
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: updatedStudent } = await supabase
+          .from('students')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        setStudent(updatedStudent);
+        
+        // Auto-load matches after successful upload
+        await loadMatches(updatedStudent);
+      }
+
       toast({
         title: "Resume uploaded successfully!",
         description: `Found ${data.skills?.length || 0} skills. Your resume has been analyzed and stored.`,
@@ -123,7 +180,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   };
 
   const handleRefreshMatches = async () => {
-    if (!hasResume) {
+    if (!resumeAnalyzed) {
       toast({
         title: "Upload resume first",
         description: "Please upload your resume to get matches.",
@@ -132,28 +189,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       return;
     }
 
-    setIsMatching(true);
-
-    try {
-      const { data, error } = await supabase.functions.invoke('match');
-
-      if (error) throw error;
-
-      setMatches(data.jobs || []);
-      toast({
-        title: "Matches found!",
-        description: `Found ${data.jobs?.length || 0} perfect internship matches for you.`,
-      });
-    } catch (error) {
-      console.error('Matching error:', error);
-      toast({
-        title: "Matching failed",
-        description: "Failed to find matches. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsMatching(false);
-    }
+    await loadMatches();
   };
 
   const handleApply = async (jobId: string, applyUrl: string, hireScore?: number) => {
@@ -286,7 +322,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                   </div>
                 )}
 
-                {hasResume && (
+                {resumeAnalyzed && (
                   <div className="flex items-center gap-2 text-sm text-success">
                     <FileText className="h-4 w-4" />
                     Resume uploaded and analyzed
@@ -296,7 +332,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                 <div className="space-y-2">
                   <Button 
                     onClick={handleRefreshMatches}
-                    disabled={!hasResume || isMatching}
+                    disabled={!resumeAnalyzed || isMatching}
                     className="w-full"
                     size="lg"
                   >
@@ -443,18 +479,18 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       <ProfileWizard 
         isOpen={showProfileWizard}
         onClose={() => setShowProfileWizard(false)}
-        userId={profile?.user_id || ''}
+        userId={student?.user_id || ''}
         onComplete={() => {
-          // Reload profile after completion
+          // Reload student profile after completion
           const loadProfile = async () => {
             const { data: { session } } = await supabase.auth.getSession();
             if (session?.user) {
-              const { data: updatedProfile } = await supabase
+              const { data: updatedStudent } = await supabase
                 .from('students')
                 .select('*')
                 .eq('user_id', session.user.id)
                 .single();
-              setProfile(updatedProfile);
+              setStudent(updatedStudent);
             }
           };
           loadProfile();
