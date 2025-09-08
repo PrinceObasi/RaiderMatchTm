@@ -315,6 +315,8 @@ export type Database = {
           description: string
           hire_score: number
           id: string
+          missing_skills: string[]
+          overlap: number
           skills: string[]
           title: string
         }[]

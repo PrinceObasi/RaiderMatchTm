@@ -13,45 +13,21 @@ interface Factors {
   missingSkills: string[];
 }
 
-function buildExplanation(f: Factors) {
+function toExplanation(job: { overlap: number; missing_skills?: string[] }) {
   const lines: string[] = [];
-
-  // 1. Skills
-  if (f.overlap > 0.8) {
-    lines.push('Your résumé covers most core skills listed.');
-  } else if (f.overlap > 0.5) {
-    lines.push('You match some key skills, but could highlight more.');
+  
+  if (job.overlap >= 0.75) {
+    lines.push('Your skills overlap strongly with this role.');
+  } else if (job.overlap >= 0.4) {
+    lines.push('You match some of the core skills.');
   } else {
-    lines.push('Few required skills appear in your résumé.');
+    lines.push('Few listed skills appear in your résumé.');
   }
 
-  // 2. Missing-skill tip
-  if (f.missingSkills.length) {
-    lines.push(
-      `Try adding: ${f.missingSkills.slice(0,3).join(', ')}.`
-    );
+  if (job.missing_skills?.length) {
+    lines.push(`Boost tip: add or highlight ${job.missing_skills.slice(0, 3).join(', ')}.`);
   }
-
-  // 3. GPA
-  if (f.gpa >= 0.9) lines.push('Strong GPA boosts your score.');
-  else if (f.gpa >= 0.7) lines.push('GPA is solid but not standout.');
-  else lines.push('Low GPA lowers your match quality.');
-
-  // 4. Internship history
-  lines.push(
-    f.prevIntern
-      ? 'Prior internship experience is a big plus.'
-      : 'No prior internship—companies may prefer proven interns.'
-  );
-
-  // 5. Project depth
-  if (f.projectDepth >= 0.7)
-    lines.push('GitHub projects show substantial real-world code.');
-  else if (f.projectDepth >= 0.3)
-    lines.push('Projects are OK—adding larger repos would help.');
-  else
-    lines.push('Lack of visible projects hurts your profile.');
-
+  
   return lines;
 }
 
@@ -64,6 +40,8 @@ interface JobMatch {
   skills: string[]
   hireScore: number
   apply_url: string
+  overlap: number
+  missing_skills: string[]
   explanationLines: string[]
 }
 
@@ -129,7 +107,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Use the new working match_jobs function
+    // Use the new working match_jobs function with coaching data
     const { data: jobs, error: jobsError } = await supabase.rpc('match_jobs', {
       p_student_id: studentData.id
     })
@@ -142,31 +120,11 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Convert the new match_jobs function results and compute explainable hire score
+    // Convert the new match_jobs function results with coaching
     const jobMatches: JobMatch[] = jobs.map((job: any) => {
-      const jobSkills = job.skills || []
-      // Use the hire_score from the database function (0-100) and convert to 0-1 for explanation
-      const skillOverlap = (job.hire_score || 0) / 100
-      const normalizedGPA = normalizeGPA(studentData.gpa || 0)
-      const prevIntern = studentData.has_prev_intern || false
-      const projectDepth = studentData.project_depth || 0
-
-      const missingSkills = jobSkills.filter(skill => 
-        !studentSkills.some(studentSkill => 
-          studentSkill.toLowerCase().includes(skill.toLowerCase()) ||
-          skill.toLowerCase().includes(studentSkill.toLowerCase())
-        )
-      )
-
-      // Use the computed hire score from the database function
-      const hireScore = job.hire_score || 0
-
-      const explanationLines = buildExplanation({
-        overlap: skillOverlap,
-        gpa: normalizedGPA,
-        prevIntern,
-        projectDepth,
-        missingSkills
+      const explanationLines = toExplanation({
+        overlap: job.overlap || 0,
+        missing_skills: job.missing_skills || []
       })
 
       return {
@@ -175,9 +133,11 @@ Deno.serve(async (req) => {
         company: job.company,
         city: job.city,
         description: job.description,
-        skills: jobSkills,
-        hireScore,
+        skills: job.skills || [],
+        hireScore: job.hire_score || 0,
         apply_url: job.application_url,
+        overlap: job.overlap || 0,
+        missing_skills: job.missing_skills || [],
         explanationLines
       }
     })

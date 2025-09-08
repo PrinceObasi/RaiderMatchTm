@@ -26,6 +26,7 @@ import {
   Settings2
 } from "lucide-react";
 import { renderSafeHTML } from "@/lib/sanitize";
+import { toExplanation } from "@/lib/jobCoaching";
 
 interface Job {
   id: string;
@@ -36,6 +37,8 @@ interface Job {
   description: string;
   skills: string[];
   apply_url: string;
+  overlap?: number;
+  missing_skills?: string[];
   explanationLines: string[];
 }
 
