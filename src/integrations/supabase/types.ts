@@ -250,7 +250,27 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      jobs_for_app: {
+        Row: {
+          application_url: string | null
+          city: string | null
+          closes_at: string | null
+          company: string | null
+          created_at: string | null
+          description: string | null
+          id: string | null
+          is_active: boolean | null
+          opens_at: string | null
+          skills: string[] | null
+          title: string | null
+          type: string | null
+          updated_at: string | null
+          visa_sponsorship:
+            | Database["public"]["Enums"]["visa_sponsorship_status"]
+            | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       can_view_applicant_data: {
@@ -282,6 +302,19 @@ export type Database = {
           description: string
           id: string
           similarity: number
+          skills: string[]
+          title: string
+        }[]
+      }
+      match_jobs: {
+        Args: { p_student_id: string }
+        Returns: {
+          application_url: string
+          city: string
+          company: string
+          description: string
+          hire_score: number
+          id: string
           skills: string[]
           title: string
         }[]
