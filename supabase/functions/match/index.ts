@@ -38,7 +38,6 @@ interface JobMatch {
   city: string
   description: string
   skills: string[]
-  hireScore: number
   apply_url: string
   overlap: number
   missing_skills: string[]
@@ -134,7 +133,6 @@ Deno.serve(async (req) => {
         city: job.city,
         description: job.description,
         skills: job.skills || [],
-        hireScore: job.hire_score || 0,
         apply_url: job.application_url,
         overlap: job.overlap || 0,
         missing_skills: job.missing_skills || [],

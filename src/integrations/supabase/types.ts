@@ -313,7 +313,6 @@ export type Database = {
           city: string
           company: string
           description: string
-          hire_score: number
           id: string
           missing_skills: string[]
           overlap: number

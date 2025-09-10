@@ -33,7 +33,6 @@ interface Job {
   title: string;
   company: string;
   city: string;
-  hireScore: number;
   description: string;
   skills: string[];
   apply_url: string;
@@ -195,7 +194,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     await loadMatches();
   };
 
-  const handleApply = async (jobId: string, applyUrl: string, hireScore?: number) => {
+  const handleApply = async (jobId: string, applyUrl: string) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
@@ -216,7 +215,6 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       const { data, error } = await supabase.functions.invoke('apply', {
         body: {
           job_id: jobId,
-          hire_score: hireScore,
           apply_url: applyUrl
         }
       });
@@ -259,11 +257,6 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     }
   };
 
-  const getScoreColor = (score: number) => {
-    if (score >= 90) return "bg-green-500";
-    if (score >= 80) return "bg-yellow-500";
-    return "bg-blue-500";
-  };
 
   return (
       <div className="min-h-screen bg-background">
@@ -410,30 +403,20 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                      </div>
                                    </div>
                                  </div>
-                                 <div className="flex items-center gap-4 sm:flex-col sm:text-right">
-                                   <div className="flex items-center gap-2">
-                                     <div className="text-2xl font-bold text-primary">
-                                       {job.hireScore}
-                                     </div>
-                                     <Badge 
-                                       className={`${getScoreColor(job.hireScore)} text-white`}
-                                     >
-                                       HireScore
-                                     </Badge>
-                                   </div>
-                                   <Popover>
-                                     <PopoverTrigger className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-2 hover:underline">
-                                       Why this score?
-                                     </PopoverTrigger>
-                                     <PopoverContent className="w-72 sm:w-96 text-sm">
-                                       <ul className="list-disc pl-4 space-y-1">
-                                         {job.explanationLines.map((line, i) => (
-                                           <li key={i}>{line}</li>
-                                         ))}
-                                       </ul>
-                                     </PopoverContent>
-                                   </Popover>
-                                 </div>
+                                  <div className="flex items-center gap-4 sm:flex-col sm:text-right">
+                                    <Popover>
+                                      <PopoverTrigger className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-2 hover:underline">
+                                        Job insights
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-72 sm:w-96 text-sm">
+                                        <ul className="list-disc pl-4 space-y-1">
+                                          {job.explanationLines.map((line, i) => (
+                                            <li key={i}>{line}</li>
+                                          ))}
+                                        </ul>
+                                      </PopoverContent>
+                                    </Popover>
+                                  </div>
                                </div>
                               
                                 {(() => {
@@ -449,11 +432,11 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                 })()}
                                
                                 <div className="mt-4">
-                                  <Button 
-                                    onClick={() => handleApply(job.id, job.apply_url, job.hireScore)}
-                                    className="w-full sm:w-auto h-11"
-                                    size="lg"
-                                  >
+                                   <Button 
+                                     onClick={() => handleApply(job.id, job.apply_url)}
+                                     className="w-full sm:w-auto h-11"
+                                     size="lg"
+                                   >
                                    <ExternalLink className="h-4 w-4" />
                                    Apply Now
                                  </Button>
