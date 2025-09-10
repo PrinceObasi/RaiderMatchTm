@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ApplicationList } from "./ApplicationList";
 import { ProfileWizard } from "./ProfileWizard";
 import { InternshipSearch } from "./InternshipSearch";
+import { InternshipResults } from "./InternshipResults";
 import { ApplicationSchema } from "@/lib/schemas";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
@@ -26,7 +27,8 @@ import {
   Info,
   Settings2,
   Eye,
-  Trash2
+  Trash2,
+  Search
 } from "lucide-react";
 import { renderSafeHTML } from "@/lib/sanitize";
 import { toExplanation } from "@/lib/jobCoaching";
@@ -45,6 +47,24 @@ interface Job {
   explanationLines: string[];
 }
 
+interface Internship {
+  id: string;
+  company: string;
+  role_title: string;
+  location: string;
+  tech_stack: string[];
+  visa_sponsorship: string;
+  application_link: string;
+  apply_url: string;
+}
+
+interface SearchFilters {
+  keyword: string;
+  locations: string[];
+  visaSponsorship: "any" | "yes" | "no";
+  techStack: string[];
+}
+
 interface StudentDashboardProps {
   onLogout: () => void;
   onOpenSettings: () => void;
@@ -59,6 +79,9 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [student, setStudent] = useState<any>(null);
   const [resumeAnalyzed, setResumeAnalyzed] = useState(false);
   const [showProfileWizard, setShowProfileWizard] = useState(false);
+  const [searchResults, setSearchResults] = useState<Internship[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [hasSearched, setHasSearched] = useState(false);
   const { toast } = useToast();
 
   // Auto-load matches function
@@ -259,6 +282,60 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
         description: 'Failed to record application. Please try again.',
         variant: 'destructive'
       });
+    }
+  };
+
+  const handleSearch = async (filters: SearchFilters) => {
+    setIsSearching(true);
+    setHasSearched(true);
+    
+    try {
+      let query = supabase
+        .from('internships')
+        .select('id, company, role_title, location, tech_stack, visa_sponsorship, application_link, apply_url')
+        .order('date_posted', { ascending: false });
+
+      // Apply keyword filter using full-text search
+      if (filters.keyword) {
+        query = query.textSearch('search_tsv', filters.keyword);
+      }
+
+      // Apply location filter
+      if (filters.locations.length > 0) {
+        query = query.in('location', filters.locations);
+      }
+
+      // Apply visa sponsorship filter
+      if (filters.visaSponsorship !== 'any') {
+        const visaValue = filters.visaSponsorship === 'yes' ? 'Yes' : filters.visaSponsorship === 'no' ? 'No' : 'Unspecified';
+        query = query.eq('visa_sponsorship', visaValue);
+      }
+
+      // Apply tech stack filter
+      if (filters.techStack.length > 0) {
+        query = query.overlaps('tech_stack', filters.techStack);
+      }
+
+      const { data, error } = await query.limit(50);
+
+      if (error) throw error;
+
+      setSearchResults(data || []);
+      
+      toast({
+        title: "Search completed",
+        description: `Found ${data?.length || 0} internships matching your criteria.`,
+      });
+    } catch (error) {
+      console.error('Search error:', error);
+      toast({
+        title: "Search failed",
+        description: "Failed to search internships. Please try again.",
+        variant: "destructive"
+      });
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -487,16 +564,20 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <InternshipSearch />
+                <InternshipSearch onFiltersChange={handleSearch} />
               </CardContent>
             </Card>
           </div>
 
           {/* Right Column: Main Content with Tabs */}
           <div>
-            <Tabs defaultValue="matches" className="w-full">
+            <Tabs defaultValue={hasSearched ? "search" : "matches"} className="w-full">
               <div className="flex gap-2 overflow-x-auto sm:overflow-visible px-1">
                 <TabsList className="flex shrink-0 gap-2">
+                  <TabsTrigger value="search" className="shrink-0 flex items-center gap-2">
+                    <Search className="h-4 w-4" />
+                    Search Results ({searchResults.length})
+                  </TabsTrigger>
                   <TabsTrigger value="matches" className="shrink-0 flex items-center gap-2">
                     <Target className="h-4 w-4" />
                     Matches ({matches.length})
@@ -507,6 +588,14 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                   </TabsTrigger>
                 </TabsList>
               </div>
+              
+              <TabsContent value="search" className="mt-6">
+                <InternshipResults 
+                  internships={searchResults}
+                  isLoading={isSearching}
+                  onApply={handleApply}
+                />
+              </TabsContent>
               
               <TabsContent value="matches" className="mt-6">
                 <Card className="card-shadow">
