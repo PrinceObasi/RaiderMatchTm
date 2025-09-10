@@ -85,7 +85,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const { toast } = useToast();
 
   // Auto-load matches function
-  const loadMatches = async (studentData?: any, forceLoad = false) => {
+  const loadMatches = async (studentData?: any, forceLoad = false, showSuccessToast = false) => {
     const currentStudent = studentData || student;
     if (!currentStudent?.id || (!resumeAnalyzed && !forceLoad)) return;
     
@@ -95,10 +95,12 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       if (error) throw error;
 
       setMatches(data.jobs || []);
-      toast({
-        title: "Matches loaded!",
-        description: `Found ${data.jobs?.length || 0} internship matches for you.`,
-      });
+      if (showSuccessToast) {
+        toast({
+          title: "Matches loaded!",
+          description: `Found ${data.jobs?.length || 0} internship matches for you.`,
+        });
+      }
     } catch (error) {
       console.error('Matching error:', error);
       toast({
@@ -134,7 +136,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       
       // Auto-load matches if resume is already analyzed
       if (hasResumeData) {
-        await loadMatches(s, true);
+        await loadMatches(s, true, false); // Don't show toast on initial load
       }
     };
     
@@ -189,7 +191,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
         setStudent(updatedStudent);
         
         // Auto-load matches after successful upload
-        await loadMatches(updatedStudent);
+        await loadMatches(updatedStudent, false, true); // Show toast for resume upload
       }
 
       toast({
@@ -219,7 +221,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       return;
     }
 
-    await loadMatches();
+    await loadMatches(undefined, false, true); // Show toast for manual refresh
   };
 
   const handleApply = async (jobId: string, applyUrl: string) => {
@@ -417,7 +419,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
         setStudent(updatedStudent);
         
         // Auto-load matches after successful upload
-        await loadMatches(updatedStudent);
+        await loadMatches(updatedStudent, false, true); // Show toast for resume upload
       }
 
       toast({
