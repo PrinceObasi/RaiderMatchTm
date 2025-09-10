@@ -7,12 +7,12 @@ import { Building, MapPin, ExternalLink, Loader2 } from "lucide-react";
 interface Internship {
   id: string;
   company: string;
-  role_title: string;
-  location: string;
-  tech_stack: string[];
+  title: string;
+  city: string;
+  description: string;
+  skills: string[];
   visa_sponsorship: string;
-  application_link: string;
-  apply_url: string;
+  application_url: string;
 }
 
 interface InternshipResultsProps {
@@ -66,17 +66,17 @@ export function InternshipResults({ internships, isLoading, onApply }: Internshi
                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                   <div className="flex-1">
                     <h3 className="text-lg sm:text-xl font-semibold leading-tight mb-1">
-                      {internship.role_title}
+                      {internship.title}
                     </h3>
                     <div className="flex items-center gap-4 text-sm text-muted-foreground mb-3">
                       <div className="flex items-center gap-1">
                         <Building className="h-4 w-4" />
                         {internship.company}
                       </div>
-                      {internship.location && (
+                      {internship.city && (
                         <div className="flex items-center gap-1">
                           <MapPin className="h-4 w-4" />
-                          {internship.location}
+                          {internship.city}
                         </div>
                       )}
                     </div>
@@ -92,17 +92,17 @@ export function InternshipResults({ internships, isLoading, onApply }: Internshi
                 </div>
 
                 {/* Tech Stack */}
-                {internship.tech_stack && internship.tech_stack.length > 0 && (
+                {internship.skills && internship.skills.length > 0 && (
                   <div className="mb-4">
                     <div className="flex flex-wrap gap-2">
-                      {internship.tech_stack.slice(0, 8).map((tech) => (
+                      {internship.skills.slice(0, 8).map((tech) => (
                         <Badge key={tech} variant="outline" className="text-xs">
                           {tech}
                         </Badge>
                       ))}
-                      {internship.tech_stack.length > 8 && (
+                      {internship.skills.length > 8 && (
                         <Badge variant="outline" className="text-xs">
-                          +{internship.tech_stack.length - 8} more
+                          +{internship.skills.length - 8} more
                         </Badge>
                       )}
                     </div>
@@ -111,10 +111,10 @@ export function InternshipResults({ internships, isLoading, onApply }: Internshi
 
                 <div className="mt-4">
                   <Button 
-                    onClick={() => onApply(internship.id, internship.apply_url || internship.application_link)}
+                    onClick={() => onApply(internship.id, internship.application_url || '')}
                     className="w-full sm:w-auto h-11"
                     size="lg"
-                    disabled={!internship.apply_url && !internship.application_link}
+                    disabled={!internship.application_url}
                   >
                     <ExternalLink className="h-4 w-4" />
                     Apply Now

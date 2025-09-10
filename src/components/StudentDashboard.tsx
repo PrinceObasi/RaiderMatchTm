@@ -50,12 +50,12 @@ interface Job {
 interface Internship {
   id: string;
   company: string;
-  role_title: string;
-  location: string;
-  tech_stack: string[];
+  title: string;
+  city: string;
+  description: string;
+  skills: string[];
   visa_sponsorship: string;
-  application_link: string;
-  apply_url: string;
+  application_url: string;
 }
 
 interface SearchFilters {
@@ -291,29 +291,31 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     
     try {
       let query = supabase
-        .from('internships')
-        .select('id, company, role_title, location, tech_stack, visa_sponsorship, application_link, apply_url')
-        .order('date_posted', { ascending: false });
+        .from('jobs_for_app')
+        .select('id, company, title, city, description, skills, visa_sponsorship, application_url')
+        .eq('is_active', true)
+        .order('title', { ascending: true });
 
-      // Apply keyword filter using full-text search
+      // Apply keyword filter across company, title, and description
       if (filters.keyword) {
-        query = query.textSearch('search_tsv', filters.keyword);
+        const keyword = `%${filters.keyword}%`;
+        query = query.or(`company.ilike.${keyword},title.ilike.${keyword},description.ilike.${keyword}`);
       }
 
       // Apply location filter
       if (filters.locations.length > 0) {
-        query = query.in('location', filters.locations);
+        query = query.in('city', filters.locations);
       }
 
       // Apply visa sponsorship filter
       if (filters.visaSponsorship !== 'any') {
-        const visaValue = filters.visaSponsorship === 'yes' ? 'Yes' : filters.visaSponsorship === 'no' ? 'No' : 'Unspecified';
+        const visaValue = filters.visaSponsorship === 'yes' ? 'Yes' : 'No';
         query = query.eq('visa_sponsorship', visaValue);
       }
 
       // Apply tech stack filter
       if (filters.techStack.length > 0) {
-        query = query.overlaps('tech_stack', filters.techStack);
+        query = query.overlaps('skills', filters.techStack);
       }
 
       const { data, error } = await query.limit(50);
