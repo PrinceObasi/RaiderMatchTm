@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ApplicationList } from "./ApplicationList";
 import { ProfileWizard } from "./ProfileWizard";
+import { InternshipSearch } from "./InternshipSearch";
 import { ApplicationSchema } from "@/lib/schemas";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
@@ -288,7 +289,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       </header>
 
       <div className="container mx-auto px-4 sm:px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[360px,1fr] gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[360px,400px,1fr] gap-4 sm:gap-6">
           {/* Resume Upload Section */}
           <div className="lg:col-span-1">
             <Card className="card-shadow">
@@ -359,8 +360,23 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
             </Card>
           </div>
 
+          {/* Internship Search Section */}
+          <div className="lg:col-span-1">
+            <Card className="card-shadow h-fit">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Target className="h-5 w-5" />
+                  Search Internships
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6">
+                <InternshipSearch className="space-y-4" />
+              </CardContent>
+            </Card>
+          </div>
+
           {/* Main Content with Tabs */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-1">
             <Tabs defaultValue="matches" className="w-full">
               <div className="flex gap-2 overflow-x-auto sm:overflow-visible px-1">
                 <TabsList className="flex shrink-0 gap-2">
