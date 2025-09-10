@@ -101,8 +101,13 @@ export function TechStackFilter({ value, onChange }: TechStackFilterProps) {
             <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="w-80 p-0 z-[100] pointer-events-auto bg-popover" align="start">
-          <Command>
+        <PopoverContent 
+          className="w-80 p-0 z-[200] pointer-events-auto bg-popover border shadow-lg" 
+          align="start"
+          sideOffset={5}
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
+          <Command className="border-0">
             <CommandInput
               placeholder="Search technologies..."
               value={searchValue}
@@ -116,7 +121,10 @@ export function TechStackFilter({ value, onChange }: TechStackFilterProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={clearAll}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        clearAll();
+                      }}
                       className="h-6 text-xs w-full"
                     >
                       Clear All ({value.length})
@@ -126,7 +134,10 @@ export function TechStackFilter({ value, onChange }: TechStackFilterProps) {
                 {filteredOptions.map((tech) => (
                   <CommandItem
                     key={tech}
-                    onSelect={() => toggleTech(tech)}
+                    onSelect={(value) => {
+                      console.log('Tech selected:', value);
+                      toggleTech(tech);
+                    }}
                     className="flex items-center space-x-2 cursor-pointer"
                   >
                     <div className="flex items-center space-x-2 flex-1">
