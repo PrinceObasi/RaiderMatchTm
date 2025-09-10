@@ -1,16 +1,34 @@
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-export function AuthBootstrapper() {
+interface AuthBootstrapperProps {
+  onAuthStateChange: (userType: 'student' | 'employer' | null) => void;
+}
+
+export function AuthBootstrapper({ onAuthStateChange }: AuthBootstrapperProps) {
   useEffect(() => {
-    // Simple auth state listener - no need to manually create profiles
-    // The database trigger handles student profile creation automatically
-    const sub = supabase.auth.onAuthStateChange(() => {
-      // Just listen for auth changes, trigger handles the rest
+    // Check for existing session first
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        const role = session.user.user_metadata?.role ?? 'student';
+        onAuthStateChange(role as 'student' | 'employer');
+      } else {
+        onAuthStateChange(null);
+      }
     });
 
-    return () => sub.data.subscription.unsubscribe();
-  }, []);
+    // Listen for auth state changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN' && session?.user) {
+        const role = session.user.user_metadata?.role ?? 'student';
+        onAuthStateChange(role as 'student' | 'employer');
+      } else if (event === 'SIGNED_OUT') {
+        onAuthStateChange(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, [onAuthStateChange]);
 
   return null;
 }

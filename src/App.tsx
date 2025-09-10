@@ -11,6 +11,7 @@ import { AuthModal } from "./components/AuthModal";
 import { Settings } from "./components/Settings";
 import { AuthBootstrapper } from "./components/AuthBootstrapper";
 import { AdminImport } from "./components/AdminImport";
+import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
 
@@ -39,12 +40,15 @@ const App = () => {
     setAuthModal({ isOpen: true, defaultTab: 'login' });
   };
 
-  const handleAuthSuccess = (userType: UserType) => {
+  const handleAuthStateChange = (userType: UserType) => {
     setUser(userType);
-    setAuthModal({ isOpen: false, defaultTab: 'login' });
+    if (userType) {
+      setAuthModal({ isOpen: false, defaultTab: 'login' });
+    }
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     setCurrentView('main');
   };
@@ -121,7 +125,7 @@ const App = () => {
         <div className="min-h-screen overflow-x-hidden bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
           <Toaster />
           <Sonner />
-          <AuthBootstrapper />
+          <AuthBootstrapper onAuthStateChange={handleAuthStateChange} />
           
           {renderCurrentView()}
           
@@ -129,7 +133,6 @@ const App = () => {
             isOpen={authModal.isOpen}
             onClose={() => setAuthModal({ ...authModal, isOpen: false })}
             defaultTab={authModal.defaultTab}
-            onSuccess={handleAuthSuccess}
           />
           <Analytics />
         </div>

@@ -16,12 +16,11 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultTab?: 'student' | 'employer' | 'login';
-  onSuccess: (userType: 'student' | 'employer') => void;
 }
 
 
 
-export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: AuthModalProps) {
+export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [firstName, setFirstName] = useState("");
@@ -107,8 +106,6 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
         }
         return;
       }
-      const role = data.user.user_metadata?.role ?? 'student';
-      onSuccess(role as 'student' | 'employer');
       toast({ title: 'Welcome back!', description: "You've been successfully signed in." });
       onClose();
     } else {
@@ -145,10 +142,10 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
           description: "Check your TTU inbox to confirm your account.",
           variant: 'default'
         });
+      } else {
+        toast({ title: 'Account created!', description: "You're now signed in." });
       }
       
-      onSuccess(type);
-      toast({ title: 'Account created!', description: "You're now signed in." });
       onClose();
     }
   };
