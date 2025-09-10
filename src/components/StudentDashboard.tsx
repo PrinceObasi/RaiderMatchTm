@@ -24,10 +24,13 @@ import {
   LogOut,
   ClipboardList,
   Info,
-  Settings2
+  Settings2,
+  Eye,
+  Trash2
 } from "lucide-react";
 import { renderSafeHTML } from "@/lib/sanitize";
 import { toExplanation } from "@/lib/jobCoaching";
+import { useDropzone } from "react-dropzone";
 
 interface Job {
   id: string;
@@ -50,6 +53,7 @@ interface StudentDashboardProps {
 export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardProps) {
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   const [isMatching, setIsMatching] = useState(false);
   const [matches, setMatches] = useState<Job[]>([]);
   const [student, setStudent] = useState<any>(null);
@@ -258,6 +262,114 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     }
   };
 
+  const handleDeleteResume = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const { error } = await supabase
+        .from('students')
+        .update({ resume_url: null, skills: [] })
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      setStudent({ ...student, resume_url: null, skills: [] });
+      setResumeAnalyzed(false);
+      setMatches([]);
+      
+      toast({
+        title: "Resume deleted",
+        description: "Your resume has been removed successfully.",
+      });
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast({
+        title: "Delete failed",
+        description: "Failed to delete resume. Please try again.",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const onDrop = async (acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (!file) return;
+
+    setResumeFile(file);
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setUploadProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return prev;
+          }
+          return prev + 10;
+        });
+      }, 200);
+
+      const { data, error } = await supabase.functions.invoke('upload-resume', {
+        body: formData
+      });
+
+      clearInterval(progressInterval);
+      setUploadProgress(100);
+
+      if (error) throw error;
+
+      // Update states and reload student data
+      setResumeAnalyzed(true);
+      
+      // Reload student data to get updated skills/resume_url
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: updatedStudent } = await supabase
+          .from('students')
+          .select('*')
+          .eq('user_id', user.id)
+          .single();
+        setStudent(updatedStudent);
+        
+        // Auto-load matches after successful upload
+        await loadMatches(updatedStudent);
+      }
+
+      toast({
+        title: "Resume uploaded successfully!",
+        description: `Found ${data.skills?.length || 0} skills. Your resume has been analyzed and stored.`,
+      });
+    } catch (error) {
+      console.error('Upload error:', error);
+      toast({
+        title: "Upload failed",
+        description: "Failed to upload and analyze resume. Please try again.",
+        variant: "destructive"
+      });
+      setResumeFile(null);
+    } finally {
+      setIsUploading(false);
+      setUploadProgress(0);
+    }
+  };
+
+  const { getRootProps, getInputProps, isDragActive } = useDropzone({
+    onDrop,
+    accept: {
+      'application/pdf': ['.pdf'],
+      'application/msword': ['.doc'],
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx']
+    },
+    maxFiles: 1,
+    maxSize: 2 * 1024 * 1024 // 2MB
+  });
+
 
   return (
       <div className="min-h-screen bg-background">
@@ -289,94 +401,99 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       </header>
 
       <div className="container mx-auto px-4 sm:px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-[360px,400px,1fr] gap-4 sm:gap-6">
-          {/* Resume Upload Section */}
-          <div className="lg:col-span-1">
+        <div className="grid grid-cols-1 lg:grid-cols-[400px,1fr] gap-4 sm:gap-6">
+          {/* Left Column: Resume Upload + Search */}
+          <div className="space-y-6">
+            {/* Resume Upload Section */}
             <Card className="card-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Resume
+                  <Upload className="h-5 w-5" />
+                  Resume Upload
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-4 sm:p-6 space-y-4">
-                <div>
-                  <Label htmlFor="resume">Upload Resume (PDF)</Label>
-                  <Input
-                    id="resume"
-                    type="file"
-                    accept=".pdf"
-                    onChange={handleResumeUpload}
-                    disabled={isUploading}
-                    className="mt-1"
-                  />
-                </div>
-
-                {isUploading && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <RefreshCw className="h-4 w-4 animate-spin" />
-                    Analyzing resume...
-                  </div>
-                )}
-
-                {resumeAnalyzed && (
-                  <div className="flex items-center gap-2 text-sm text-success">
-                    <FileText className="h-4 w-4" />
-                    Resume uploaded and analyzed
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Button 
-                    onClick={handleRefreshMatches}
-                    disabled={!resumeAnalyzed || isMatching}
-                    className="w-full"
-                    size="lg"
+              <CardContent>
+                <div className="space-y-4">
+                  {/* Upload Area */}
+                  <div
+                    className={`border-2 border-dashed rounded-lg p-6 text-center transition-colors ${
+                      isDragActive 
+                        ? 'border-primary bg-primary/10' 
+                        : 'border-border hover:border-primary/50'
+                    }`}
+                    {...getRootProps()}
                   >
-                    {isMatching ? (
-                      <>
-                        <RefreshCw className="h-4 w-4 animate-spin" />
-                        Finding Matches...
-                      </>
-                    ) : (
-                      <>
-                        <Target className="h-4 w-4" />
-                        Refresh Matches
-                      </>
-                    )}
-                  </Button>
-                  
-                  <Button 
-                    onClick={() => setShowProfileWizard(true)}
-                    variant="outline"
-                    className="w-full"
-                    size="sm"
-                  >
-                    <User className="h-4 w-4" />
-                    Complete Profile
-                  </Button>
+                    <input {...getInputProps()} />
+                    <div className="space-y-2">
+                      <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                      <div className="text-sm text-muted-foreground">
+                        <span className="font-medium text-foreground">Click to upload</span> or drag and drop
+                      </div>
+                      <p className="text-xs text-muted-foreground">PDF, DOC, DOCX (max 2MB)</p>
+                    </div>
+                  </div>
+
+                  {/* Resume Status */}
+                  {student?.resume_url && (
+                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <FileText className="h-4 w-4 text-primary" />
+                        <span className="text-sm font-medium">Resume uploaded</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => window.open(student.resume_url, '_blank')}
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteResume()}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Upload Progress */}
+                  {uploadProgress > 0 && uploadProgress < 100 && (
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span>Uploading...</span>
+                        <span>{uploadProgress}%</span>
+                      </div>
+                      <div className="w-full bg-secondary rounded-full h-2">
+                        <div 
+                          className="bg-primary h-2 rounded-full transition-all duration-300"
+                          style={{ width: `${uploadProgress}%` }}
+                        />
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
-          </div>
 
-          {/* Internship Search Section */}
-          <div className="lg:col-span-1">
-            <Card className="card-shadow h-fit">
+            {/* Internship Search Section */}
+            <Card className="card-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Target className="h-5 w-5" />
                   Search Internships
                 </CardTitle>
               </CardHeader>
-              <CardContent className="p-4 sm:p-6">
-                <InternshipSearch className="space-y-4" />
+              <CardContent>
+                <InternshipSearch />
               </CardContent>
             </Card>
           </div>
 
-          {/* Main Content with Tabs */}
-          <div className="lg:col-span-1">
+          {/* Right Column: Main Content with Tabs */}
+          <div>
             <Tabs defaultValue="matches" className="w-full">
               <div className="flex gap-2 overflow-x-auto sm:overflow-visible px-1">
                 <TabsList className="flex shrink-0 gap-2">

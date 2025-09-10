@@ -7,14 +7,12 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { LocationFilter } from "./filters/LocationFilter";
 import { VisaSponsorshipFilter } from "./filters/VisaSponsorshipFilter";
-import { GPAFilter } from "./filters/GPAFilter";
 import { TechStackFilter } from "./filters/TechStackFilter";
 
 interface SearchFilters {
   keyword: string;
   locations: string[];
   visaSponsorship: "any" | "yes" | "no";
-  gpaMinimum: number;
   techStack: string[];
 }
 
@@ -28,7 +26,6 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
     keyword: "",
     locations: [],
     visaSponsorship: "any",
-    gpaMinimum: 0,
     techStack: [],
   });
 
@@ -45,7 +42,6 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
       keyword: "",
       locations: [],
       visaSponsorship: "any",
-      gpaMinimum: 0,
       techStack: [],
     };
     setFilters(clearedFilters);
@@ -57,7 +53,6 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
     if (filters.keyword) count++;
     if (filters.locations.length > 0) count++;
     if (filters.visaSponsorship !== "any") count++;
-    if (filters.gpaMinimum > 0) count++;
     if (filters.techStack.length > 0) count++;
     return count;
   };
@@ -74,11 +69,6 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
       <VisaSponsorshipFilter
         value={filters.visaSponsorship}
         onChange={(visaSponsorship) => updateFilters({ visaSponsorship })}
-      />
-      
-      <GPAFilter
-        value={filters.gpaMinimum}
-        onChange={(gpaMinimum) => updateFilters({ gpaMinimum })}
       />
       
       <TechStackFilter
@@ -146,16 +136,6 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
               <X
                 className="h-3 w-3 cursor-pointer"
                 onClick={() => updateFilters({ visaSponsorship: "any" })}
-              />
-            </Badge>
-          )}
-          
-          {filters.gpaMinimum > 0 && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              GPA: {filters.gpaMinimum.toFixed(1)}+
-              <X
-                className="h-3 w-3 cursor-pointer"
-                onClick={() => updateFilters({ gpaMinimum: 0 })}
               />
             </Badge>
           )}
