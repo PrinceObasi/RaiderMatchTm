@@ -11,27 +11,16 @@ import {
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 const LOCATION_OPTIONS = [
-  "Austin, TX",
-  "Boston, MA", 
-  "Chicago, IL",
-  "Dallas, TX",
-  "Denver, CO",
-  "Houston, TX",
-  "Los Angeles, CA",
-  "Miami, FL",
-  "New York, NY",
-  "San Diego, CA",
-  "San Francisco, CA",
-  "Seattle, WA",
-  "Washington, DC",
-  "Atlanta, GA",
-  "Charlotte, NC",
-  "Nashville, TN",
-  "Phoenix, AZ",
-  "Portland, OR",
-  "Raleigh, NC",
-  "Tampa, FL",
-  "Remote"
+  "Austin",
+  "Dallas",
+  "Houston",
+  "Remote",
+  "San Antonio",
+  "Fort Worth",
+  "El Paso",
+  "Arlington",
+  "Corpus Christi",
+  "Plano",
 ];
 
 interface LocationFilterProps {
@@ -81,13 +70,8 @@ export function LocationFilter({ value, onChange }: LocationFilterProps) {
             <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent 
-          className="w-80 p-0 z-[200] pointer-events-auto bg-popover border shadow-lg" 
-          align="start"
-          sideOffset={5}
-          onPointerDownOutside={(e) => e.preventDefault()}
-        >
-          <Command className="border-0">
+        <PopoverContent className="w-80 p-0 z-[100] pointer-events-auto bg-popover" align="start">
+          <Command>
             <CommandInput
               placeholder="Search locations..."
               value={searchValue}
@@ -100,10 +84,7 @@ export function LocationFilter({ value, onChange }: LocationFilterProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      selectAll();
-                    }}
+                    onClick={selectAll}
                     className="h-6 text-xs"
                   >
                     Select All
@@ -111,10 +92,7 @@ export function LocationFilter({ value, onChange }: LocationFilterProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      clearAll();
-                    }}
+                    onClick={clearAll}
                     className="h-6 text-xs"
                   >
                     Clear All
@@ -123,20 +101,12 @@ export function LocationFilter({ value, onChange }: LocationFilterProps) {
                 {filteredOptions.map((location) => (
                   <CommandItem
                     key={location}
-                    onSelect={(value) => {
-                      console.log('Location selected:', value);
-                      toggleLocation(location);
-                    }}
+                    onSelect={() => toggleLocation(location)}
                     className="flex items-center space-x-2 cursor-pointer"
                   >
                     <Checkbox
                       checked={value.includes(location)}
-                      onCheckedChange={(checked) => {
-                        console.log('Checkbox changed:', location, checked);
-                        if (checked !== value.includes(location)) {
-                          toggleLocation(location);
-                        }
-                      }}
+                      onChange={() => toggleLocation(location)}
                     />
                     <span>{location}</span>
                     {value.includes(location) && (

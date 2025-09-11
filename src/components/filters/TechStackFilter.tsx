@@ -12,32 +12,32 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 
 const TECH_STACK_OPTIONS = [
   // Programming Languages
-  "python", "java", "javascript", "typescript", "c++", "c#", "c", "go", "rust", "swift",
-  "kotlin", "php", "ruby", "scala", "r", "matlab", "dart", "perl", "lua",
+  "Python", "Java", "JavaScript", "TypeScript", "C++", "C#", "C", "Go", "Rust", "Swift",
+  "Kotlin", "PHP", "Ruby", "Scala", "R", "MATLAB", "Dart", "Perl", "Lua",
   
   // Frontend Technologies
-  "react", "vue.js", "angular", "html", "css", "sass", "bootstrap", "tailwind css",
-  "jquery", "next.js", "nuxt.js", "svelte", "flutter", "react native",
+  "React", "Vue.js", "Angular", "HTML", "CSS", "Sass", "Bootstrap", "Tailwind CSS",
+  "jQuery", "Next.js", "Nuxt.js", "Svelte", "Flutter", "React Native",
   
   // Backend Technologies
-  "node.js", "express.js", "django", "flask", "spring boot", "asp.net", "laravel",
-  "rails", "fastapi", "nestjs", "gin", "echo",
+  "Node.js", "Express.js", "Django", "Flask", "Spring Boot", "ASP.NET", "Laravel",
+  "Rails", "FastAPI", "NestJS", "Gin", "Echo",
   
   // Databases
-  "mysql", "postgresql", "mongodb", "sqlite", "redis", "firebase", "supabase",
-  "dynamodb", "cassandra", "neo4j", "influxdb",
+  "MySQL", "PostgreSQL", "MongoDB", "SQLite", "Redis", "Firebase", "Supabase",
+  "DynamoDB", "Cassandra", "Neo4j", "InfluxDB",
   
   // Cloud & DevOps
-  "aws", "google cloud", "azure", "docker", "kubernetes", "jenkins", "gitlab ci",
-  "github actions", "terraform", "ansible", "nginx", "apache",
+  "AWS", "Google Cloud", "Azure", "Docker", "Kubernetes", "Jenkins", "GitLab CI",
+  "GitHub Actions", "Terraform", "Ansible", "Nginx", "Apache",
   
   // Data & Analytics
-  "pandas", "numpy", "scikit-learn", "tensorflow", "pytorch", "jupyter", "tableau",
-  "power bi", "apache spark", "elasticsearch", "kibana",
+  "Pandas", "NumPy", "Scikit-learn", "TensorFlow", "PyTorch", "Jupyter", "Tableau",
+  "Power BI", "Apache Spark", "Elasticsearch", "Kibana",
   
   // Other Tools
-  "git", "linux", "ubuntu", "postman", "figma", "jira", "slack", "vs code",
-  "intellij", "eclipse", "xcode", "android studio",
+  "Git", "Linux", "Ubuntu", "Postman", "Figma", "Jira", "Slack", "VS Code",
+  "IntelliJ", "Eclipse", "Xcode", "Android Studio",
 ];
 
 interface TechStackFilterProps {
@@ -101,13 +101,8 @@ export function TechStackFilter({ value, onChange }: TechStackFilterProps) {
             <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent 
-          className="w-80 p-0 z-[200] pointer-events-auto bg-popover border shadow-lg" 
-          align="start"
-          sideOffset={5}
-          onPointerDownOutside={(e) => e.preventDefault()}
-        >
-          <Command className="border-0">
+        <PopoverContent className="w-80 p-0 z-[100] pointer-events-auto bg-popover" align="start">
+          <Command>
             <CommandInput
               placeholder="Search technologies..."
               value={searchValue}
@@ -121,10 +116,7 @@ export function TechStackFilter({ value, onChange }: TechStackFilterProps) {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        clearAll();
-                      }}
+                      onClick={clearAll}
                       className="h-6 text-xs w-full"
                     >
                       Clear All ({value.length})
@@ -134,10 +126,7 @@ export function TechStackFilter({ value, onChange }: TechStackFilterProps) {
                 {filteredOptions.map((tech) => (
                   <CommandItem
                     key={tech}
-                    onSelect={(value) => {
-                      console.log('Tech selected:', value);
-                      toggleTech(tech);
-                    }}
+                    onSelect={() => toggleTech(tech)}
                     className="flex items-center space-x-2 cursor-pointer"
                   >
                     <div className="flex items-center space-x-2 flex-1">

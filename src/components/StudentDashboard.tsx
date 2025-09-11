@@ -33,8 +33,6 @@ import {
 import { renderSafeHTML } from "@/lib/sanitize";
 import { toExplanation } from "@/lib/jobCoaching";
 import { useDropzone } from "react-dropzone";
-import { useInternshipSearch } from "@/hooks/useInternshipSearch";
-import { SearchFilters } from "@/lib/searchSchema";
 
 interface Job {
   id: string;
@@ -60,13 +58,12 @@ interface Internship {
   application_url: string;
 }
 
-// Remove this interface since we're importing it from searchSchema
-// interface SearchFilters {
-//   keyword: string;
-//   locations: string[];
-//   visaSponsorship: "any" | "yes" | "no";
-//   techStack: string[];
-// }
+interface SearchFilters {
+  keyword: string;
+  locations: string[];
+  visaSponsorship: "any" | "yes" | "no";
+  techStack: string[];
+}
 
 interface StudentDashboardProps {
   onLogout: () => void;
@@ -82,26 +79,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [student, setStudent] = useState<any>(null);
   const [resumeAnalyzed, setResumeAnalyzed] = useState(false);
   const [showProfileWizard, setShowProfileWizard] = useState(false);
-  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
-    q: "",
-    locations: [],
-    visa: "any",
-    stacks: [],
-    respectGpa: false
-  });
+  const [searchResults, setSearchResults] = useState<Internship[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
   const { toast } = useToast();
-
-  // Use React Query for search - search whenever Apply is clicked
-  const { 
-    data: searchResults = [], 
-    isLoading: isSearching, 
-    error: searchError 
-  } = useInternshipSearch({ 
-    filters: searchFilters,
-    userGpa: student?.gpa,
-    enabled: hasSearched
-  });
 
   // Auto-load matches function
   const loadMatches = async (studentData?: any, forceLoad = false, showSuccessToast = false) => {
@@ -306,21 +287,59 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     }
   };
 
-  const handleFiltersChange = (filters: SearchFilters) => {
-    console.log('Filters updated:', filters);
-    setSearchFilters(filters);
-    setHasSearched(true); // Trigger the query when Apply is clicked
+  const handleSearch = async (filters: SearchFilters) => {
+    setIsSearching(true);
+    setHasSearched(true);
     
-    // Show search success message
-    if (filters.q || (filters.locations && filters.locations.length > 0) || 
-        filters.visa !== 'any' || (filters.stacks && filters.stacks.length > 0)) {
-      // Only show the toast if we have actual filters
-      setTimeout(() => {
-        toast({
-          title: "Search completed",
-          description: `Found ${searchResults.length} internships matching your criteria.`,
-        });
-      }, 500); // Small delay to let the query complete
+    try {
+      let query = supabase
+        .from('jobs_for_app')
+        .select('id, company, title, city, description, skills, visa_sponsorship, application_url')
+        .eq('is_active', true)
+        .order('title', { ascending: true });
+
+      // Apply keyword filter across company, title, and description
+      if (filters.keyword) {
+        const keyword = `%${filters.keyword}%`;
+        query = query.or(`company.ilike.${keyword},title.ilike.${keyword},description.ilike.${keyword}`);
+      }
+
+      // Apply location filter
+      if (filters.locations.length > 0) {
+        query = query.in('city', filters.locations);
+      }
+
+      // Apply visa sponsorship filter
+      if (filters.visaSponsorship !== 'any') {
+        const visaValue = filters.visaSponsorship === 'yes' ? 'Yes' : 'No';
+        query = query.eq('visa_sponsorship', visaValue);
+      }
+
+      // Apply tech stack filter
+      if (filters.techStack.length > 0) {
+        query = query.overlaps('skills', filters.techStack);
+      }
+
+      const { data, error } = await query.limit(50);
+
+      if (error) throw error;
+
+      setSearchResults(data || []);
+      
+      toast({
+        title: "Search completed",
+        description: `Found ${data?.length || 0} internships matching your criteria.`,
+      });
+    } catch (error) {
+      console.error('Search error:', error);
+      toast({
+        title: "Search failed",
+        description: "Failed to search internships. Please try again.",
+        variant: "destructive"
+      });
+      setSearchResults([]);
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -549,7 +568,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <InternshipSearch onFiltersChange={handleFiltersChange} />
+                <InternshipSearch onFiltersChange={handleSearch} />
               </CardContent>
             </Card>
           </div>
