@@ -87,7 +87,7 @@ export function TechStackFilter({ value, onChange }: TechStackFilterProps) {
         </div>
       )}
 
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen} modal={false}>
         <PopoverTrigger asChild>
           <Button
             type="button"

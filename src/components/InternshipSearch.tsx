@@ -32,7 +32,9 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
   const updateFilters = (newFilters: Partial<SearchFilters>) => {
+    console.log('InternshipSearch.updateFilters called with:', newFilters);
     const updatedFilters = { ...filters, ...newFilters };
+    console.log('Updated filters:', updatedFilters);
     setFilters(updatedFilters);
     onFiltersChange?.(updatedFilters);
   };

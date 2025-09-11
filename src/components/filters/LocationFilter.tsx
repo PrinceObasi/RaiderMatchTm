@@ -116,9 +116,8 @@ export function LocationFilter({ value, onChange }: LocationFilterProps) {
                     >
                       <Checkbox
                         checked={value.includes(location)}
-                        onCheckedChange={() => {}}
+                        onCheckedChange={() => toggleLocation(location)}
                         className="mr-2"
-                        onClick={(e) => e.stopPropagation()}
                       />
                       <span className="flex-1">{location}</span>
                       {value.includes(location) && (

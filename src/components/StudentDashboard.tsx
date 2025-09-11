@@ -288,6 +288,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   };
 
   const handleSearch = async (filters: SearchFilters) => {
+    console.log('StudentDashboard.handleSearch called with filters:', filters);
     setIsSearching(true);
     setHasSearched(true);
     
