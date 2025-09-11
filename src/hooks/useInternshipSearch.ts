@@ -14,11 +14,15 @@ export function useInternshipSearch({ filters, userGpa, enabled = true }: UseInt
   return useQuery({
     queryKey: ['internship-search', params],
     queryFn: async () => {
+      console.log('Searching internships with params:', params);
       const { data, error } = await supabase.rpc('search_internships', params);
       
       if (error) {
+        console.error('Search internships error:', error);
         throw error;
       }
+      
+      console.log('Search internships raw results:', data?.length || 0, 'items');
       
       // Map the results to match the expected interface
       return (data || []).map((item: any) => ({
@@ -32,12 +36,7 @@ export function useInternshipSearch({ filters, userGpa, enabled = true }: UseInt
         application_url: item.apply_url || item.application_link || ''
       }));
     },
-    enabled: enabled && Object.keys(filters).some(key => 
-      key === 'q' ? !!filters.q : 
-      Array.isArray(filters[key as keyof SearchFilters]) ? 
-        (filters[key as keyof SearchFilters] as any[])?.length > 0 : 
-        filters[key as keyof SearchFilters] !== 'any'
-    ),
+    enabled: enabled,
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 }
