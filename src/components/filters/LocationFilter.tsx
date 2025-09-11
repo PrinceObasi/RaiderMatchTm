@@ -54,7 +54,7 @@ export function LocationFilter({ value, onChange }: LocationFilterProps) {
   return (
     <div className="space-y-2">
       <Label className="text-sm font-medium">Location</Label>
-      <Popover open={open} onOpenChange={setOpen}>
+      <Popover open={open} onOpenChange={setOpen} modal={false}>
         <PopoverTrigger asChild>
           <Button
             type="button"
@@ -72,86 +72,62 @@ export function LocationFilter({ value, onChange }: LocationFilterProps) {
           </Button>
         </PopoverTrigger>
         <PopoverContent 
-          className="w-80 p-0 z-[9999] pointer-events-auto bg-popover border shadow-lg" 
+          className="w-80 p-0" 
           align="start"
           sideOffset={5}
-          onInteractOutside={(e) => {
-            // Prevent closing when clicking inside
-            e.preventDefault();
-          }}
+          style={{ zIndex: 9999 }}
         >
-          <Command className="border-0">
+          <Command shouldFilter={false}>
             <CommandInput
               placeholder="Search locations..."
               value={searchValue}
               onValueChange={setSearchValue}
-              className="border-0"
             />
             <CommandList>
-              <CommandEmpty>No locations found.</CommandEmpty>
-              <CommandGroup>
-                <div className="flex gap-2 p-2 border-b">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      selectAll();
-                    }}
-                    className="h-6 text-xs"
-                  >
-                    Select All
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      clearAll();
-                    }}
-                    className="h-6 text-xs"
-                  >
-                    Clear All
-                  </Button>
-                </div>
-                {filteredOptions.map((location) => (
-                  <CommandItem
-                    key={location}
-                    value={location}
-                    onSelect={() => {
-                      // Handle selection through CommandItem
-                      toggleLocation(location);
-                    }}
-                    className="flex items-center space-x-2 cursor-pointer select-none"
-                  >
+              {filteredOptions.length === 0 ? (
+                <CommandEmpty>No locations found.</CommandEmpty>
+              ) : (
+                <CommandGroup>
+                  <div className="flex gap-2 p-2 border-b">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      onClick={() => selectAll()}
+                      className="h-6 text-xs"
+                    >
+                      Select All
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      onClick={() => clearAll()}
+                      className="h-6 text-xs"
+                    >
+                      Clear All
+                    </Button>
+                  </div>
+                  {filteredOptions.map((location) => (
                     <div
-                      onClick={(e) => {
-                        // Prevent CommandItem's onSelect from firing
-                        e.stopPropagation();
-                      }}
+                      key={location}
+                      className="relative flex cursor-pointer select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none hover:bg-accent hover:text-accent-foreground data-[disabled]:pointer-events-none data-[disabled]:opacity-50"
+                      onClick={() => toggleLocation(location)}
                     >
                       <Checkbox
                         checked={value.includes(location)}
-                        onCheckedChange={() => {
-                          toggleLocation(location);
-                        }}
-                        onClick={(e) => {
-                          // Stop propagation to prevent double toggle
-                          e.stopPropagation();
-                        }}
+                        onCheckedChange={() => {}}
+                        className="mr-2"
+                        onClick={(e) => e.stopPropagation()}
                       />
+                      <span className="flex-1">{location}</span>
+                      {value.includes(location) && (
+                        <Check className="ml-auto h-4 w-4" />
+                      )}
                     </div>
-                    <span className="flex-1">{location}</span>
-                    {value.includes(location) && (
-                      <Check className="ml-auto h-4 w-4 text-primary" />
-                    )}
-                  </CommandItem>
-                ))}
-              </CommandGroup>
+                  ))}
+                </CommandGroup>
+              )}
             </CommandList>
           </Command>
         </PopoverContent>
