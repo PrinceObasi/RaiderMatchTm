@@ -35,9 +35,10 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
   const { watch, setValue, reset } = form;
   const watchedValues = watch();
 
-  useEffect(() => {
-    onFiltersChange?.(watchedValues);
-  }, [watchedValues, onFiltersChange]);
+  // Remove the automatic onChange trigger since we now use Apply button
+  // useEffect(() => {
+  //   onFiltersChange?.(watchedValues);
+  // }, [watchedValues, onFiltersChange]);
 
   const clearAllFilters = () => {
     reset({
@@ -47,6 +48,19 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
       stacks: [],
       respectGpa: false
     });
+    // Trigger search immediately after reset
+    onFiltersChange?.({
+      q: "",
+      locations: [],
+      visa: "any",
+      stacks: [],
+      respectGpa: false
+    });
+  };
+
+  const handleApplyFilters = () => {
+    // Trigger search with current form values
+    onFiltersChange?.(watchedValues);
   };
 
   const getActiveFiltersCount = () => {
@@ -77,16 +91,25 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
         onChange={(stacks) => setValue("stacks", stacks)}
       />
 
-      {activeFiltersCount > 0 && (
-        <Button
-          variant="outline"
-          onClick={clearAllFilters}
-          className="w-full"
+      {/* Apply and Reset Buttons */}
+      <div className="flex gap-2">
+        <Button 
+          onClick={handleApplyFilters}
+          className="flex-1"
         >
-          <X className="h-4 w-4 mr-2" />
-          Clear All Filters
+          Apply Filters
         </Button>
-      )}
+        
+        {activeFiltersCount > 0 && (
+          <Button
+            variant="outline"
+            onClick={clearAllFilters}
+            className="flex-1"
+          >
+            Reset
+          </Button>
+        )}
+      </div>
     </div>
   );
 
@@ -122,7 +145,10 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
                 Keyword: {watchedValues.q}
                 <X
                   className="h-3 w-3 cursor-pointer"
-                  onClick={() => setValue("q", "")}
+                  onClick={() => {
+                    setValue("q", "");
+                    handleApplyFilters();
+                  }}
                 />
               </Badge>
             )}
@@ -132,9 +158,10 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
                 {location}
                 <X
                   className="h-3 w-3 cursor-pointer"
-                  onClick={() =>
-                    setValue("locations", (watchedValues.locations || []).filter((l) => l !== location))
-                  }
+                  onClick={() => {
+                    setValue("locations", (watchedValues.locations || []).filter((l) => l !== location));
+                    handleApplyFilters();
+                  }}
                 />
               </Badge>
             ))}
@@ -144,7 +171,10 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
                 Visa: {watchedValues.visa === "yes" ? "Required" : "Not Required"}
                 <X
                   className="h-3 w-3 cursor-pointer"
-                  onClick={() => setValue("visa", "any")}
+                  onClick={() => {
+                    setValue("visa", "any");
+                    handleApplyFilters();
+                  }}
                 />
               </Badge>
             )}
@@ -154,9 +184,10 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
                 {tech}
                 <X
                   className="h-3 w-3 cursor-pointer"
-                  onClick={() =>
-                    setValue("stacks", (watchedValues.stacks || []).filter((t) => t !== tech))
-                  }
+                  onClick={() => {
+                    setValue("stacks", (watchedValues.stacks || []).filter((t) => t !== tech));
+                    handleApplyFilters();
+                  }}
                 />
               </Badge>
             ))}

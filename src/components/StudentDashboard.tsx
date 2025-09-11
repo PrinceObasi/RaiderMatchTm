@@ -82,8 +82,6 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [student, setStudent] = useState<any>(null);
   const [resumeAnalyzed, setResumeAnalyzed] = useState(false);
   const [showProfileWizard, setShowProfileWizard] = useState(false);
-  const [searchResults, setSearchResults] = useState<Internship[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
   const [searchFilters, setSearchFilters] = useState<SearchFilters>({
     q: "",
     locations: [],
@@ -93,6 +91,21 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   });
   const [hasSearched, setHasSearched] = useState(false);
   const { toast } = useToast();
+
+  // Use React Query for search - only search when filters have values  
+  const { 
+    data: searchResults = [], 
+    isLoading: isSearching, 
+    error: searchError 
+  } = useInternshipSearch({ 
+    filters: searchFilters, 
+    enabled: hasSearched && (
+      (searchFilters.q && searchFilters.q.length > 0) ||
+      (searchFilters.locations && searchFilters.locations.length > 0) ||
+      (searchFilters.visa && searchFilters.visa !== 'any') ||
+      (searchFilters.stacks && searchFilters.stacks.length > 0)
+    )
+  });
 
   // Auto-load matches function
   const loadMatches = async (studentData?: any, forceLoad = false, showSuccessToast = false) => {
@@ -298,8 +311,21 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   };
 
   const handleFiltersChange = (filters: SearchFilters) => {
+    console.log('Filters updated:', filters);
     setSearchFilters(filters);
-    setHasSearched(true); // Trigger the query when filters change
+    setHasSearched(true); // Trigger the query when Apply is clicked
+    
+    // Show search success message
+    if (filters.q || (filters.locations && filters.locations.length > 0) || 
+        filters.visa !== 'any' || (filters.stacks && filters.stacks.length > 0)) {
+      // Only show the toast if we have actual filters
+      setTimeout(() => {
+        toast({
+          title: "Search completed",
+          description: `Found ${searchResults.length} internships matching your criteria.`,
+        });
+      }, 500); // Small delay to let the query complete
+    }
   };
 
   const handleDeleteResume = async () => {
