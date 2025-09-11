@@ -12,32 +12,32 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 
 const TECH_STACK_OPTIONS = [
   // Programming Languages
-  "Python", "Java", "JavaScript", "TypeScript", "C++", "C#", "C", "Go", "Rust", "Swift",
-  "Kotlin", "PHP", "Ruby", "Scala", "R", "MATLAB", "Dart", "Perl", "Lua",
+  "python", "java", "javascript", "typescript", "c++", "c#", "c", "go", "rust", "swift",
+  "kotlin", "php", "ruby", "scala", "r", "matlab", "dart", "perl", "lua",
   
   // Frontend Technologies
-  "React", "Vue.js", "Angular", "HTML", "CSS", "Sass", "Bootstrap", "Tailwind CSS",
-  "jQuery", "Next.js", "Nuxt.js", "Svelte", "Flutter", "React Native",
+  "react", "vue.js", "angular", "html", "css", "sass", "bootstrap", "tailwind css",
+  "jquery", "next.js", "nuxt.js", "svelte", "flutter", "react native",
   
   // Backend Technologies
-  "Node.js", "Express.js", "Django", "Flask", "Spring Boot", "ASP.NET", "Laravel",
-  "Rails", "FastAPI", "NestJS", "Gin", "Echo",
+  "node.js", "express.js", "django", "flask", "spring boot", "asp.net", "laravel",
+  "rails", "fastapi", "nestjs", "gin", "echo",
   
   // Databases
-  "MySQL", "PostgreSQL", "MongoDB", "SQLite", "Redis", "Firebase", "Supabase",
-  "DynamoDB", "Cassandra", "Neo4j", "InfluxDB",
+  "mysql", "postgresql", "mongodb", "sqlite", "redis", "firebase", "supabase",
+  "dynamodb", "cassandra", "neo4j", "influxdb",
   
   // Cloud & DevOps
-  "AWS", "Google Cloud", "Azure", "Docker", "Kubernetes", "Jenkins", "GitLab CI",
-  "GitHub Actions", "Terraform", "Ansible", "Nginx", "Apache",
+  "aws", "google cloud", "azure", "docker", "kubernetes", "jenkins", "gitlab ci",
+  "github actions", "terraform", "ansible", "nginx", "apache",
   
   // Data & Analytics
-  "Pandas", "NumPy", "Scikit-learn", "TensorFlow", "PyTorch", "Jupyter", "Tableau",
-  "Power BI", "Apache Spark", "Elasticsearch", "Kibana",
+  "pandas", "numpy", "scikit-learn", "tensorflow", "pytorch", "jupyter", "tableau",
+  "power bi", "apache spark", "elasticsearch", "kibana",
   
   // Other Tools
-  "Git", "Linux", "Ubuntu", "Postman", "Figma", "Jira", "Slack", "VS Code",
-  "IntelliJ", "Eclipse", "Xcode", "Android Studio",
+  "git", "linux", "ubuntu", "postman", "figma", "jira", "slack", "vs code",
+  "intellij", "eclipse", "xcode", "android studio",
 ];
 
 interface TechStackFilterProps {

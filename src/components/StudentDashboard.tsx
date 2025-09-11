@@ -33,6 +33,8 @@ import {
 import { renderSafeHTML } from "@/lib/sanitize";
 import { toExplanation } from "@/lib/jobCoaching";
 import { useDropzone } from "react-dropzone";
+import { useInternshipSearch } from "@/hooks/useInternshipSearch";
+import { SearchFilters } from "@/lib/searchSchema";
 
 interface Job {
   id: string;
@@ -58,12 +60,13 @@ interface Internship {
   application_url: string;
 }
 
-interface SearchFilters {
-  keyword: string;
-  locations: string[];
-  visaSponsorship: "any" | "yes" | "no";
-  techStack: string[];
-}
+// Remove this interface since we're importing it from searchSchema
+// interface SearchFilters {
+//   keyword: string;
+//   locations: string[];
+//   visaSponsorship: "any" | "yes" | "no";
+//   techStack: string[];
+// }
 
 interface StudentDashboardProps {
   onLogout: () => void;
@@ -81,6 +84,13 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [showProfileWizard, setShowProfileWizard] = useState(false);
   const [searchResults, setSearchResults] = useState<Internship[]>([]);
   const [isSearching, setIsSearching] = useState(false);
+  const [searchFilters, setSearchFilters] = useState<SearchFilters>({
+    q: "",
+    locations: [],
+    visa: "any",
+    stacks: [],
+    respectGpa: false
+  });
   const [hasSearched, setHasSearched] = useState(false);
   const { toast } = useToast();
 
@@ -287,51 +297,9 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     }
   };
 
-  const handleSearch = async (filters: SearchFilters) => {
-    setIsSearching(true);
-    setHasSearched(true);
-    
-    try {
-      const { data, error } = await supabase.rpc('search_internships', {
-        q: filters.keyword || null,
-        locations: filters.locations.length > 0 ? filters.locations : null,
-        visa: filters.visaSponsorship,
-        stacks: filters.techStack.length > 0 ? filters.techStack : null,
-        limit_count: 50,
-        offset_count: 0
-      });
-
-      if (error) throw error;
-
-      // Map the internships data to match the Internship interface
-      const mappedResults: Internship[] = (data || []).map((item: any) => ({
-        id: item.id,
-        company: item.company,
-        title: item.role_title || 'Software Engineering Intern',
-        city: item.location || '',
-        description: item.notes || '',
-        skills: item.tech_stack || [],
-        visa_sponsorship: item.visa_sponsorship || 'Unspecified',
-        application_url: item.apply_url || item.application_link || ''
-      }));
-
-      setSearchResults(mappedResults);
-      
-      toast({
-        title: "Search completed",
-        description: `Found ${mappedResults.length} internships matching your criteria.`,
-      });
-    } catch (error) {
-      console.error('Search error:', error);
-      toast({
-        title: "Search failed",
-        description: "Failed to search internships. Please try again.",
-        variant: "destructive"
-      });
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
+  const handleFiltersChange = (filters: SearchFilters) => {
+    setSearchFilters(filters);
+    setHasSearched(true); // Trigger the query when filters change
   };
 
   const handleDeleteResume = async () => {
@@ -559,7 +527,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <InternshipSearch onFiltersChange={handleSearch} />
+                <InternshipSearch onFiltersChange={handleFiltersChange} />
               </CardContent>
             </Card>
           </div>

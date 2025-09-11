@@ -1,20 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { Search, Filter, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Form, FormControl, FormField, FormItem } from "@/components/ui/form";
 import { LocationFilter } from "./filters/LocationFilter";
 import { VisaSponsorshipFilter } from "./filters/VisaSponsorshipFilter";
 import { TechStackFilter } from "./filters/TechStackFilter";
-
-interface SearchFilters {
-  keyword: string;
-  locations: string[];
-  visaSponsorship: "any" | "yes" | "no";
-  techStack: string[];
-}
+import { SearchFiltersSchema, SearchFilters } from "@/lib/searchSchema";
 
 interface InternshipSearchProps {
   onFiltersChange?: (filters: SearchFilters) => void;
@@ -22,38 +19,42 @@ interface InternshipSearchProps {
 }
 
 export function InternshipSearch({ onFiltersChange, className }: InternshipSearchProps) {
-  const [filters, setFilters] = useState<SearchFilters>({
-    keyword: "",
-    locations: [],
-    visaSponsorship: "any",
-    techStack: [],
-  });
-
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
 
-  const updateFilters = (newFilters: Partial<SearchFilters>) => {
-    const updatedFilters = { ...filters, ...newFilters };
-    setFilters(updatedFilters);
-    onFiltersChange?.(updatedFilters);
-  };
+  const form = useForm<SearchFilters>({
+    resolver: zodResolver(SearchFiltersSchema),
+    defaultValues: {
+      q: "",
+      locations: [],
+      visa: "any",
+      stacks: [],
+      respectGpa: false
+    }
+  });
+
+  const { watch, setValue, reset } = form;
+  const watchedValues = watch();
+
+  useEffect(() => {
+    onFiltersChange?.(watchedValues);
+  }, [watchedValues, onFiltersChange]);
 
   const clearAllFilters = () => {
-    const clearedFilters: SearchFilters = {
-      keyword: "",
+    reset({
+      q: "",
       locations: [],
-      visaSponsorship: "any",
-      techStack: [],
-    };
-    setFilters(clearedFilters);
-    onFiltersChange?.(clearedFilters);
+      visa: "any",
+      stacks: [],
+      respectGpa: false
+    });
   };
 
   const getActiveFiltersCount = () => {
     let count = 0;
-    if (filters.keyword) count++;
-    if (filters.locations.length > 0) count++;
-    if (filters.visaSponsorship !== "any") count++;
-    if (filters.techStack.length > 0) count++;
+    if (watchedValues.q) count++;
+    if (watchedValues.locations && watchedValues.locations.length > 0) count++;
+    if (watchedValues.visa !== "any") count++;
+    if (watchedValues.stacks && watchedValues.stacks.length > 0) count++;
     return count;
   };
 
@@ -62,18 +63,18 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
   const FiltersContent = () => (
     <div className="space-y-6">
       <LocationFilter
-        value={filters.locations}
-        onChange={(locations) => updateFilters({ locations })}
+        value={watchedValues.locations || []}
+        onChange={(locations) => setValue("locations", locations)}
       />
       
       <VisaSponsorshipFilter
-        value={filters.visaSponsorship}
-        onChange={(visaSponsorship) => updateFilters({ visaSponsorship })}
+        value={watchedValues.visa || "any"}
+        onChange={(visa) => setValue("visa", visa)}
       />
       
       <TechStackFilter
-        value={filters.techStack}
-        onChange={(techStack) => updateFilters({ techStack })}
+        value={watchedValues.stacks || []}
+        onChange={(stacks) => setValue("stacks", stacks)}
       />
 
       {activeFiltersCount > 0 && (
@@ -90,71 +91,77 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
   );
 
   return (
-    <div className={className}>
-      {/* Search Bar */}
-      <div className="relative mb-4">
-        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-        <Input
-          type="text"
-          placeholder="Search companies, roles, or technologies..."
-          value={filters.keyword}
-          onChange={(e) => updateFilters({ keyword: e.target.value })}
-          className="pl-10 h-12 text-base"
-        />
-      </div>
-
-      {/* Active Filters Display */}
-      {activeFiltersCount > 0 && (
-        <div className="mb-4 flex flex-wrap gap-2">
-          {filters.keyword && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              Keyword: {filters.keyword}
-              <X
-                className="h-3 w-3 cursor-pointer"
-                onClick={() => updateFilters({ keyword: "" })}
-              />
-            </Badge>
-          )}
-          
-          {filters.locations.map((location) => (
-            <Badge key={location} variant="secondary" className="flex items-center gap-1">
-              {location}
-              <X
-                className="h-3 w-3 cursor-pointer"
-                onClick={() =>
-                  updateFilters({
-                    locations: filters.locations.filter((l) => l !== location),
-                  })
-                }
-              />
-            </Badge>
-          ))}
-          
-          {filters.visaSponsorship !== "any" && (
-            <Badge variant="secondary" className="flex items-center gap-1">
-              Visa: {filters.visaSponsorship === "yes" ? "Required" : "Not Required"}
-              <X
-                className="h-3 w-3 cursor-pointer"
-                onClick={() => updateFilters({ visaSponsorship: "any" })}
-              />
-            </Badge>
-          )}
-          
-          {filters.techStack.map((tech) => (
-            <Badge key={tech} variant="secondary" className="flex items-center gap-1">
-              {tech}
-              <X
-                className="h-3 w-3 cursor-pointer"
-                onClick={() =>
-                  updateFilters({
-                    techStack: filters.techStack.filter((t) => t !== tech),
-                  })
-                }
-              />
-            </Badge>
-          ))}
+    <Form {...form}>
+      <div className={className}>
+        {/* Search Bar */}
+        <div className="relative mb-4">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <FormField
+            control={form.control}
+            name="q"
+            render={({ field }) => (
+              <FormItem>
+                <FormControl>
+                  <Input
+                    type="text"
+                    placeholder="Search companies, roles, or technologies..."
+                    className="pl-10 h-12 text-base"
+                    {...field}
+                  />
+                </FormControl>
+              </FormItem>
+            )}
+          />
         </div>
-      )}
+
+        {/* Active Filters Display */}
+        {activeFiltersCount > 0 && (
+          <div className="mb-4 flex flex-wrap gap-2">
+            {watchedValues.q && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                Keyword: {watchedValues.q}
+                <X
+                  className="h-3 w-3 cursor-pointer"
+                  onClick={() => setValue("q", "")}
+                />
+              </Badge>
+            )}
+            
+            {(watchedValues.locations || []).map((location) => (
+              <Badge key={location} variant="secondary" className="flex items-center gap-1">
+                {location}
+                <X
+                  className="h-3 w-3 cursor-pointer"
+                  onClick={() =>
+                    setValue("locations", (watchedValues.locations || []).filter((l) => l !== location))
+                  }
+                />
+              </Badge>
+            ))}
+            
+            {watchedValues.visa !== "any" && (
+              <Badge variant="secondary" className="flex items-center gap-1">
+                Visa: {watchedValues.visa === "yes" ? "Required" : "Not Required"}
+                <X
+                  className="h-3 w-3 cursor-pointer"
+                  onClick={() => setValue("visa", "any")}
+                />
+              </Badge>
+            )}
+            
+            {(watchedValues.stacks || []).map((tech) => (
+              <Badge key={tech} variant="secondary" className="flex items-center gap-1">
+                {tech}
+                <X
+                  className="h-3 w-3 cursor-pointer"
+                  onClick={() =>
+                    setValue("stacks", (watchedValues.stacks || []).filter((t) => t !== tech))
+                  }
+                />
+              </Badge>
+            ))}
+          </div>
+        )}
 
       {/* Desktop Filters */}
       <Card className="hidden lg:block">
@@ -188,5 +195,6 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
         </Sheet>
       </div>
     </div>
+    </Form>
   );
 }
