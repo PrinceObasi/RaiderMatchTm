@@ -1,177 +1,164 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Code2, ChevronDown, Check } from 'lucide-react';
+import React, { useState } from "react";
+import { Check, ChevronDown, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
-interface TechStackFilterProps {
-  selectedTechStack: string[];
-  onChange: (techStack: string[]) => void;
-  disabled?: boolean;
-}
-
-// Common tech stack options based on typical internship requirements
 const TECH_STACK_OPTIONS = [
-  "Software Engineering",
-  "Data Science",
-  "Machine Learning",
-  "Web Development",
-  "Mobile Development",
-  "Cloud Computing",
-  "DevOps",
-  "Cybersecurity",
-  "UI/UX Design",
-  "Product Management",
-  "Python",
-  "JavaScript",
-  "Java",
-  "C++",
-  "React",
-  "Node.js",
-  "AWS",
-  "Docker",
-  "Kubernetes",
-  "SQL"
+  // Programming Languages
+  "Python", "Java", "JavaScript", "TypeScript", "C++", "C#", "C", "Go", "Rust", "Swift",
+  "Kotlin", "PHP", "Ruby", "Scala", "R", "MATLAB", "Dart", "Perl", "Lua",
+  
+  // Frontend Technologies
+  "React", "Vue.js", "Angular", "HTML", "CSS", "Sass", "Bootstrap", "Tailwind CSS",
+  "jQuery", "Next.js", "Nuxt.js", "Svelte", "Flutter", "React Native",
+  
+  // Backend Technologies
+  "Node.js", "Express.js", "Django", "Flask", "Spring Boot", "ASP.NET", "Laravel",
+  "Rails", "FastAPI", "NestJS", "Gin", "Echo",
+  
+  // Databases
+  "MySQL", "PostgreSQL", "MongoDB", "SQLite", "Redis", "Firebase", "Supabase",
+  "DynamoDB", "Cassandra", "Neo4j", "InfluxDB",
+  
+  // Cloud & DevOps
+  "AWS", "Google Cloud", "Azure", "Docker", "Kubernetes", "Jenkins", "GitLab CI",
+  "GitHub Actions", "Terraform", "Ansible", "Nginx", "Apache",
+  
+  // Data & Analytics
+  "Pandas", "NumPy", "Scikit-learn", "TensorFlow", "PyTorch", "Jupyter", "Tableau",
+  "Power BI", "Apache Spark", "Elasticsearch", "Kibana",
+  
+  // Other Tools
+  "Git", "Linux", "Ubuntu", "Postman", "Figma", "Jira", "Slack", "VS Code",
+  "IntelliJ", "Eclipse", "Xcode", "Android Studio",
 ];
 
-const TechStackFilter: React.FC<TechStackFilterProps> = ({ 
-  selectedTechStack, 
-  onChange,
-  disabled = false 
-}) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const dropdownRef = useRef<HTMLDivElement>(null);
+interface TechStackFilterProps {
+  value: string[];
+  onChange: (techStack: string[]) => void;
+}
 
-  // Handle clicking outside to close dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-        setSearchTerm('');
-      }
-    };
+export function TechStackFilter({ value, onChange }: TechStackFilterProps) {
+  const [open, setOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
+  const filteredOptions = TECH_STACK_OPTIONS.filter((tech) =>
+    tech.toLowerCase().includes(searchValue.toLowerCase())
+  );
 
-  const toggleTechStack = (tech: string) => {
-    console.log('[TechStackFilter] Toggling tech:', tech);
-    const newTechStack = selectedTechStack.includes(tech)
-      ? selectedTechStack.filter(t => t !== tech)
-      : [...selectedTechStack, tech];
-    
-    console.log('[TechStackFilter] New tech stack:', newTechStack);
+  const toggleTech = (tech: string) => {
+    const newTechStack = value.includes(tech)
+      ? value.filter((t) => t !== tech)
+      : [...value, tech];
     onChange(newTechStack);
   };
 
-  const clearAll = () => {
-    console.log('[TechStackFilter] Clearing all tech stack');
-    onChange([]);
-    setIsOpen(false);
-    setSearchTerm('');
+  const removeTech = (tech: string) => {
+    onChange(value.filter((t) => t !== tech));
   };
 
-  // Filter options based on search term
-  const filteredOptions = TECH_STACK_OPTIONS.filter(tech =>
-    tech.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const clearAll = () => {
+    onChange([]);
+  };
 
   return (
-    <div className="relative" ref={dropdownRef}>
-      <button
-        type="button"
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        disabled={disabled}
-        className={`
-          flex items-center gap-2 px-4 py-2 border rounded-lg
-          ${disabled 
-            ? 'bg-gray-100 text-gray-400 cursor-not-allowed' 
-            : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-300'}
-          ${selectedTechStack.length > 0 ? 'ring-2 ring-blue-500 border-blue-500' : ''}
-        `}
-      >
-        <Code2 className="h-4 w-4" />
-        <span>
-          {selectedTechStack.length === 0 
-            ? 'Tech Stack' 
-            : `${selectedTechStack.length} selected`}
-        </span>
-        <ChevronDown className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-      </button>
-
-      {isOpen && !disabled && (
-        <div className="absolute z-50 mt-2 w-72 bg-white border border-gray-200 rounded-lg shadow-lg">
-          {/* Search Input */}
-          <div className="p-2 border-b border-gray-200">
-            <input
-              type="text"
-              placeholder="Search tech stack..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-              onClick={(e) => e.stopPropagation()}
-            />
-          </div>
-
-          {/* Clear All Button */}
-          {selectedTechStack.length > 0 && (
-            <div className="p-2 border-b border-gray-200">
-              <button
-                onClick={clearAll}
-                className="text-sm text-gray-600 hover:text-gray-700 font-medium"
-              >
-                Clear All ({selectedTechStack.length})
-              </button>
-            </div>
-          )}
-
-          {/* Tech Stack Options */}
-          <div className="max-h-64 overflow-y-auto">
-            {filteredOptions.length === 0 ? (
-              <div className="p-3 text-sm text-gray-500 text-center">
-                No matching tech stack found
-              </div>
-            ) : (
-              filteredOptions.map(tech => (
-                <label
-                  key={tech}
-                  className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 cursor-pointer"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedTechStack.includes(tech)}
-                    onChange={() => toggleTechStack(tech)}
-                    className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                  />
-                  <span className="text-sm text-gray-700 flex-1">{tech}</span>
-                  {selectedTechStack.includes(tech) && (
-                    <Check className="h-4 w-4 text-blue-600" />
-                  )}
-                </label>
-              ))
-            )}
-          </div>
-
-          {/* Selected Count */}
-          {selectedTechStack.length > 0 && (
-            <div className="p-2 border-t border-gray-200 bg-gray-50">
-              <div className="flex flex-wrap gap-1">
-                {selectedTechStack.slice(0, 3).map(tech => (
-                  <span key={tech} className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">
-                    {tech}
-                  </span>
-                ))}
-                {selectedTechStack.length > 3 && (
-                  <span className="text-xs text-gray-600 px-2 py-1">
-                    +{selectedTechStack.length - 3} more
-                  </span>
-                )}
-              </div>
-            </div>
-          )}
+    <div className="space-y-3">
+      <Label className="text-sm font-medium">Tech Stack</Label>
+      
+      {/* Selected Technologies */}
+      {value.length > 0 && (
+        <div className="flex flex-wrap gap-1 max-h-20 overflow-y-auto">
+          {value.map((tech) => (
+            <Badge key={tech} variant="secondary" className="flex items-center gap-1 text-xs">
+              {tech}
+              <X
+                className="h-3 w-3 cursor-pointer hover:bg-destructive hover:text-destructive-foreground rounded-sm"
+                onClick={() => removeTech(tech)}
+              />
+            </Badge>
+          ))}
         </div>
+      )}
+
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          <Button
+            variant="outline"
+            role="combobox"
+            aria-expanded={open}
+            className="w-full justify-between h-10"
+          >
+            {value.length === 0
+              ? "Select technologies..."
+              : `${value.length} selected`}
+            <ChevronDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent 
+          className="w-80 p-0 z-[200] pointer-events-auto bg-popover border shadow-lg" 
+          align="start"
+          sideOffset={5}
+          onPointerDownOutside={(e) => e.preventDefault()}
+        >
+          <Command className="border-0">
+            <CommandInput
+              placeholder="Search technologies..."
+              value={searchValue}
+              onValueChange={setSearchValue}
+            />
+            <CommandList className="max-h-60">
+              <CommandEmpty>No technologies found.</CommandEmpty>
+              <CommandGroup>
+                {value.length > 0 && (
+                  <div className="p-2 border-b">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        clearAll();
+                      }}
+                      className="h-6 text-xs w-full"
+                    >
+                      Clear All ({value.length})
+                    </Button>
+                  </div>
+                )}
+                {filteredOptions.map((tech) => (
+                  <CommandItem
+                    key={tech}
+                    onSelect={(value) => {
+                      console.log('Tech selected:', value);
+                      toggleTech(tech);
+                    }}
+                    className="flex items-center space-x-2 cursor-pointer"
+                  >
+                    <div className="flex items-center space-x-2 flex-1">
+                      <span>{tech}</span>
+                      {value.includes(tech) && (
+                        <Check className="ml-auto h-4 w-4 text-primary" />
+                      )}
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            </CommandList>
+          </Command>
+        </PopoverContent>
+      </Popover>
+
+      {value.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {value.length} {value.length === 1 ? "technology" : "technologies"} selected
+        </p>
       )}
     </div>
   );
-};
-
-export default TechStackFilter;
+}

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { LocationFilter } from "./filters/LocationFilter";
 import { VisaSponsorshipFilter } from "./filters/VisaSponsorshipFilter";
-import TechStackFilter from "./filters/TechStackFilter";
+import { TechStackFilter } from "./filters/TechStackFilter";
 
 interface SearchFilters {
   keyword: string;
@@ -72,7 +72,7 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
       />
       
       <TechStackFilter
-        selectedTechStack={filters.techStack}
+        value={filters.techStack}
         onChange={(techStack) => updateFilters({ techStack })}
       />
 
