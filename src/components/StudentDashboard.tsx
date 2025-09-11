@@ -292,43 +292,34 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     setHasSearched(true);
     
     try {
-      let query = supabase
-        .from('jobs_for_app')
-        .select('id, company, title, city, description, skills, visa_sponsorship, application_url')
-        .eq('is_active', true)
-        .order('title', { ascending: true });
-
-      // Apply keyword filter across company, title, and description
-      if (filters.keyword) {
-        const keyword = `%${filters.keyword}%`;
-        query = query.or(`company.ilike.${keyword},title.ilike.${keyword},description.ilike.${keyword}`);
-      }
-
-      // Apply location filter
-      if (filters.locations.length > 0) {
-        query = query.in('city', filters.locations);
-      }
-
-      // Apply visa sponsorship filter
-      if (filters.visaSponsorship !== 'any') {
-        const visaValue = filters.visaSponsorship === 'yes' ? 'Yes' : 'No';
-        query = query.eq('visa_sponsorship', visaValue);
-      }
-
-      // Apply tech stack filter
-      if (filters.techStack.length > 0) {
-        query = query.overlaps('skills', filters.techStack);
-      }
-
-      const { data, error } = await query.limit(50);
+      const { data, error } = await supabase.rpc('search_internships', {
+        q: filters.keyword || null,
+        locations: filters.locations.length > 0 ? filters.locations : null,
+        visa: filters.visaSponsorship,
+        stacks: filters.techStack.length > 0 ? filters.techStack : null,
+        limit_count: 50,
+        offset_count: 0
+      });
 
       if (error) throw error;
 
-      setSearchResults(data || []);
+      // Map the internships data to match the Internship interface
+      const mappedResults: Internship[] = (data || []).map((item: any) => ({
+        id: item.id,
+        company: item.company,
+        title: item.role_title || 'Software Engineering Intern',
+        city: item.location || '',
+        description: item.notes || '',
+        skills: item.tech_stack || [],
+        visa_sponsorship: item.visa_sponsorship || 'Unspecified',
+        application_url: item.apply_url || item.application_link || ''
+      }));
+
+      setSearchResults(mappedResults);
       
       toast({
         title: "Search completed",
-        description: `Found ${data?.length || 0} internships matching your criteria.`,
+        description: `Found ${mappedResults.length} internships matching your criteria.`,
       });
     } catch (error) {
       console.error('Search error:', error);
