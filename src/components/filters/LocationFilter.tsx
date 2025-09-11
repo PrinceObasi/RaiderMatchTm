@@ -57,6 +57,7 @@ export function LocationFilter({ value, onChange }: LocationFilterProps) {
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
+            type="button"
             variant="outline"
             role="combobox"
             aria-expanded={open}
@@ -71,10 +72,9 @@ export function LocationFilter({ value, onChange }: LocationFilterProps) {
           </Button>
         </PopoverTrigger>
         <PopoverContent 
-          className="w-80 p-0 z-[200] pointer-events-auto bg-popover border shadow-lg" 
+          className="w-80 p-0 z-[1000] pointer-events-auto bg-popover border shadow-lg" 
           align="start"
           sideOffset={5}
-          onPointerDownOutside={(e) => e.preventDefault()}
         >
           <Command className="border-0">
             <CommandInput
