@@ -11,16 +11,27 @@ import {
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
 
 const LOCATION_OPTIONS = [
-  "Austin",
-  "Dallas",
-  "Houston",
-  "Remote",
-  "San Antonio",
-  "Fort Worth",
-  "El Paso",
-  "Arlington",
-  "Corpus Christi",
-  "Plano",
+  "Austin, TX",
+  "Boston, MA", 
+  "Chicago, IL",
+  "Dallas, TX",
+  "Denver, CO",
+  "Houston, TX",
+  "Los Angeles, CA",
+  "Miami, FL",
+  "New York, NY",
+  "San Diego, CA",
+  "San Francisco, CA",
+  "Seattle, WA",
+  "Washington, DC",
+  "Atlanta, GA",
+  "Charlotte, NC",
+  "Nashville, TN",
+  "Phoenix, AZ",
+  "Portland, OR",
+  "Raleigh, NC",
+  "Tampa, FL",
+  "Remote"
 ];
 
 interface LocationFilterProps {

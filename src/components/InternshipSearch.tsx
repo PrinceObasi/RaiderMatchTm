@@ -60,7 +60,8 @@ export function InternshipSearch({ onFiltersChange, className }: InternshipSearc
 
   const handleApplyFilters = () => {
     // Trigger search with current form values
-    onFiltersChange?.(watchedValues);
+    onFiltersChange?.(form.getValues());
+    setIsMobileFiltersOpen(false);
   };
 
   const getActiveFiltersCount = () => {

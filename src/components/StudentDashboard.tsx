@@ -92,19 +92,15 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [hasSearched, setHasSearched] = useState(false);
   const { toast } = useToast();
 
-  // Use React Query for search - only search when filters have values  
+  // Use React Query for search - search whenever Apply is clicked
   const { 
     data: searchResults = [], 
     isLoading: isSearching, 
     error: searchError 
   } = useInternshipSearch({ 
-    filters: searchFilters, 
-    enabled: hasSearched && (
-      (searchFilters.q && searchFilters.q.length > 0) ||
-      (searchFilters.locations && searchFilters.locations.length > 0) ||
-      (searchFilters.visa && searchFilters.visa !== 'any') ||
-      (searchFilters.stacks && searchFilters.stacks.length > 0)
-    )
+    filters: searchFilters,
+    userGpa: student?.gpa,
+    enabled: hasSearched
   });
 
   // Auto-load matches function
