@@ -559,7 +559,8 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
               </CardContent>
             </Card>
 
-            {/* Internship Search - Now handled by the search container */}
+            {/* Internship Search Filter */}
+            <InternshipSearchContainer onApply={handleApply} />
           </div>
 
           {/* Right Column: Main Content with Tabs */}
@@ -583,9 +584,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
               </div>
               
               <TabsContent value="search" className="mt-6">
-                <div className="space-y-6">
-                  <InternshipSearchContainer onApply={handleApply} />
-                </div>
+                {/* Search results are now handled by the InternshipSearchContainer in the left column */}
               </TabsContent>
               
               <TabsContent value="matches" className="mt-6">
