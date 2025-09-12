@@ -56,6 +56,42 @@ export type Database = {
           },
         ]
       }
+      example_resumes: {
+        Row: {
+          company: string
+          created_at: string
+          description: string | null
+          graduation_year: number
+          id: string
+          major: string
+          position: string
+          resume_url: string
+          student_name: string
+        }
+        Insert: {
+          company: string
+          created_at?: string
+          description?: string | null
+          graduation_year: number
+          id?: string
+          major: string
+          position: string
+          resume_url: string
+          student_name: string
+        }
+        Update: {
+          company?: string
+          created_at?: string
+          description?: string | null
+          graduation_year?: number
+          id?: string
+          major?: string
+          position?: string
+          resume_url?: string
+          student_name?: string
+        }
+        Relationships: []
+      }
       internships: {
         Row: {
           application_link: string
@@ -318,6 +354,41 @@ export type Database = {
           overlap: number
           skills: string[]
           title: string
+        }[]
+      }
+      search_internships: {
+        Args: {
+          limit_count?: number
+          locations?: string[]
+          offset_count?: number
+          q?: string
+          respect_gpa?: boolean
+          stacks?: string[]
+          user_gpa?: number
+          visa?: string
+        }
+        Returns: {
+          application_link: string
+          apply_url: string | null
+          category: string | null
+          company: string
+          created_at: string | null
+          date_posted: string | null
+          deadline: string | null
+          employment_type: string | null
+          id: string
+          is_texas: boolean | null
+          last_checked_utc: string | null
+          location: string | null
+          notes: string | null
+          remote_flag: boolean | null
+          role_title: string | null
+          search_tsv: unknown | null
+          source_url: string | null
+          sponsorship_flag: string | null
+          tech_stack: string[] | null
+          updated_at: string | null
+          visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
         }[]
       }
     }
