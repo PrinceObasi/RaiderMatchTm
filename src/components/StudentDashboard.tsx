@@ -9,8 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ApplicationList } from "./ApplicationList";
 import { ProfileWizard } from "./ProfileWizard";
-import { InternshipSearch } from "./InternshipSearch";
-import { InternshipResults } from "./InternshipResults";
+import { InternshipSearchContainer } from "./search/InternshipSearchContainer";
 import { ApplicationSchema } from "@/lib/schemas";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
@@ -560,18 +559,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
               </CardContent>
             </Card>
 
-            {/* Internship Search Section */}
-            <Card className="card-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Target className="h-5 w-5" />
-                  Search Internships
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <InternshipSearch onFiltersChange={handleSearch} />
-              </CardContent>
-            </Card>
+            {/* Internship Search - Now handled by the search container */}
           </div>
 
           {/* Right Column: Main Content with Tabs */}
@@ -595,11 +583,9 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
               </div>
               
               <TabsContent value="search" className="mt-6">
-                <InternshipResults 
-                  internships={searchResults}
-                  isLoading={isSearching}
-                  onApply={handleApply}
-                />
+                <div className="space-y-6">
+                  <InternshipSearchContainer onApply={handleApply} />
+                </div>
               </TabsContent>
               
               <TabsContent value="matches" className="mt-6">
