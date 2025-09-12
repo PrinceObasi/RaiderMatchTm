@@ -19,7 +19,6 @@ export function InternshipSearchContainer({ onApply, className }: InternshipSear
   const currentParams = params ? { ...params, offset_count: page * limit } : null;
   
   const { data: results = [], isLoading, isFetching, error } = useInternshipSearch(currentParams);
-  const hasSearched = params !== null;
 
   // Show error toast when query fails
   React.useEffect(() => {
@@ -77,7 +76,6 @@ export function InternshipSearchContainer({ onApply, className }: InternshipSear
             error={error}
             onApply={handleApplyToInternship}
             resultCount={results.length}
-            hasSearched={hasSearched}
           />
           
           {/* Simple pagination - can be enhanced later */}
