@@ -5,6 +5,9 @@ import { Badge } from "@/components/ui/badge";
 
 interface SearchFilters {
   keyword: string;
+  locations: string[];
+  visaSponsorship: "any" | "yes" | "no";
+  techStack: string[];
 }
 
 // Mock internships data for demo
@@ -59,6 +62,9 @@ const mockInternships = [
 export function InternshipSearchDemo() {
   const [filters, setFilters] = useState<SearchFilters>({
     keyword: "",
+    locations: [],
+    visaSponsorship: "any",
+    techStack: [],
   });
 
   const [filteredInternships, setFilteredInternships] = useState(mockInternships);
@@ -66,13 +72,34 @@ export function InternshipSearchDemo() {
   const handleFiltersChange = (newFilters: SearchFilters) => {
     setFilters(newFilters);
 
-    // Apply keyword search to mock data
+    // Apply filters to mock data
     let filtered = mockInternships.filter((internship) => {
       // Keyword search
       if (newFilters.keyword) {
         const keyword = newFilters.keyword.toLowerCase();
         const searchText = `${internship.company} ${internship.title} ${internship.techStack.join(" ")}`.toLowerCase();
         if (!searchText.includes(keyword)) return false;
+      }
+
+      // Location filter
+      if (newFilters.locations.length > 0) {
+        if (!newFilters.locations.includes(internship.location)) return false;
+      }
+
+      // Visa sponsorship filter
+      if (newFilters.visaSponsorship !== "any") {
+        const requiresVisa = newFilters.visaSponsorship === "yes";
+        if (internship.sponsorsVisa !== requiresVisa) return false;
+      }
+
+      // Tech stack filter
+      if (newFilters.techStack.length > 0) {
+        const hasMatchingTech = newFilters.techStack.some((tech) =>
+          internship.techStack.some((iTech) =>
+            iTech.toLowerCase().includes(tech.toLowerCase())
+          )
+        );
+        if (!hasMatchingTech) return false;
       }
 
       return true;
@@ -144,7 +171,7 @@ export function InternshipSearchDemo() {
                         {internship.techStack.map((tech) => (
                           <Badge
                             key={tech}
-                            variant="outline"
+                            variant={filters.techStack.includes(tech) ? "default" : "outline"}
                             className="text-xs"
                           >
                             {tech}

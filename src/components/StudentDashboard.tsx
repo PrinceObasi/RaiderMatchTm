@@ -60,6 +60,9 @@ interface Internship {
 
 interface SearchFilters {
   keyword: string;
+  locations: string[];
+  visaSponsorship: "any" | "yes" | "no";
+  techStack: string[];
 }
 
 interface StudentDashboardProps {
@@ -300,6 +303,22 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       if (filters.keyword) {
         const keyword = `%${filters.keyword}%`;
         query = query.or(`company.ilike.${keyword},title.ilike.${keyword},description.ilike.${keyword}`);
+      }
+
+      // Apply location filter
+      if (filters.locations.length > 0) {
+        query = query.in('city', filters.locations);
+      }
+
+      // Apply visa sponsorship filter
+      if (filters.visaSponsorship !== 'any') {
+        const visaValue = filters.visaSponsorship === 'yes' ? 'Yes' : 'No';
+        query = query.eq('visa_sponsorship', visaValue);
+      }
+
+      // Apply tech stack filter
+      if (filters.techStack.length > 0) {
+        query = query.overlaps('skills', filters.techStack);
       }
 
       const { data, error } = await query.limit(50);
