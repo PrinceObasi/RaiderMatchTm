@@ -9,16 +9,26 @@ import { toast } from "sonner";
 interface InternshipSearchContainerProps {
   onApply?: (internshipId: string, applicationUrl: string) => void;
   className?: string;
+  showResultsInTab?: boolean;
+  onSearchResults?: (results: any[], isLoading: boolean, hasSearched: boolean) => void;
 }
 
-export function InternshipSearchContainer({ onApply, className }: InternshipSearchContainerProps) {
+export function InternshipSearchContainer({ onApply, className, showResultsInTab = false, onSearchResults }: InternshipSearchContainerProps) {
   const [params, setParams] = useState<NormalizedParams | null>(null);
   const [page, setPage] = useState(0);
+  const [hasSearched, setHasSearched] = useState(false);
   
   const limit = 20;
   const currentParams = params ? { ...params, offset_count: page * limit } : null;
   
   const { data: results = [], isLoading, isFetching, error } = useInternshipSearch(currentParams);
+
+  // Pass results back to parent when showResultsInTab is true
+  React.useEffect(() => {
+    if (showResultsInTab && onSearchResults) {
+      onSearchResults(results, isLoading || isFetching, hasSearched);
+    }
+  }, [results, isLoading, isFetching, hasSearched, showResultsInTab, onSearchResults]);
 
   // Show error toast when query fails
   React.useEffect(() => {
@@ -32,6 +42,7 @@ export function InternshipSearchContainer({ onApply, className }: InternshipSear
     const normalized = normalizeFilters(formData, { limit_count: limit, offset_count: 0 });
     setParams(normalized);
     setPage(0); // Reset pagination on new search
+    setHasSearched(true);
   }, []);
 
   const handleReset = useCallback(() => {
@@ -45,6 +56,7 @@ export function InternshipSearchContainer({ onApply, className }: InternshipSear
       offset_count: 0,
     });
     setPage(0);
+    setHasSearched(false);
   }, []);
 
   const handleApplyToInternship = useCallback((internshipId: string, applicationUrl: string) => {
@@ -54,6 +66,19 @@ export function InternshipSearchContainer({ onApply, className }: InternshipSear
       window.open(applicationUrl, '_blank');
     }
   }, [onApply]);
+
+  // If showResultsInTab is true, only render the search form
+  if (showResultsInTab) {
+    return (
+      <div className={className}>
+        <SearchForm
+          onApply={handleApply}
+          onReset={handleReset}
+          isLoading={isLoading || isFetching}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className={className}>

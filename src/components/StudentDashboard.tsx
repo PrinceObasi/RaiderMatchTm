@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -78,10 +78,16 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [student, setStudent] = useState<any>(null);
   const [resumeAnalyzed, setResumeAnalyzed] = useState(false);
   const [showProfileWizard, setShowProfileWizard] = useState(false);
-  const [searchResults, setSearchResults] = useState<Internship[]>([]);
-  const [isSearching, setIsSearching] = useState(false);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [tabSearchResults, setTabSearchResults] = useState<any[]>([]);
+  const [tabIsSearching, setTabIsSearching] = useState(false);
+  const [tabHasSearched, setTabHasSearched] = useState(false);
   const { toast } = useToast();
+  
+  const handleSearchResults = useCallback((results: any[], isLoading: boolean, hasSearched: boolean) => {
+    setTabSearchResults(results);
+    setTabIsSearching(isLoading);
+    setTabHasSearched(hasSearched);
+  }, []);
 
   // Auto-load matches function
   const loadMatches = async (studentData?: any, forceLoad = false, showSuccessToast = false) => {
@@ -286,62 +292,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     }
   };
 
-  const handleSearch = async (filters: SearchFilters) => {
-    console.log('StudentDashboard.handleSearch called with filters:', filters);
-    setIsSearching(true);
-    setHasSearched(true);
-    
-    try {
-      let query = supabase
-        .from('jobs_for_app')
-        .select('id, company, title, city, description, skills, visa_sponsorship, application_url')
-        .eq('is_active', true)
-        .order('title', { ascending: true });
-
-      // Apply keyword filter across company, title, and description
-      if (filters.keyword) {
-        const keyword = `%${filters.keyword}%`;
-        query = query.or(`company.ilike.${keyword},title.ilike.${keyword},description.ilike.${keyword}`);
-      }
-
-      // Apply location filter
-      if (filters.locations.length > 0) {
-        query = query.in('city', filters.locations);
-      }
-
-      // Apply visa sponsorship filter
-      if (filters.visaSponsorship !== 'any') {
-        const visaValue = filters.visaSponsorship === 'yes' ? 'Yes' : 'No';
-        query = query.eq('visa_sponsorship', visaValue);
-      }
-
-      // Apply tech stack filter
-      if (filters.techStack.length > 0) {
-        query = query.overlaps('skills', filters.techStack);
-      }
-
-      const { data, error } = await query.limit(50);
-
-      if (error) throw error;
-
-      setSearchResults(data || []);
-      
-      toast({
-        title: "Search completed",
-        description: `Found ${data?.length || 0} internships matching your criteria.`,
-      });
-    } catch (error) {
-      console.error('Search error:', error);
-      toast({
-        title: "Search failed",
-        description: "Failed to search internships. Please try again.",
-        variant: "destructive"
-      });
-      setSearchResults([]);
-    } finally {
-      setIsSearching(false);
-    }
-  };
+  // Remove the old search function since search is now handled by InternshipSearchContainer
 
   const handleDeleteResume = async () => {
     try {
@@ -559,18 +510,32 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
               </CardContent>
             </Card>
 
-            {/* Internship Search Filter */}
-            <InternshipSearchContainer onApply={handleApply} />
+            {/* Internship Search Filter Form Only */}
+            <Card className="card-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Search className="h-5 w-5" />
+                  Search Internships
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <InternshipSearchContainer 
+                  onApply={handleApply} 
+                  showResultsInTab={true} 
+                  onSearchResults={handleSearchResults} 
+                />
+              </CardContent>
+            </Card>
           </div>
 
           {/* Right Column: Main Content with Tabs */}
           <div>
-            <Tabs defaultValue={hasSearched ? "search" : "matches"} className="w-full">
+            <Tabs defaultValue={tabHasSearched ? "search" : "matches"} className="w-full">
               <div className="flex gap-2 overflow-x-auto sm:overflow-visible px-1">
                 <TabsList className="flex shrink-0 gap-2">
                   <TabsTrigger value="search" className="shrink-0 flex items-center gap-2">
                     <Search className="h-4 w-4" />
-                    Search Results ({searchResults.length})
+                    Search Results ({tabSearchResults.length})
                   </TabsTrigger>
                   <TabsTrigger value="matches" className="shrink-0 flex items-center gap-2">
                     <Target className="h-4 w-4" />
@@ -584,7 +549,97 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
               </div>
               
               <TabsContent value="search" className="mt-6">
-                {/* Search results are now handled by the InternshipSearchContainer in the left column */}
+                <Card className="card-shadow">
+                  <CardContent className="pt-6">
+                    {!tabHasSearched ? (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p className="text-lg mb-2">Search for internships</p>
+                        <p>Use the search form on the left to find internships that match your criteria.</p>
+                      </div>
+                    ) : tabIsSearching ? (
+                      <div className="text-center py-12">
+                        <RefreshCw className="h-8 w-8 mx-auto mb-4 animate-spin text-primary" />
+                        <p className="text-lg mb-2">Searching internships...</p>
+                        <p className="text-muted-foreground">Finding the best matches for you</p>
+                      </div>
+                    ) : tabSearchResults.length === 0 ? (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p className="text-lg mb-2">No internships found</p>
+                        <p>Try adjusting your search filters to find more opportunities.</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-4 sm:space-y-6">
+                        {tabSearchResults.map((internship) => (
+                          <Card key={internship.id} className="border hover:shadow-md transition-smooth">
+                            <CardContent className="p-4 sm:p-6">
+                              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                                <div className="flex-1">
+                                  <h3 className="text-lg sm:text-xl font-semibold leading-tight mb-1">{internship.role_title || internship.title}</h3>
+                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                    <div className="flex items-center gap-1">
+                                      <Building className="h-4 w-4" />
+                                      {internship.company}
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <MapPin className="h-4 w-4" />
+                                      {internship.location || internship.city}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                  {internship.visa_sponsorship && internship.visa_sponsorship !== 'Unspecified' && (
+                                    <Badge variant={internship.visa_sponsorship === 'Yes' ? 'default' : 'secondary'}>
+                                      {internship.visa_sponsorship === 'Yes' ? 'Sponsors Visa' : 'No Visa Sponsorship'}
+                                    </Badge>
+                                  )}
+                                </div>
+                              </div>
+
+                              {/* Tech Stack */}
+                              {(internship.tech_stack || internship.skills) && (internship.tech_stack || internship.skills).length > 0 && (
+                                <div className="mt-3 mb-4">
+                                  <div className="flex flex-wrap gap-2">
+                                    {(internship.tech_stack || internship.skills).slice(0, 8).map((tech) => (
+                                      <Badge key={tech} variant="outline" className="text-xs">
+                                        {tech}
+                                      </Badge>
+                                    ))}
+                                    {(internship.tech_stack || internship.skills).length > 8 && (
+                                      <Badge variant="outline" className="text-xs">
+                                        +{(internship.tech_stack || internship.skills).length - 8} more
+                                      </Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* Description */}
+                              {internship.description && (
+                                <p className="mt-2 text-sm sm:text-base text-muted-foreground line-clamp-3 sm:line-clamp-none mb-4">
+                                  {internship.description}
+                                </p>
+                              )}
+
+                              <div className="mt-4">
+                                <Button 
+                                  onClick={() => handleApply(internship.id, internship.application_link || internship.application_url || '')}
+                                  className="w-full sm:w-auto h-11"
+                                  size="lg"
+                                  disabled={!(internship.application_link || internship.application_url)}
+                                >
+                                  <ExternalLink className="h-4 w-4" />
+                                  Apply Now
+                                </Button>
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
               </TabsContent>
               
               <TabsContent value="matches" className="mt-6">
