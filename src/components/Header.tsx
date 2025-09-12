@@ -16,12 +16,12 @@ export function Header({ onStudentSignup, onEmployerSignup, onLogin }: HeaderPro
           <span className="text-2xl font-bold text-primary">RaiderMatch<span className="align-super text-[0.6em] ml-0.5">™</span></span>
         </div>
         
-        <div className="flex items-center space-x-4">
+        <div className="flex items-center gap-x-4">
           <Button variant="ghost" onClick={onLogin} className="flex items-center gap-2">
             <LogIn className="h-4 w-4" />
             Sign In
           </Button>
-          <Button variant="outline" onClick={onEmployerSignup} className="flex items-center gap-2">
+          <Button variant="outline" onClick={onEmployerSignup} className="hidden sm:inline-flex items-center gap-2">
             <UserPlus className="h-4 w-4" />
             Employer
           </Button>
