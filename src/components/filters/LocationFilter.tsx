@@ -40,9 +40,9 @@ export function LocationFilter({ value, onChange }: LocationFilterProps) {
     const newLocations = value.includes(location)
       ? value.filter((l) => l !== location)
       : [...value, location];
+    console.debug("LocationFilter toggle", { location, prev: value, next: newLocations });
     onChange(newLocations);
   };
-
   const selectAll = () => {
     onChange(LOCATION_OPTIONS);
   };
@@ -117,6 +117,7 @@ export function LocationFilter({ value, onChange }: LocationFilterProps) {
                       <Checkbox
                         checked={value.includes(location)}
                         onCheckedChange={() => toggleLocation(location)}
+                        onClick={(e) => e.stopPropagation()}
                         className="mr-2"
                       />
                       <span className="flex-1">{location}</span>
