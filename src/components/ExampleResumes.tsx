@@ -141,7 +141,7 @@ const exampleResumes = [
   {
     id: "chiamaka",
     name: "Chiamaka Enusi",
-    company: "Meta",
+    company: "Amazon",
     position: "Software Engineering Intern",
     location: "Houston, TX",
     gpa: "3.63",
@@ -257,7 +257,7 @@ export function ExampleResumes() {
             Damien → Meta
           </TabsTrigger>
           <TabsTrigger value="chiamaka" className="text-xs sm:text-sm">
-            Chiamaka → Meta
+            Chiamaka → Amazon
           </TabsTrigger>
         </TabsList>
 
