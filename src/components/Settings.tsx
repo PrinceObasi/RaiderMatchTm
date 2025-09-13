@@ -6,111 +6,19 @@ import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings2, Download, Trash2, AlertTriangle, FileText, User, Shield } from "lucide-react";
+import { Settings2, Trash2, AlertTriangle, User, Shield, ArrowLeft } from "lucide-react";
 
 interface SettingsProps {
   userType: 'student' | 'employer';
   onAccountDeleted: () => void;
+  onBack: () => void;
 }
 
-export function Settings({ userType, onAccountDeleted }: SettingsProps) {
+export function Settings({ userType, onAccountDeleted, onBack }: SettingsProps) {
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const { toast } = useToast();
 
-  const handleExportData = async () => {
-    setIsExporting(true);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session?.user) throw new Error('Not authenticated');
-
-      // Get user data based on type
-      let userData = {};
-      
-      if (userType === 'student') {
-        const { data: studentData } = await supabase
-          .from('students')
-          .select('*')
-          .eq('user_id', session.user.id)
-          .single();
-        
-        const { data: applications } = await supabase
-          .from('applications')
-          .select(`
-            *,
-            jobs!job_id (
-              title,
-              company,
-              city
-            )
-          `)
-          .eq('user_id', session.user.id);
-
-        userData = {
-          user_info: {
-            id: session.user.id,
-            email: session.user.email,
-            created_at: session.user.created_at
-          },
-          profile: studentData,
-          applications: applications
-        };
-      } else {
-        const { data: jobs } = await supabase
-          .from('jobs')
-          .select(`
-            *,
-            applications (
-              id,
-              user_id,
-              status,
-              hire_score,
-              applied_at
-            )
-          `)
-          .eq('employer_id', session.user.id);
-
-        userData = {
-          user_info: {
-            id: session.user.id,
-            email: session.user.email,
-            created_at: session.user.created_at,
-            company: session.user.user_metadata?.company
-          },
-          jobs: jobs
-        };
-      }
-
-      // Convert to CSV format
-      const csvData = JSON.stringify(userData, null, 2);
-      const blob = new Blob([csvData], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      
-      // Download file
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `user-data-export-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-
-      toast({
-        title: "Data exported successfully",
-        description: "Your data has been downloaded as a JSON file.",
-      });
-    } catch (error) {
-      console.error('Export error:', error);
-      toast({
-        title: "Export failed",
-        description: "Failed to export your data. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsExporting(false);
-    }
-  };
 
   const handleDeleteAccount = async () => {
     if (confirmText !== 'DELETE ACCOUNT') {
@@ -156,6 +64,14 @@ export function Settings({ userType, onAccountDeleted }: SettingsProps) {
       {/* Header */}
       <header className="border-b bg-background/95 backdrop-blur">
         <div className="container mx-auto px-6 h-16 flex items-center">
+          <Button
+            variant="ghost"
+            onClick={onBack}
+            className="mr-4"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back
+          </Button>
           <div className="flex items-center space-x-4">
             <Settings2 className="h-8 w-8 text-primary" />
             <div>
@@ -168,40 +84,6 @@ export function Settings({ userType, onAccountDeleted }: SettingsProps) {
 
       <div className="container mx-auto px-6 py-8 max-w-4xl">
         <div className="space-y-8">
-          {/* Data Export Section */}
-          <Card className="card-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Download className="h-5 w-5" />
-                Export Your Data
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <p className="text-muted-foreground">
-                Download a copy of all your data including profile information, 
-                {userType === 'student' ? ' applications, and resume data' : ' job postings and applicant information'}.
-              </p>
-              <Button 
-                onClick={handleExportData}
-                disabled={isExporting}
-                variant="outline"
-                className="w-full sm:w-auto"
-              >
-                {isExporting ? (
-                  <>
-                    <FileText className="h-4 w-4 animate-pulse" />
-                    Preparing Export...
-                  </>
-                ) : (
-                  <>
-                    <Download className="h-4 w-4" />
-                    Export Data (JSON)
-                  </>
-                )}
-              </Button>
-            </CardContent>
-          </Card>
-
           {/* Account Security */}
           <Card className="card-shadow">
             <CardHeader>

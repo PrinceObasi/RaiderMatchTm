@@ -88,6 +88,7 @@ const App = () => {
         <Settings 
           userType={user} 
           onAccountDeleted={handleAccountDeleted}
+          onBack={() => setCurrentView('main')}
         />
       );
     }
