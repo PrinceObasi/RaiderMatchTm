@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { ApplicationList } from "./ApplicationList";
 import { ProfileWizard } from "./ProfileWizard";
 import { InternshipSearchContainer } from "./search/InternshipSearchContainer";
+import { ExampleResumes } from "./ExampleResumes";
 import { ApplicationSchema } from "@/lib/schemas";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
@@ -27,7 +28,8 @@ import {
   Settings2,
   Eye,
   Trash2,
-  Search
+  Search,
+  FileStack
 } from "lucide-react";
 import { renderSafeHTML } from "@/lib/sanitize";
 import { toExplanation } from "@/lib/jobCoaching";
@@ -545,6 +547,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                     <ClipboardList className="h-4 w-4" />
                     My Applications
                   </TabsTrigger>
+                  <TabsTrigger value="examples" className="shrink-0 flex items-center gap-2">
+                    <FileStack className="h-4 w-4" />
+                    Example Resumes
+                  </TabsTrigger>
                 </TabsList>
               </div>
               
@@ -721,6 +727,14 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                 <Card className="card-shadow">
                   <CardContent className="pt-6">
                     <ApplicationList />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="examples" className="mt-6">
+                <Card className="card-shadow">
+                  <CardContent className="pt-6">
+                    <ExampleResumes />
                   </CardContent>
                 </Card>
               </TabsContent>
