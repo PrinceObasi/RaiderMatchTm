@@ -56,7 +56,25 @@ serve(async (req) => {
     // Parse file based on extension
     if (fileExtension === 'csv') {
       const text = await file.text()
-      const result = Papa.parse(text, { header: true, skipEmptyLines: true })
+      
+      // Handle malformed CSV with broken headers/rows
+      let cleanedText = text
+      
+      // Check if headers are split across multiple lines (like your CSV)
+      const lines = text.split('\n')
+      if (lines.length > 1 && lines[0].includes(',') && lines[1].trim() && !lines[1].includes(',')) {
+        // Merge first two lines as headers
+        const mergedHeader = lines[0].trim().replace(/,$/, '') + ',' + lines[1].trim()
+        cleanedText = mergedHeader + '\n' + lines.slice(2).join('\n')
+      }
+      
+      const result = Papa.parse(cleanedText, { 
+        header: true, 
+        skipEmptyLines: true,
+        delimiter: ',',
+        quoteChar: '"',
+        escapeChar: '"'
+      })
       parsedData = result.data as any[]
     } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
       const buffer = await file.arrayBuffer()
@@ -104,32 +122,58 @@ serve(async (req) => {
       }
     }
 
-    // Map and transform data
+    // Helper function to parse tech stack from string
+    const parseTechStack = (techStr: string): string[] => {
+      if (!techStr) return []
+      // Split by common separators and clean up
+      return techStr.split(/[,\s]+/)
+        .map(tech => tech.trim().toLowerCase())
+        .filter(tech => tech && tech.length > 1)
+        .slice(0, 10) // Limit to 10 technologies
+    }
+
+    // Helper function to normalize visa sponsorship
+    const normalizeVisaSponsorship = (visa: string): 'Yes' | 'No' | 'Unspecified' => {
+      if (!visa) return 'Unspecified'
+      const lower = visa.toLowerCase()
+      if (lower === 'yes' || lower === 'sponsors') return 'Yes'
+      if (lower === 'no') return 'No'
+      return 'Unspecified'
+    }
+
+    // Map and transform data - handle both old and new CSV formats
     const transformedData = parsedData.map(row => {
+      // Try new format first (your CSV), then fall back to old format
       const company = findHeader(row, 'Company') || ''
+      const roleTitle = findHeader(row, 'Role_Title') || findHeader(row, 'Role Title') || 'Software Engineering Intern'
+      const location = findHeader(row, 'Location') || ''
+      const applyUrl = findHeader(row, 'Internship_URL') || findHeader(row, 'Apply Link') || findHeader(row, 'Source URL') || ''
+      const datePosted = findHeader(row, 'Date_Posted') || findHeader(row, 'Date Posted') || ''
+      const visaSponsorship = findHeader(row, 'Visa_Sponsorship') || findHeader(row, 'Intl-friendly (historical)') || ''
+      const techStack = findHeader(row, 'Tech_Stack') || ''
+      
+      // Legacy fields for backward compatibility
       const category = findHeader(row, 'Category') || null
       const txRole = findHeader(row, 'TX Role?') || ''
-      const intlFriendly = findHeader(row, 'Intl-friendly (historical)') || ''
-      const applyLink = findHeader(row, 'Apply Link') || ''
       const sourceUrl = findHeader(row, 'Source URL') || ''
       const lastChecked = findHeader(row, 'Last Checked (UTC)') || ''
-      const location = findHeader(row, 'Location') || ''
-      const roleTitle = findHeader(row, 'Role Title') || 'Software Engineering Intern'
-      const datePosted = findHeader(row, 'Date Posted') || ''
 
       return {
-        company,
-        role_title: roleTitle,
+        company: company.trim(),
+        role_title: roleTitle.trim(),
         category,
-        location,
-        is_texas: isTexasLocation(txRole),
-        sponsorship_flag: getSponsorshipFlag(intlFriendly),
+        location: location.trim(),
+        application_link: applyUrl.trim(),
+        is_texas: isTexasLocation(txRole || location),
+        sponsorship_flag: getSponsorshipFlag(visaSponsorship),
+        visa_sponsorship: normalizeVisaSponsorship(visaSponsorship),
         employment_type: 'internship',
-        apply_url: applyLink || sourceUrl || null,
-        source_url: sourceUrl || null,
+        apply_url: applyUrl.trim() || null,
+        source_url: sourceUrl.trim() || null,
         date_posted: datePosted ? new Date(datePosted).toISOString().split('T')[0] : null,
         last_checked_utc: parseUTCDate(lastChecked),
-        remote_flag: null,
+        tech_stack: parseTechStack(techStack),
+        remote_flag: location.toLowerCase().includes('remote') || null,
         notes: null
       }
     }).filter(item => item.company) // Filter out rows without company name
