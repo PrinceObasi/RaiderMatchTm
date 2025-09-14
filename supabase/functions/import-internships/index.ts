@@ -55,26 +55,48 @@ serve(async (req) => {
 
     // Parse file based on extension
     if (fileExtension === 'csv') {
-      const text = await file.text()
-      
-      // Handle malformed CSV with broken headers/rows
-      let cleanedText = text
-      
-      // Check if headers are split across multiple lines (like your CSV)
-      const lines = text.split('\n')
-      if (lines.length > 1 && lines[0].includes(',') && lines[1].trim() && !lines[1].includes(',')) {
-        // Merge first two lines as headers
-        const mergedHeader = lines[0].trim().replace(/,$/, '') + ',' + lines[1].trim()
-        cleanedText = mergedHeader + '\n' + lines.slice(2).join('\n')
+      const rawText = await file.text();
+
+      // Normalize "fully-quoted lines" CSV (each line wrapped in quotes) and fix header
+      const normalizeWeirdCSV = (input: string): string => {
+        const withoutBOM = input.replace(/^\uFEFF/, '');
+        const lines = withoutBOM.split(/\r?\n/);
+        // Look at a sample of lines to decide
+        const sample = lines.slice(0, Math.min(lines.length, 20)).filter(l => l.trim().length > 0);
+        const looksAllWrapped = sample.every(l => {
+          const t = l.trim();
+          return t.startsWith('"') && t.endsWith('"');
+        });
+        if (looksAllWrapped) {
+          return lines.map(l => {
+            const t = l.trim();
+            if (t.startsWith('"') && t.endsWith('"')) {
+              return t.slice(1, -1).replace(/""/g, '"');
+            }
+            return l;
+          }).join('\n');
+        }
+        return withoutBOM;
+      };
+
+      let cleanedText = normalizeWeirdCSV(rawText);
+
+      // Additional fix: if someone split the header on two lines, merge them
+      {
+        const lines = cleanedText.split('\n');
+        if (lines.length > 1 && lines[0].includes(',') && lines[1].trim() && !lines[1].includes(',')) {
+          const mergedHeader = lines[0].trim().replace(/,$/, '') + ',' + lines[1].trim();
+          cleanedText = mergedHeader + '\n' + lines.slice(2).join('\n');
+        }
       }
-      
-      const result = Papa.parse(cleanedText, { 
-        header: true, 
+
+      const result = Papa.parse(cleanedText, {
+        header: true,
         skipEmptyLines: true,
         delimiter: ',',
         quoteChar: '"',
-        escapeChar: '"'
-      })
+        escapeChar: '"',
+      });
       parsedData = result.data as any[]
     } else if (fileExtension === 'xlsx' || fileExtension === 'xls') {
       const buffer = await file.arrayBuffer()
@@ -147,7 +169,7 @@ serve(async (req) => {
       const company = findHeader(row, 'Company') || ''
       const roleTitle = findHeader(row, 'Role_Title') || findHeader(row, 'Role Title') || 'Software Engineering Intern'
       const location = findHeader(row, 'Location') || ''
-      const applyUrl = findHeader(row, 'Internship_URL') || findHeader(row, 'Apply Link') || findHeader(row, 'Source URL') || ''
+      const applyUrl = findHeader(row, 'Internship_URL') || findHeader(row, 'Application_Link') || findHeader(row, 'Apply Link') || findHeader(row, 'Source URL') || ''
       const datePosted = findHeader(row, 'Date_Posted') || findHeader(row, 'Date Posted') || ''
       const visaSponsorship = findHeader(row, 'Visa_Sponsorship') || findHeader(row, 'Intl-friendly (historical)') || ''
       const techStack = findHeader(row, 'Tech_Stack') || ''
