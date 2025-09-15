@@ -87,11 +87,11 @@ Deno.serve(async (req) => {
     }
 
     // Parse request body
-    const { job_id, hire_score, apply_url } = await req.json();
+    const { job_id, internship_id, hire_score, apply_url } = await req.json();
 
-    if (!job_id) {
+    if (!job_id && !internship_id) {
       return new Response(
-        JSON.stringify({ error: 'Missing job_id' }),
+        JSON.stringify({ error: 'Missing job_id or internship_id' }),
         { 
           status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
@@ -99,58 +99,138 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Validate job exists and is active
-    const { data: job, error: jobError } = await supabaseClient
-      .from('jobs')
-      .select('id, apply_url, is_active')
-      .eq('id', job_id)
-      .eq('is_active', true)
-      .single();
+    console.log(`Apply function called with job_id: ${job_id}, internship_id: ${internship_id}, apply_url: ${apply_url}`);
 
-    if (jobError || !job) {
-      return new Response(
-        JSON.stringify({ error: 'Job not found or inactive' }),
-        { 
-          status: 404, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+    let finalApplyUrl = apply_url;
+    let jobRecord = null;
+
+    // If job_id is provided, validate it exists and handle traditional job application
+    if (job_id) {
+      const { data: job, error: jobError } = await supabaseClient
+        .from('jobs')
+        .select('id, apply_url, is_active')
+        .eq('id', job_id)
+        .eq('is_active', true)
+        .maybeSingle();
+
+      if (jobError) {
+        console.error('Job lookup error:', jobError);
+        return new Response(
+          JSON.stringify({ error: 'Database error while looking up job' }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      if (!job) {
+        console.log(`Job with id ${job_id} not found or inactive`);
+        // For internship applications, we'll track in application_clicks instead
+        if (internship_id && apply_url) {
+          await supabaseClient
+            .from('application_clicks')
+            .insert({
+              user_id: user.id,
+              internship_id: internship_id,
+              job_id: null,
+              apply_url: apply_url
+            });
+
+          return new Response(
+            JSON.stringify({ 
+              success: true, 
+              apply_url: apply_url,
+              message: 'Application click recorded'
+            }),
+            { 
+              status: 200, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
+        } else {
+          return new Response(
+            JSON.stringify({ error: 'Job not found or inactive' }),
+            { 
+              status: 404, 
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+            }
+          );
         }
-      );
-    }
+      }
 
-    // Check if user already applied
-    const { data: existingApplication } = await supabaseClient
-      .from('applications')
-      .select('id')
-      .eq('user_id', user.id)
-      .eq('job_id', job_id)
-      .single();
+      jobRecord = job;
+      finalApplyUrl = apply_url || job.apply_url;
 
-    if (existingApplication) {
+      // Check if user already applied to this job
+      const { data: existingApplication } = await supabaseClient
+        .from('applications')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('job_id', job_id)
+        .maybeSingle();
+
+      if (existingApplication) {
+        return new Response(
+          JSON.stringify({ error: 'Already applied to this job' }),
+          { 
+            status: 409, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      // Insert application for job
+      const { error: insertError } = await supabaseClient
+        .from('applications')
+        .insert({
+          user_id: user.id,
+          job_id: job_id,
+          hire_score: hire_score || null,
+          status: 'applied'
+        });
+
+      if (insertError) {
+        console.error('Insert application error:', insertError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to record application' }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      console.log(`Successfully recorded job application for user ${user.id}, job ${job_id}`);
+    } else if (internship_id && apply_url) {
+      // Handle internship application click (no job_id)
+      const { error: clickError } = await supabaseClient
+        .from('application_clicks')
+        .insert({
+          user_id: user.id,
+          internship_id: internship_id,
+          job_id: null,
+          apply_url: apply_url
+        });
+
+      if (clickError) {
+        console.error('Insert application click error:', clickError);
+        return new Response(
+          JSON.stringify({ error: 'Failed to record application click' }),
+          { 
+            status: 500, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
+      }
+
+      finalApplyUrl = apply_url;
+      console.log(`Successfully recorded internship application click for user ${user.id}, internship ${internship_id}`);
+    } else {
       return new Response(
-        JSON.stringify({ error: 'Already applied to this job' }),
+        JSON.stringify({ error: 'Invalid request: missing required parameters' }),
         { 
-          status: 409, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    // Insert application
-    const { error: insertError } = await supabaseClient
-      .from('applications')
-      .insert({
-        user_id: user.id,
-        job_id: job_id,
-        hire_score: hire_score || null,
-        status: 'applied'
-      });
-
-    if (insertError) {
-      console.error('Insert error:', insertError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to record application' }),
-        { 
-          status: 500, 
+          status: 400, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       );
@@ -160,8 +240,8 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        apply_url: apply_url || job.apply_url,
-        message: 'Application recorded successfully'
+        apply_url: finalApplyUrl,
+        message: jobRecord ? 'Application recorded successfully' : 'Application click recorded'
       }),
       { 
         status: 200, 

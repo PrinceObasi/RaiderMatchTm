@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      application_clicks: {
+        Row: {
+          apply_url: string
+          clicked_at: string
+          created_at: string
+          id: string
+          internship_id: string | null
+          job_id: string | null
+          user_id: string
+        }
+        Insert: {
+          apply_url: string
+          clicked_at?: string
+          created_at?: string
+          id?: string
+          internship_id?: string | null
+          job_id?: string | null
+          user_id: string
+        }
+        Update: {
+          apply_url?: string
+          clicked_at?: string
+          created_at?: string
+          id?: string
+          internship_id?: string | null
+          job_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       applications: {
         Row: {
           applied_at: string | null

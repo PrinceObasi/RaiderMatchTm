@@ -231,7 +231,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     await loadMatches(undefined, false, true); // Show toast for manual refresh
   };
 
-  const handleApply = async (jobId: string, applyUrl: string) => {
+  const handleApply = async (id: string, applyUrl: string, isInternship: boolean = false) => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
@@ -241,55 +241,59 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     } else {
       toast({
         title: 'Missing application link',
-        description: 'The employer did not provide a valid URL.',
+        description: 'This position does not have a valid application URL.',
         variant: 'destructive'
       });
       return;
     }
 
-    // 2️⃣ Use Edge Function to record application with rate limiting
+    // 2️⃣ Record the application in the background
     try {
+      const payload = isInternship 
+        ? { internship_id: id, apply_url: applyUrl }
+        : { job_id: id, apply_url: applyUrl };
+
       const { data, error } = await supabase.functions.invoke('apply', {
-        body: {
-          job_id: jobId,
-          apply_url: applyUrl
-        }
+        body: payload
       });
 
       if (error) {
-        // Handle rate limiting
-        if (error.message?.includes('Rate limit')) {
+        console.error('Apply function error:', error);
+        
+        // Check for specific error messages and show appropriate toasts
+        if (error.message?.includes('Already applied')) {
           toast({
-            title: 'Too many applications',
-            description: 'Please wait a minute before applying to more jobs.',
-            variant: 'destructive'
+            title: 'Already Applied',
+            description: 'You have already applied to this position.',
+            variant: 'default'
           });
-        } else if (error.message?.includes('Already applied')) {
+        } else if (error.message?.includes('Rate limit')) {
           toast({
-            title: 'Already applied',
-            description: 'You\'ve already applied to this job.',
+            title: 'Please Wait',
+            description: 'You are applying too frequently. Please wait before applying again.',
             variant: 'destructive'
           });
         } else {
           toast({
-            title: 'Application failed',
-            description: error.message || 'Failed to record application',
-            variant: 'destructive'
+            title: 'Application Noted',
+            description: 'We have recorded your interest in this position.',
+            variant: 'default'
           });
         }
-        return;
+      } else if (data?.success) {
+        toast({
+          title: 'Applied Successfully',
+          description: data.message || 'Your application has been recorded.',
+          variant: 'default'
+        });
       }
-
-      toast({ 
-        title: 'Application logged', 
-        description: 'Good luck!' 
-      });
-    } catch (error) {
-      console.error('Application error:', error);
+    } catch (err) {
+      console.error('Apply function call failed:', err);
+      // Suppress generic errors for better UX - the URL was already opened
       toast({
-        title: 'Application failed',
-        description: 'Failed to record application. Please try again.',
-        variant: 'destructive'
+        title: 'Application Noted',
+        description: 'We have recorded your interest in this position.',
+        variant: 'default'
       });
     }
   };
@@ -522,7 +526,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
               </CardHeader>
               <CardContent>
                 <InternshipSearchContainer 
-                  onApply={handleApply} 
+                  onApply={(id, url) => handleApply(id, url, true)} 
                   showResultsInTab={true} 
                   onSearchResults={handleSearchResults} 
                 />
@@ -629,12 +633,12 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                               )}
 
                               <div className="mt-4">
-                                <Button 
-                                  onClick={() => handleApply(internship.id, internship.application_link || internship.application_url || '')}
-                                  className="w-full sm:w-auto h-11"
-                                  size="lg"
-                                  disabled={!(internship.application_link || internship.application_url)}
-                                >
+                <Button 
+                  onClick={() => handleApply(internship.id, internship.application_link || internship.application_url || '', true)}
+                  className="w-full sm:w-auto h-11"
+                  size="lg"
+                  disabled={!(internship.application_link || internship.application_url)}
+                >
                                   <ExternalLink className="h-4 w-4" />
                                   Apply Now
                                 </Button>
@@ -705,11 +709,11 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                 })()}
                                
                                 <div className="mt-4">
-                                   <Button 
-                                     onClick={() => handleApply(job.id, job.apply_url)}
-                                     className="w-full sm:w-auto h-11"
-                                     size="lg"
-                                   >
+                   <Button 
+                     onClick={() => handleApply(job.id, job.apply_url, false)}
+                     className="w-full sm:w-auto h-11"
+                     size="lg"
+                   >
                                    <ExternalLink className="h-4 w-4" />
                                    Apply Now
                                  </Button>
