@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InternshipSearchResult } from "./types";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SearchResultsProps {
   results: InternshipSearchResult[];
@@ -26,7 +27,24 @@ export function SearchResults({
   resultCount 
 }: SearchResultsProps) {
   
-  const handleApply = (internship: InternshipSearchResult) => {
+  const handleApply = async (internship: InternshipSearchResult) => {
+    // Record the click first
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && internship.application_link) {
+        await supabase
+          .from('application_clicks')
+          .insert({
+            user_id: user.id,
+            internship_id: internship.id,
+            apply_url: internship.application_link
+          });
+      }
+    } catch (error) {
+      console.error('Error recording application click:', error);
+    }
+
+    // Then handle the application
     if (onApply && internship.application_link) {
       onApply(internship.id, internship.application_link);
     } else if (internship.application_link) {
