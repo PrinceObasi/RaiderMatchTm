@@ -8,7 +8,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ApplicationList } from "./ApplicationList";
-import { PendingApplications } from "./PendingApplications";
 import { ProfileWizard } from "./ProfileWizard";
 import { InternshipSearchContainer } from "./search/InternshipSearchContainer";
 import { ExampleResumes } from "./ExampleResumes";
@@ -30,8 +29,7 @@ import {
   Eye,
   Trash2,
   Search,
-  FileStack,
-  Clock
+  FileStack
 } from "lucide-react";
 import { renderSafeHTML } from "@/lib/sanitize";
 import { toExplanation } from "@/lib/jobCoaching";
@@ -237,18 +235,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     const { data: { session } } = await supabase.auth.getSession();
     if (!session?.user) return;
 
-    // 1️⃣ Record the click first
-    try {
-      const clickPayload = isInternship 
-        ? { user_id: session.user.id, internship_id: id, apply_url: applyUrl }
-        : { user_id: session.user.id, job_id: id, apply_url: applyUrl };
-
-      await supabase.from('application_clicks').insert(clickPayload);
-    } catch (error) {
-      console.error('Error recording application click:', error);
-    }
-
-    // 2️⃣ Open the external page immediately (within the user gesture)
+    // 1️⃣ Open the external page immediately (within the user gesture)
     if (applyUrl?.startsWith('https://')) {
       window.open(applyUrl, '_blank', 'noopener,noreferrer');
     } else {
@@ -260,7 +247,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       return;
     }
 
-    // 3️⃣ Record the application in the background (legacy - keeping for compatibility)
+    // 2️⃣ Record the application in the background
     try {
       const payload = isInternship 
         ? { internship_id: id, apply_url: applyUrl }
@@ -288,23 +275,24 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
           });
         } else {
           toast({
-            title: 'Application Link Opened',
-            description: 'Please confirm your application in the Pending tab after applying.',
+            title: 'Application Noted',
+            description: 'We have recorded your interest in this position.',
             variant: 'default'
           });
         }
       } else if (data?.success) {
         toast({
-          title: 'Application Link Opened',
-          description: 'Please confirm your application in the Pending tab after applying.',
+          title: 'Applied Successfully',
+          description: data.message || 'Your application has been recorded.',
           variant: 'default'
         });
       }
     } catch (err) {
       console.error('Apply function call failed:', err);
+      // Suppress generic errors for better UX - the URL was already opened
       toast({
-        title: 'Application Link Opened',
-        description: 'Please confirm your application in the Pending tab after applying.',
+        title: 'Application Noted',
+        description: 'We have recorded your interest in this position.',
         variant: 'default'
       });
     }
@@ -559,10 +547,6 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                     <Target className="h-4 w-4" />
                     Matches ({matches.length})
                   </TabsTrigger>
-                  <TabsTrigger value="pending" className="shrink-0 flex items-center gap-2">
-                    <Clock className="h-4 w-4" />
-                    Pending
-                  </TabsTrigger>
                   <TabsTrigger value="applications" className="shrink-0 flex items-center gap-2">
                     <ClipboardList className="h-4 w-4" />
                     My Applications
@@ -739,14 +723,6 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                         ))}
                       </div>
                     )}
-                  </CardContent>
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="pending" className="mt-6">
-                <Card className="card-shadow">
-                  <CardContent className="pt-6">
-                    <PendingApplications />
                   </CardContent>
                 </Card>
               </TabsContent>
