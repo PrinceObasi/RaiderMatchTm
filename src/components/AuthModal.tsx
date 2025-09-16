@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { isTTUEmail, validatePassword } from "@/lib/validators";
 import { PasswordStrengthIndicator } from "@/components/PasswordStrengthIndicator";
@@ -26,6 +27,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [company, setCompany] = useState("");
+  const [studentYear, setStudentYear] = useState("");
   const [isInternational, setIsInternational] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [showPasswordReset, setShowPasswordReset] = useState(false);
@@ -110,7 +112,7 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
       onClose();
     } else {
       const userMetadata = type === 'student'
-        ? { first_name: firstName, last_name: lastName, role: 'student', is_international: isInternational }
+        ? { first_name: firstName, last_name: lastName, role: 'student', is_international: isInternational, student_year: studentYear }
         : { company, role: 'employer' };
       const { data, error } = await supabase.auth.signUp({
         email,
@@ -329,6 +331,21 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
                     Please use your TTU email address.
                   </p>
                 )}
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="student-year">Year</Label>
+                <Select value={studentYear} onValueChange={setStudentYear}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select your year" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="freshman">Freshman</SelectItem>
+                    <SelectItem value="sophomore">Sophomore</SelectItem>
+                    <SelectItem value="junior">Junior</SelectItem>
+                    <SelectItem value="senior">Senior</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-2">
