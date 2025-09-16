@@ -18,6 +18,8 @@ export type Database = {
         Row: {
           apply_url: string
           clicked_at: string
+          confirmation_date: string | null
+          confirmed: boolean | null
           created_at: string
           id: string
           internship_id: string | null
@@ -27,6 +29,8 @@ export type Database = {
         Insert: {
           apply_url: string
           clicked_at?: string
+          confirmation_date?: string | null
+          confirmed?: boolean | null
           created_at?: string
           id?: string
           internship_id?: string | null
@@ -36,6 +40,8 @@ export type Database = {
         Update: {
           apply_url?: string
           clicked_at?: string
+          confirmation_date?: string | null
+          confirmed?: boolean | null
           created_at?: string
           id?: string
           internship_id?: string | null
@@ -342,6 +348,10 @@ export type Database = {
       can_view_applicant_data: {
         Args: { application_job_id: string }
         Returns: boolean
+      }
+      confirm_application: {
+        Args: { click_id: string }
+        Returns: Json
       }
       get_applicant_info: {
         Args: { p_job_id: string }
