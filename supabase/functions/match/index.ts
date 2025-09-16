@@ -106,7 +106,7 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Use the new working match_jobs function with coaching data
+    // Use the new working match_jobs function with coaching data - get more results for randomization
     const { data: jobs, error: jobsError } = await supabase.rpc('match_jobs', {
       p_student_id: studentData.id
     })
@@ -119,8 +119,15 @@ Deno.serve(async (req) => {
       )
     }
 
+    if (!jobs || jobs.length === 0) {
+      return new Response(
+        JSON.stringify({ jobs: [] }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Convert the new match_jobs function results with coaching
-    const jobMatches: JobMatch[] = jobs.map((job: any) => {
+    let jobMatches: JobMatch[] = jobs.map((job: any) => {
       const explanationLines = toExplanation({
         overlap: job.overlap || 0,
         missing_skills: job.missing_skills || []
@@ -139,6 +146,21 @@ Deno.serve(async (req) => {
         explanationLines
       }
     })
+
+    // Randomize results while keeping good matches at the top
+    // Keep top 40% of matches, then shuffle the rest
+    const topCount = Math.ceil(jobMatches.length * 0.4)
+    const topMatches = jobMatches.slice(0, topCount)
+    const remainingMatches = jobMatches.slice(topCount)
+    
+    // Fisher-Yates shuffle for remaining matches
+    for (let i = remainingMatches.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [remainingMatches[i], remainingMatches[j]] = [remainingMatches[j], remainingMatches[i]];
+    }
+    
+    // Combine and take only 10 results
+    jobMatches = [...topMatches, ...remainingMatches].slice(0, 10)
 
     return new Response(
       JSON.stringify({ jobs: jobMatches }),
