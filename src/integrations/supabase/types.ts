@@ -55,7 +55,10 @@ export type Database = {
           applied_at: string | null
           hire_score: number | null
           id: string
+          internship_id: string | null
           job_id: string | null
+          last_updated_at: string
+          note: string | null
           status: string | null
           user_id: string
         }
@@ -63,7 +66,10 @@ export type Database = {
           applied_at?: string | null
           hire_score?: number | null
           id?: string
+          internship_id?: string | null
           job_id?: string | null
+          last_updated_at?: string
+          note?: string | null
           status?: string | null
           user_id: string
         }
@@ -71,11 +77,28 @@ export type Database = {
           applied_at?: string | null
           hire_score?: number | null
           id?: string
+          internship_id?: string | null
           job_id?: string | null
+          last_updated_at?: string
+          note?: string | null
           status?: string | null
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "applications_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "internships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_for_app"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "applications_job_id_fkey"
             columns: ["job_id"]

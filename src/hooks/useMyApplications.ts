@@ -4,9 +4,9 @@ import { toast } from 'sonner';
 
 export interface Application {
   id: string;
-  internship_id: string;
-  status: 'applied' | 'interview' | 'offer' | 'rejected' | 'withdrawn';
-  applied_at: string;
+  internship_id: string | null;
+  status: string | null;
+  applied_at: string | null;
   last_updated_at: string;
   note: string | null;
   internship?: {
@@ -18,7 +18,7 @@ export interface Application {
     application_link: string;
     visa_sponsorship: 'Yes' | 'No' | 'Unspecified';
     is_texas: boolean | null;
-  };
+  } | null;
 }
 
 export function useMyApplications() {
@@ -48,6 +48,7 @@ export function useMyApplications() {
             is_texas
           )
         `)
+        .not('internship_id', 'is', null)
         .order('last_updated_at', { ascending: false });
 
       if (error) throw error;

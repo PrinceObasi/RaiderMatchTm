@@ -11,6 +11,7 @@ import { ApplicationList } from "./ApplicationList";
 import { ProfileWizard } from "./ProfileWizard";
 import { InternshipSearchContainer } from "./search/InternshipSearchContainer";
 import { ExampleResumes } from "./ExampleResumes";
+import { MyApplications } from "./MyApplications";
 import { ApplicationSchema } from "@/lib/schemas";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
@@ -730,7 +731,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
               <TabsContent value="applications" className="mt-6">
                 <Card className="card-shadow">
                   <CardContent className="pt-6">
-                    <ApplicationList />
+                    <MyApplications />
                   </CardContent>
                 </Card>
               </TabsContent>

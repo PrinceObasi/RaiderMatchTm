@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InternshipSearchResult } from "./types";
+import { ApplicationToggle } from "@/components/ApplicationToggle";
 import { toast } from "sonner";
 
 interface SearchResultsProps {
@@ -158,15 +159,22 @@ export function SearchResults({
             )}
 
             {/* Apply button */}
-            <div className="flex justify-end">
-              <Button 
-                onClick={() => handleApply(internship)}
-                disabled={!internship.application_link}
-                className="gap-2"
-              >
-                <ExternalLink className="h-4 w-4" />
-                Apply Now
-              </Button>
+            <div className="flex flex-col gap-2">
+              <div className="flex justify-end">
+                <Button 
+                  onClick={() => handleApply(internship)}
+                  disabled={!internship.application_link}
+                  className="gap-2"
+                >
+                  <ExternalLink className="h-4 w-4" />
+                  Apply Now
+                </Button>
+              </div>
+              
+              {/* Application toggle */}
+              <div className="flex justify-end">
+                <ApplicationToggle internshipId={internship.id} />
+              </div>
             </div>
           </CardContent>
         </Card>
