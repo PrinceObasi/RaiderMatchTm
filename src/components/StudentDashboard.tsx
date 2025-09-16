@@ -12,6 +12,7 @@ import { ProfileWizard } from "./ProfileWizard";
 import { InternshipSearchContainer } from "./search/InternshipSearchContainer";
 import { ExampleResumes } from "./ExampleResumes";
 import { MyApplications } from "./MyApplications";
+import { ApplicationToggle } from "./ApplicationToggle";
 import { ApplicationSchema } from "@/lib/schemas";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
@@ -633,7 +634,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                 </p>
                               )}
 
-                              <div className="mt-4">
+                              <div className="mt-4 flex flex-col sm:flex-row gap-2">
                 <Button 
                   onClick={() => handleApply(internship.id, internship.application_link || internship.application_url || '', true)}
                   className="w-full sm:w-auto h-11"
@@ -643,6 +644,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                   <ExternalLink className="h-4 w-4" />
                                   Apply Now
                                 </Button>
+                                <ApplicationToggle internshipId={internship.id} />
                               </div>
                             </CardContent>
                           </Card>
