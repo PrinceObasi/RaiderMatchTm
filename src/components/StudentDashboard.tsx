@@ -657,7 +657,23 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
               
               <TabsContent value="matches" className="mt-6">
                 <Card className="card-shadow">
-                  <CardContent className="pt-6">
+                  <CardHeader className="flex flex-row items-center justify-between pb-4">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-5 w-5" />
+                      <h3 className="font-semibold">AI-Powered Matches ({matches.length})</h3>
+                    </div>
+                    <Button 
+                      onClick={() => loadMatches(undefined, true, true)}
+                      disabled={isMatching}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${isMatching ? 'animate-spin' : ''}`} />
+                      Refresh Matches
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
                     {matches.length === 0 ? (
                       <div className="text-center py-12 text-muted-foreground">
                         <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
@@ -666,60 +682,61 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                       </div>
                     ) : (
                       <div className="space-y-4 sm:space-y-6">
-                        {matches.map((job) => (
-                           <Card key={job.id} className="border hover:shadow-md transition-smooth">
-                              <CardContent className="p-4 sm:p-6">
-                                <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                                  <div className="flex-1">
-                                    <h3 className="text-lg sm:text-xl font-semibold leading-tight mb-1">{job.title}</h3>
-                                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                     <div className="flex items-center gap-1">
-                                       <Building className="h-4 w-4" />
-                                       {job.company}
-                                     </div>
-                                     <div className="flex items-center gap-1">
-                                       <MapPin className="h-4 w-4" />
-                                       {job.city}
-                                     </div>
-                                   </div>
-                                 </div>
-                                  <div className="flex items-center gap-4 sm:flex-col sm:text-right">
-                                    <Popover>
-                                      <PopoverTrigger className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-2 hover:underline">
-                                        Job insights
-                                      </PopoverTrigger>
-                                      <PopoverContent className="w-72 sm:w-96 text-sm">
-                                        <ul className="list-disc pl-4 space-y-1">
-                                          {job.explanationLines.map((line, i) => (
-                                            <li key={i}>{line}</li>
-                                          ))}
-                                        </ul>
-                                      </PopoverContent>
-                                    </Popover>
+                         {matches.map((job) => (
+                            <Card key={job.id} className="border hover:shadow-md transition-smooth">
+                               <CardContent className="p-4 sm:p-6">
+                                 <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+                                   <div className="flex-1">
+                                     <h3 className="text-lg sm:text-xl font-semibold leading-tight mb-1">{job.title}</h3>
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                                      <div className="flex items-center gap-1">
+                                        <Building className="h-4 w-4" />
+                                        {job.company}
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <MapPin className="h-4 w-4" />
+                                        {job.city}
+                                      </div>
+                                    </div>
                                   </div>
-                               </div>
-                              
-                                {(() => {
-                                  const safeHTML = renderSafeHTML(job.description);
-                                  return safeHTML ? (
-                                    <p 
-                                      className="mt-2 text-sm sm:text-base text-muted-foreground line-clamp-3 sm:line-clamp-none mb-4"
-                                      dangerouslySetInnerHTML={safeHTML}
-                                    />
-                                  ) : (
-                                    <p className="mt-2 text-sm sm:text-base text-muted-foreground line-clamp-3 sm:line-clamp-none mb-4">{job.description}</p>
-                                  );
-                                })()}
+                                   <div className="flex items-center gap-4 sm:flex-col sm:text-right">
+                                     <Popover>
+                                       <PopoverTrigger className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-2 hover:underline">
+                                         Job insights
+                                       </PopoverTrigger>
+                                       <PopoverContent className="w-72 sm:w-96 text-sm">
+                                         <ul className="list-disc pl-4 space-y-1">
+                                           {job.explanationLines.map((line, i) => (
+                                             <li key={i}>{line}</li>
+                                           ))}
+                                         </ul>
+                                       </PopoverContent>
+                                     </Popover>
+                                   </div>
+                                </div>
                                
-                                <div className="mt-4">
-                   <Button 
-                     onClick={() => handleApply(job.id, job.apply_url, false)}
-                     className="w-full sm:w-auto h-11"
-                     size="lg"
-                   >
-                                   <ExternalLink className="h-4 w-4" />
-                                   Apply Now
-                                 </Button>
+                                 {(() => {
+                                   const safeHTML = renderSafeHTML(job.description);
+                                   return safeHTML ? (
+                                     <p 
+                                       className="mt-2 text-sm sm:text-base text-muted-foreground line-clamp-3 sm:line-clamp-none mb-4"
+                                       dangerouslySetInnerHTML={safeHTML}
+                                     />
+                                   ) : (
+                                     <p className="mt-2 text-sm sm:text-base text-muted-foreground line-clamp-3 sm:line-clamp-none mb-4">{job.description}</p>
+                                   );
+                                 })()}
+                                
+                                 <div className="mt-4 flex flex-col sm:flex-row gap-2">
+                    <Button 
+                      onClick={() => handleApply(job.id, job.apply_url, false)}
+                      className="w-full sm:w-auto h-11"
+                      size="lg"
+                    >
+                                    <ExternalLink className="h-4 w-4" />
+                                    Apply Now
+                                  </Button>
+                                  <ApplicationToggle internshipId={job.id} />
                                 </div>
                             </CardContent>
                           </Card>
