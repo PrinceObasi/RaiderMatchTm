@@ -278,7 +278,18 @@ export function ExampleResumes() {
   };
 
   const handleViewResume = (resumeUrl: string) => {
-    window.open(resumeUrl, '_blank', 'noopener,noreferrer');
+    try {
+      const newWindow = window.open(resumeUrl, '_blank', 'noopener,noreferrer');
+      // Check if popup was blocked
+      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
+        // Fallback: open in same tab
+        window.location.href = resumeUrl;
+      }
+    } catch (error) {
+      console.error('Error opening PDF:', error);
+      // Fallback: open in same tab
+      window.location.href = resumeUrl;
+    }
   };
 
   if (loading) {
