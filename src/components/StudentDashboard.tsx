@@ -100,7 +100,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     
     setIsMatching(true);
     try {
-      const { data, error } = await supabase.functions.invoke('match');
+      const excludeIds = (matches || []).map((m) => m.id);
+      const { data, error } = await supabase.functions.invoke('match', {
+        body: { exclude_ids: excludeIds, limit: 10, _ts: Date.now() }
+      });
       if (error) throw error;
 
       setMatches(data.jobs || []);

@@ -83,6 +83,19 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Parse optional body for parameters
+    let exclude_ids: string[] = []
+    let limit = 10
+    try {
+      const body = await req.json()
+      if (body && Array.isArray(body.exclude_ids)) exclude_ids = body.exclude_ids
+      if (typeof body?.limit === 'number') {
+        limit = Math.max(1, Math.min(50, Math.floor(body.limit)))
+      }
+    } catch (_) {
+      // No JSON body provided; keep defaults
+    }
+
     // Get student's profile data including new features
     const { data: studentData, error: studentError } = await supabase
       .from('students')
@@ -127,7 +140,7 @@ Deno.serve(async (req) => {
     }
 
     // Convert the new match_jobs function results with coaching
-    let jobMatches: JobMatch[] = jobs.map((job: any) => {
+    const allMatches: JobMatch[] = jobs.map((job: any) => {
       const explanationLines = toExplanation({
         overlap: job.overlap || 0,
         missing_skills: job.missing_skills || []
@@ -147,12 +160,30 @@ Deno.serve(async (req) => {
       }
     })
 
-    // Full randomization: shuffle all matches and take 10
+    // Favor different roles on each refresh by excluding provided IDs
+    let jobMatches: JobMatch[] = allMatches.filter((j) => !exclude_ids.includes(j.id))
+
+    // Full randomization: shuffle all remaining matches
     for (let i = jobMatches.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [jobMatches[i], jobMatches[j]] = [jobMatches[j], jobMatches[i]];
     }
-    jobMatches = jobMatches.slice(0, 10)
+
+    // If we don't have enough after exclusion, top up from the excluded pool
+    if (jobMatches.length < limit) {
+      const excludedPool = allMatches.filter((j) => exclude_ids.includes(j.id))
+      for (let i = excludedPool.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [excludedPool[i], excludedPool[j]] = [excludedPool[j], excludedPool[i]];
+      }
+      for (const j of excludedPool) {
+        if (!jobMatches.find((x) => x.id === j.id)) jobMatches.push(j)
+        if (jobMatches.length >= limit) break
+      }
+    }
+
+    // Limit to requested count (default 10)
+    jobMatches = jobMatches.slice(0, limit)
 
     return new Response(
       JSON.stringify({ jobs: jobMatches }),
