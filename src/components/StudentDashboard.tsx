@@ -660,7 +660,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                   <CardHeader className="flex flex-row items-center justify-between pb-4">
                     <div className="flex items-center gap-2">
                       <Target className="h-5 w-5" />
-                      <h3 className="font-semibold">AI-Powered Matches</h3>
+                      <h3 className="font-semibold">Matches</h3>
                     </div>
                     <Button 
                       onClick={() => loadMatches(undefined, true, true)}

@@ -147,20 +147,12 @@ Deno.serve(async (req) => {
       }
     })
 
-    // Randomize results while keeping good matches at the top
-    // Keep top 40% of matches, then shuffle the rest
-    const topCount = Math.ceil(jobMatches.length * 0.4)
-    const topMatches = jobMatches.slice(0, topCount)
-    const remainingMatches = jobMatches.slice(topCount)
-    
-    // Fisher-Yates shuffle for remaining matches
-    for (let i = remainingMatches.length - 1; i > 0; i--) {
+    // Full randomization: shuffle all matches and take 10
+    for (let i = jobMatches.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
-      [remainingMatches[i], remainingMatches[j]] = [remainingMatches[j], remainingMatches[i]];
+      [jobMatches[i], jobMatches[j]] = [jobMatches[j], jobMatches[i]];
     }
-    
-    // Combine and take only 10 results
-    jobMatches = [...topMatches, ...remainingMatches].slice(0, 10)
+    jobMatches = jobMatches.slice(0, 10)
 
     return new Response(
       JSON.stringify({ jobs: jobMatches }),
