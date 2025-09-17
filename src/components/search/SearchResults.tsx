@@ -28,12 +28,42 @@ export function SearchResults({
 }: SearchResultsProps) {
   
   const handleApply = (internship: InternshipSearchResult) => {
-    if (onApply && internship.application_link) {
+    if (!internship.application_link) {
+      return;
+    }
+
+    // 1️⃣ OPEN IMMEDIATELY (synchronous) - prevents popup blocking
+    const a = document.createElement('a');
+    a.href = internship.application_link;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    // 2️⃣ Call onApply callback if provided for additional tracking
+    if (onApply) {
       onApply(internship.id, internship.application_link);
-    } else if (internship.application_link) {
-      window.open(internship.application_link, '_blank');
+    }
+
+    // 3️⃣ BACKGROUND LOGGING (non-blocking) 
+    const logPayload = JSON.stringify({
+      internship_id: internship.id,
+      application_url: internship.application_link,
+      user_agent: navigator.userAgent,
+    });
+
+    // Use sendBeacon if available, fallback to fetch with keepalive
+    if (navigator.sendBeacon) {
+      const blob = new Blob([logPayload], { type: 'application/json' });
+      navigator.sendBeacon('https://tjahvypvfrjulnqmnhsh.supabase.co/functions/v1/apply-log', blob);
     } else {
-      toast.error('No application link available for this internship');
+      fetch('https://tjahvypvfrjulnqmnhsh.supabase.co/functions/v1/apply-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: logPayload,
+        keepalive: true,
+      }).catch(() => {}); // Silently ignore errors
     }
   };
 

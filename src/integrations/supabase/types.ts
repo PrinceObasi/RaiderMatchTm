@@ -50,6 +50,33 @@ export type Database = {
         }
         Relationships: []
       }
+      application_events: {
+        Row: {
+          application_url: string
+          created_at: string | null
+          id: string
+          internship_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          application_url: string
+          created_at?: string | null
+          id?: string
+          internship_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          application_url?: string
+          created_at?: string | null
+          id?: string
+          internship_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       applications: {
         Row: {
           applied_at: string | null

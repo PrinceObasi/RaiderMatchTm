@@ -240,13 +240,8 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   };
 
   const handleApply = async (id: string, applyUrl: string, isInternship: boolean = false) => {
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session?.user) return;
-
-    // 1️⃣ Open the external page immediately (within the user gesture)
-    if (applyUrl?.startsWith('https://')) {
-      window.open(applyUrl, '_blank', 'noopener,noreferrer');
-    } else {
+    // Validate URL first
+    if (!applyUrl?.startsWith('https://')) {
       toast({
         title: 'Missing application link',
         description: 'This position does not have a valid application URL.',
@@ -255,55 +250,50 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       return;
     }
 
-    // 2️⃣ Record the application in the background
-    try {
-      const payload = isInternship 
-        ? { internship_id: id, apply_url: applyUrl }
-        : { job_id: id, apply_url: applyUrl };
+    // 1️⃣ OPEN IMMEDIATELY (synchronous) - prevents popup blocking
+    const a = document.createElement('a');
+    a.href = applyUrl;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
 
-      const { data, error } = await supabase.functions.invoke('apply', {
-        body: payload
-      });
+    // 2️⃣ BACKGROUND LOGGING (non-blocking)
+    const logPayload = JSON.stringify({
+      internship_id: isInternship ? id : null,
+      application_url: applyUrl,
+      user_agent: navigator.userAgent,
+    });
 
-      if (error) {
-        console.error('Apply function error:', error);
-        
-        // Check for specific error messages and show appropriate toasts
-        if (error.message?.includes('Already applied')) {
-          toast({
-            title: 'Already Applied',
-            description: 'You have already applied to this position.',
-            variant: 'default'
-          });
-        } else if (error.message?.includes('Rate limit')) {
-          toast({
-            title: 'Please Wait',
-            description: 'You are applying too frequently. Please wait before applying again.',
-            variant: 'destructive'
-          });
-        } else {
-          toast({
-            title: 'Application Noted',
-            description: 'We have recorded your interest in this position.',
-            variant: 'default'
-          });
-        }
-      } else if (data?.success) {
-        toast({
-          title: 'Applied Successfully',
-          description: data.message || 'Your application has been recorded.',
-          variant: 'default'
-        });
-      }
-    } catch (err) {
-      console.error('Apply function call failed:', err);
-      // Suppress generic errors for better UX - the URL was already opened
-      toast({
-        title: 'Application Noted',
-        description: 'We have recorded your interest in this position.',
-        variant: 'default'
-      });
+    // Get auth header for user identification (optional)
+    const { data: { session } } = await supabase.auth.getSession();
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json'
+    };
+    if (session?.access_token) {
+      headers['Authorization'] = `Bearer ${session.access_token}`;
     }
+
+    // Use sendBeacon if available, fallback to fetch with keepalive
+    if (navigator.sendBeacon) {
+      const blob = new Blob([logPayload], { type: 'application/json' });
+      navigator.sendBeacon('https://tjahvypvfrjulnqmnhsh.supabase.co/functions/v1/apply-log', blob);
+    } else {
+      fetch('https://tjahvypvfrjulnqmnhsh.supabase.co/functions/v1/apply-log', {
+        method: 'POST',
+        headers,
+        body: logPayload,
+        keepalive: true,
+      }).catch(() => {}); // Silently ignore errors
+    }
+
+    // 3️⃣ Optional toast AFTER navigation attempt
+    toast({
+      title: 'Application opened',
+      description: 'The application page has been opened in a new tab.',
+      variant: 'default'
+    });
   };
 
   // Remove the old search function since search is now handled by InternshipSearchContainer

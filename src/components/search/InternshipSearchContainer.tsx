@@ -60,10 +60,38 @@ export function InternshipSearchContainer({ onApply, className, showResultsInTab
   }, []);
 
   const handleApplyToInternship = useCallback((internshipId: string, applicationUrl: string) => {
+    // 1️⃣ OPEN IMMEDIATELY (synchronous) - prevents popup blocking  
+    const a = document.createElement('a');
+    a.href = applicationUrl;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+
+    // 2️⃣ Call onApply callback if provided for additional tracking
     if (onApply) {
       onApply(internshipId, applicationUrl);
+    }
+
+    // 3️⃣ BACKGROUND LOGGING (non-blocking)
+    const logPayload = JSON.stringify({
+      internship_id: internshipId,
+      application_url: applicationUrl,
+      user_agent: navigator.userAgent,
+    });
+
+    // Use sendBeacon if available, fallback to fetch with keepalive
+    if (navigator.sendBeacon) {
+      const blob = new Blob([logPayload], { type: 'application/json' });
+      navigator.sendBeacon('https://tjahvypvfrjulnqmnhsh.supabase.co/functions/v1/apply-log', blob);
     } else {
-      window.open(applicationUrl, '_blank');
+      fetch('https://tjahvypvfrjulnqmnhsh.supabase.co/functions/v1/apply-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: logPayload,
+        keepalive: true,
+      }).catch(() => {}); // Silently ignore errors
     }
   }, [onApply]);
 
