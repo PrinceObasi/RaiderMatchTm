@@ -13,7 +13,6 @@ import { InternshipSearchContainer } from "./search/InternshipSearchContainer";
 import { ExampleResumes } from "./ExampleResumes";
 import { MyApplications } from "./MyApplications";
 import { ApplicationToggle } from "./ApplicationToggle";
-import { RandomInternships } from "./RandomInternships";
 import { ApplicationSchema } from "@/lib/schemas";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
@@ -32,8 +31,7 @@ import {
   Eye,
   Trash2,
   Search,
-  FileStack,
-  Sparkles
+  FileStack
 } from "lucide-react";
 import { renderSafeHTML } from "@/lib/sanitize";
 import { toExplanation } from "@/lib/jobCoaching";
@@ -95,31 +93,45 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     setTabHasSearched(hasSearched);
   }, []);
 
-  // Auto-load matches function
+  // Auto-load matches function - now uses random internships
   const loadMatches = async (studentData?: any, forceLoad = false, showSuccessToast = false) => {
     const currentStudent = studentData || student;
-    if (!currentStudent?.id || (!resumeAnalyzed && !forceLoad)) return;
     
     setIsMatching(true);
     try {
-      const excludeIds = (matches || []).map((m) => m.id);
-      const { data, error } = await supabase.functions.invoke('match', {
-        body: { exclude_ids: excludeIds, limit: 10, _ts: Date.now() }
+      // Use random internships function instead of personalized matching
+      const { data, error } = await supabase.rpc('random_internships', {
+        limit_count: 10
       });
+
       if (error) throw error;
 
-      setMatches(data.jobs || []);
+      // Transform the internship data to match the Job interface
+      const transformedJobs = (data || []).map((internship: any) => ({
+        id: internship.id,
+        title: internship.role_title || 'Software Engineering Intern',
+        company: internship.company,
+        city: internship.location,
+        description: internship.notes || `${internship.role_title} position at ${internship.company}`,
+        skills: internship.tech_stack || [],
+        apply_url: internship.application_link || '',
+        overlap: 0, // Not relevant for random matches
+        missing_skills: [],
+        explanationLines: ['Random opportunity selected for you to explore!']
+      }));
+
+      setMatches(transformedJobs);
       if (showSuccessToast) {
         toast({
-          title: "Matches loaded!",
-          description: `Found ${data.jobs?.length || 0} internship matches for you.`,
+          title: "New roles loaded!",
+          description: `Found ${transformedJobs.length} random internship opportunities for you.`,
         });
       }
     } catch (error) {
-      console.error('Matching error:', error);
+      console.error('Random internships error:', error);
       toast({
-        title: "Matching failed",
-        description: "Failed to load matches. Please try again.",
+        title: "Loading failed",
+        description: "Failed to load random roles. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -148,10 +160,8 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       const hasResumeData = !!(s?.resume_url || (s?.skills?.length ?? 0) > 0);
       setResumeAnalyzed(hasResumeData);
       
-      // Auto-load matches if resume is already analyzed
-      if (hasResumeData) {
-        await loadMatches(s, true, false); // Don't show toast on initial load
-      }
+      // Auto-load random matches on initial load
+      await loadMatches(s, true, false);
     };
     
     init();
@@ -226,16 +236,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   };
 
   const handleRefreshMatches = async () => {
-    if (!resumeAnalyzed) {
-      toast({
-        title: "Upload resume first",
-        description: "Please upload your resume to get matches.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    await loadMatches(undefined, false, true); // Show toast for manual refresh
+    await loadMatches(undefined, true, true); // Show toast for manual refresh
   };
 
   const handleApply = async (id: string, applyUrl: string, isInternship: boolean = false) => {
@@ -554,10 +555,6 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                     <Target className="h-4 w-4" />
                     Matches
                   </TabsTrigger>
-                  <TabsTrigger value="random" className="shrink-0 flex items-center gap-2">
-                    <Sparkles className="h-4 w-4" />
-                    Random Roles
-                  </TabsTrigger>
                   <TabsTrigger value="applications" className="shrink-0 flex items-center gap-2">
                     <ClipboardList className="h-4 w-4" />
                     My Applications
@@ -686,8 +683,8 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                     {matches.length === 0 ? (
                       <div className="text-center py-12 text-muted-foreground">
                         <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p className="text-lg mb-2">No matches yet</p>
-                        <p>Upload your resume and click "Refresh Matches" to find perfect internships!</p>
+                        <p className="text-lg mb-2">No roles yet</p>
+                        <p>Click "Refresh Matches" to discover random internship opportunities!</p>
                       </div>
                     ) : (
                       <div className="space-y-4 sm:space-y-6">
@@ -754,13 +751,9 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                     )}
                   </CardContent>
                 </Card>
-              </TabsContent>
-              
-              <TabsContent value="random" className="mt-6">
-                <RandomInternships onApply={(id, url) => handleApply(id, url, true)} />
-              </TabsContent>
-              
-              <TabsContent value="applications" className="mt-6">
+               </TabsContent>
+               
+               <TabsContent value="applications" className="mt-6">
                 <Card className="card-shadow">
                   <CardContent className="pt-6">
                     <MyApplications />
