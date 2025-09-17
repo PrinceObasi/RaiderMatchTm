@@ -1,9 +1,13 @@
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Building, MapPin, GraduationCap, Star, Award, Code, Briefcase, Users, AlertTriangle } from "lucide-react";
+import { Building, MapPin, GraduationCap, Star, Award, Code, Briefcase, Users, AlertTriangle, Download, ExternalLink, FileText } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const exampleResumes = [
   {
@@ -15,6 +19,7 @@ const exampleResumes = [
     gpa: "3.602",
     graduationYear: "2026",
     major: "Computer Science",
+    resumeUrl: "/resumes/chris-carson-resume.pdf",
     achievements: [
       "Deans list award 5X",
       "Texas Tech presidential merit scholarship"
@@ -79,6 +84,7 @@ const exampleResumes = [
     graduationYear: "2027",
     major: "Electrical & Computer Engineering",
     minor: "Mathematics",
+    resumeUrl: "/resumes/damien-anderson-resume.pdf",
     achievements: [
       "Presidential Scholar (2021-present)",
       "Dean's list (2022-present)",
@@ -148,6 +154,7 @@ const exampleResumes = [
     graduationYear: "2025",
     major: "Computer Science",
     college: "Texas Tech Honors College",
+    resumeUrl: "/resumes/chiamaka-enusi-resume.pdf",
     achievements: [
       "Presidential Scholar (2021-present)",
       "Dean's list (2022-present)",
@@ -230,6 +237,58 @@ const exampleResumes = [
 ];
 
 export function ExampleResumes() {
+  const [exampleResumesData, setExampleResumesData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    const fetchExampleResumes = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('example_resumes')
+          .select('*')
+          .order('created_at', { ascending: true });
+
+        if (error) throw error;
+
+        setExampleResumesData(data || []);
+      } catch (error) {
+        console.error('Error fetching example resumes:', error);
+        toast({
+          title: "Error loading resumes",
+          description: "Failed to load example resumes. Please refresh the page.",
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchExampleResumes();
+  }, [toast]);
+
+  const handleDownloadResume = (resumeUrl: string, studentName: string) => {
+    // Create a link element and trigger download
+    const link = document.createElement('a');
+    link.href = resumeUrl;
+    link.download = `${studentName.replace(/\s+/g, '-')}-Resume.pdf`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const handleViewResume = (resumeUrl: string) => {
+    window.open(resumeUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-8">
+        <div className="text-muted-foreground">Loading example resumes...</div>
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-6">
       {/* Disclaimer */}
@@ -248,42 +307,72 @@ export function ExampleResumes() {
         </CardContent>
       </Card>
 
-      <Tabs defaultValue="chris" className="w-full">
+      <Tabs defaultValue={exampleResumesData[0]?.id || "0"} className="w-full">
         <TabsList className="grid w-full grid-cols-3">
-          <TabsTrigger value="chris" className="text-xs sm:text-sm">
-            Chris → Amazon
-          </TabsTrigger>
-          <TabsTrigger value="damien" className="text-xs sm:text-sm">
-            Damien → Meta
-          </TabsTrigger>
-          <TabsTrigger value="chiamaka" className="text-xs sm:text-sm">
-            Chiamaka → Amazon
-          </TabsTrigger>
+          {exampleResumesData.map((resume, index) => {
+            const firstName = resume.student_name.split(' ')[0];
+            return (
+              <TabsTrigger key={resume.id} value={resume.id} className="text-xs sm:text-sm">
+                {firstName} → {resume.company}
+              </TabsTrigger>
+            );
+          })}
         </TabsList>
 
-        {exampleResumes.map((resume) => (
-          <TabsContent key={resume.id} value={resume.id} className="mt-6">
-            <Card>
-              <CardHeader className="pb-4">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div>
-                    <CardTitle className="text-xl sm:text-2xl">{resume.name}</CardTitle>
-                    <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
-                      <div className="flex items-center gap-1">
-                        <Building className="h-4 w-4" />
-                        {resume.company} - {resume.position}
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <MapPin className="h-4 w-4" />
-                        {resume.location}
+        {exampleResumes.map((resume) => {
+          // Find the corresponding database data
+          const dbResume = exampleResumesData.find(db => 
+            db.student_name === resume.name
+          );
+          
+          return (
+            <TabsContent key={dbResume?.id || resume.id} value={dbResume?.id || resume.id} className="mt-6">
+              <Card>
+                <CardHeader className="pb-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div>
+                      <CardTitle className="text-xl sm:text-2xl">{resume.name}</CardTitle>
+                      <div className="flex flex-wrap items-center gap-4 mt-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1">
+                          <Building className="h-4 w-4" />
+                          {resume.company} - {resume.position}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-4 w-4" />
+                          {resume.location}
+                        </div>
                       </div>
                     </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <Badge variant="secondary" className="text-lg px-4 py-2 shrink-0">
+                        GPA: {resume.gpa}
+                      </Badge>
+                      {/* Resume PDF Actions */}
+                      {(dbResume?.resume_url || resume.resumeUrl) && (
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewResume(dbResume?.resume_url || resume.resumeUrl)}
+                            className="gap-2"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                            View PDF
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleDownloadResume(dbResume?.resume_url || resume.resumeUrl, resume.name)}
+                            className="gap-2"
+                          >
+                            <Download className="h-4 w-4" />
+                            Download
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <Badge variant="secondary" className="text-lg px-4 py-2 shrink-0">
-                    GPA: {resume.gpa}
-                  </Badge>
-                </div>
-              </CardHeader>
+                </CardHeader>
               
               <CardContent className="space-y-6">
                 {/* Education */}
@@ -454,12 +543,13 @@ export function ExampleResumes() {
                       </Badge>
                     ))}
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-        ))}
+                 </div>
+               </CardContent>
+             </Card>
+           </TabsContent>
+          );
+        })}
       </Tabs>
-    </div>
-  );
-}
+     </div>
+   );
+ }
