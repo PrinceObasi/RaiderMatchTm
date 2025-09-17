@@ -419,6 +419,32 @@ export type Database = {
           title: string
         }[]
       }
+      random_internships: {
+        Args: { limit_count?: number }
+        Returns: {
+          application_link: string
+          apply_url: string | null
+          category: string | null
+          company: string
+          created_at: string | null
+          date_posted: string | null
+          deadline: string | null
+          employment_type: string | null
+          id: string
+          is_texas: boolean | null
+          last_checked_utc: string | null
+          location: string | null
+          notes: string | null
+          remote_flag: boolean | null
+          role_title: string | null
+          search_tsv: unknown | null
+          source_url: string | null
+          sponsorship_flag: string | null
+          tech_stack: string[] | null
+          updated_at: string | null
+          visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
+        }[]
+      }
       search_internships: {
         Args: {
           limit_count?: number

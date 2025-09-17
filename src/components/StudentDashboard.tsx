@@ -13,6 +13,7 @@ import { InternshipSearchContainer } from "./search/InternshipSearchContainer";
 import { ExampleResumes } from "./ExampleResumes";
 import { MyApplications } from "./MyApplications";
 import { ApplicationToggle } from "./ApplicationToggle";
+import { RandomInternships } from "./RandomInternships";
 import { ApplicationSchema } from "@/lib/schemas";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
@@ -31,7 +32,8 @@ import {
   Eye,
   Trash2,
   Search,
-  FileStack
+  FileStack,
+  Sparkles
 } from "lucide-react";
 import { renderSafeHTML } from "@/lib/sanitize";
 import { toExplanation } from "@/lib/jobCoaching";
@@ -552,6 +554,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                     <Target className="h-4 w-4" />
                     Matches
                   </TabsTrigger>
+                  <TabsTrigger value="random" className="shrink-0 flex items-center gap-2">
+                    <Sparkles className="h-4 w-4" />
+                    Random Roles
+                  </TabsTrigger>
                   <TabsTrigger value="applications" className="shrink-0 flex items-center gap-2">
                     <ClipboardList className="h-4 w-4" />
                     My Applications
@@ -748,6 +754,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                     )}
                   </CardContent>
                 </Card>
+              </TabsContent>
+              
+              <TabsContent value="random" className="mt-6">
+                <RandomInternships onApply={(id, url) => handleApply(id, url, true)} />
               </TabsContent>
               
               <TabsContent value="applications" className="mt-6">
