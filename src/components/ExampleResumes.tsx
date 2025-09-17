@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
-import { Building, MapPin, GraduationCap, Star, Award, Code, Briefcase, Users, AlertTriangle, Download, ExternalLink, FileText } from "lucide-react";
+import { Building, MapPin, GraduationCap, Star, Award, Code, Briefcase, Users, AlertTriangle, FileText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -267,30 +267,6 @@ export function ExampleResumes() {
     fetchExampleResumes();
   }, [toast]);
 
-  const handleDownloadResume = (resumeUrl: string, studentName: string) => {
-    // Create a link element and trigger download
-    const link = document.createElement('a');
-    link.href = resumeUrl;
-    link.download = `${studentName.replace(/\s+/g, '-')}-Resume.pdf`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  };
-
-  const handleViewResume = (resumeUrl: string) => {
-    try {
-      const newWindow = window.open(resumeUrl, '_blank', 'noopener,noreferrer');
-      // Check if popup was blocked
-      if (!newWindow || newWindow.closed || typeof newWindow.closed === 'undefined') {
-        // Fallback: open in same tab
-        window.location.href = resumeUrl;
-      }
-    } catch (error) {
-      console.error('Error opening PDF:', error);
-      // Fallback: open in same tab
-      window.location.href = resumeUrl;
-    }
-  };
 
   if (loading) {
     return (
@@ -358,29 +334,6 @@ export function ExampleResumes() {
                       <Badge variant="secondary" className="text-lg px-4 py-2 shrink-0">
                         GPA: {resume.gpa}
                       </Badge>
-                      {/* Resume PDF Actions */}
-                      {(dbResume?.resume_url || resume.resumeUrl) && (
-                        <div className="flex gap-2">
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleViewResume(dbResume?.resume_url || resume.resumeUrl)}
-                            className="gap-2"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                            View PDF
-                          </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleDownloadResume(dbResume?.resume_url || resume.resumeUrl, resume.name)}
-                            className="gap-2"
-                          >
-                            <Download className="h-4 w-4" />
-                            Download
-                          </Button>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </CardHeader>
