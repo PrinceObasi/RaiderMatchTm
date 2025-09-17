@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -14,6 +15,7 @@ import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { JobApplicants } from "@/components/JobApplicants";
+import { Analytics } from "@/components/Analytics";
 import { JobCreateSchema, JobUpdateSchema } from "@/lib/schemas";
 import { 
   Plus, 
@@ -27,7 +29,8 @@ import {
   ExternalLink,
   CalendarIcon,
   Eye,
-  Settings2
+  Settings2,
+  BarChart3
 } from "lucide-react";
 
 interface Job {
@@ -256,196 +259,191 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
       </header>
 
       <div className="container mx-auto px-6 py-8">
-        <div className="grid lg:grid-cols-3 gap-8">
-          {/* Post Job Section */}
-          <div className="lg:col-span-1">
-            <Card className="card-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Plus className="h-5 w-5" />
-                  Post New Internship
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <Label htmlFor="title">Job Title</Label>
-                  <Input
-                    id="title"
-                    value={newJob.title}
-                    onChange={(e) => setNewJob({ ...newJob, title: e.target.value })}
-                    placeholder="e.g. Software Engineering Intern"
-                    className="mt-1"
-                  />
-                </div>
+        <Tabs defaultValue="jobs" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="jobs" className="flex items-center gap-2">
+              <Building className="h-4 w-4" />
+              Jobs & Applications
+            </TabsTrigger>
+            <TabsTrigger value="analytics" className="flex items-center gap-2">
+              <BarChart3 className="h-4 w-4" />
+              Analytics
+            </TabsTrigger>
+          </TabsList>
 
-                <div>
-                  <Label htmlFor="location">Location</Label>
-                  <Input
-                    id="location"
-                    value={newJob.location}
-                    onChange={(e) => setNewJob({ ...newJob, location: e.target.value })}
-                    placeholder="e.g. Austin, TX"
-                    className="mt-1"
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="description">Description</Label>
-                  <Textarea
-                    id="description"
-                    value={newJob.description}
-                    onChange={(e) => setNewJob({ ...newJob, description: e.target.value })}
-                    placeholder="Describe the internship role, responsibilities, and requirements..."
-                    className="mt-1 min-h-24"
-                  />
-                </div>
-
-                <div>
-                  <Label>Open Date</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal mt-1",
-                          !newJob.opensAt && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {newJob.opensAt ? format(newJob.opensAt, "PPP") : <span>Pick a date</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={newJob.opensAt}
-                        onSelect={(date) => setNewJob({ ...newJob, opensAt: date || new Date() })}
-                        initialFocus
-                        className="p-3 pointer-events-auto"
+          <TabsContent value="jobs" className="mt-6">
+            <div className="grid lg:grid-cols-3 gap-8">
+              {/* Post Job Section */}
+              <div className="lg:col-span-1">
+                <Card className="card-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Plus className="h-5 w-5" />
+                      Post New Internship
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <Label htmlFor="title">Job Title</Label>
+                      <Input
+                        id="title"
+                        value={newJob.title}
+                        onChange={(e) => setNewJob({ ...newJob, title: e.target.value })}
+                        placeholder="e.g. Software Engineering Intern"
                       />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                    </div>
 
-                <div>
-                  <Label>Close Date (Optional)</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        className={cn(
-                          "w-full justify-start text-left font-normal mt-1",
-                          !newJob.closesAt && "text-muted-foreground"
-                        )}
-                      >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {newJob.closesAt ? format(newJob.closesAt, "PPP") : <span>Pick a date (optional)</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                      <Calendar
-                        mode="single"
-                        selected={newJob.closesAt}
-                        onSelect={(date) => setNewJob({ ...newJob, closesAt: date })}
-                        initialFocus
-                        className="p-3 pointer-events-auto"
+                    <div>
+                      <Label htmlFor="location">Location</Label>
+                      <Input
+                        id="location"
+                        value={newJob.location}
+                        onChange={(e) => setNewJob({ ...newJob, location: e.target.value })}
+                        placeholder="e.g. Austin, TX"
                       />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+                    </div>
 
-                <div>
-                  <Label htmlFor="applyUrl">Application URL</Label>
-                  <Input
-                    id="applyUrl"
-                    value={newJob.applyUrl}
-                    onChange={(e) => setNewJob({ ...newJob, applyUrl: e.target.value })}
-                    placeholder="https://company.com/apply"
-                    className="mt-1"
-                  />
-                </div>
+                    <div>
+                      <Label htmlFor="description">Job Description</Label>
+                      <Textarea
+                        id="description"
+                        value={newJob.description}
+                        onChange={(e) => setNewJob({ ...newJob, description: e.target.value })}
+                        placeholder="Describe the internship role, responsibilities, and requirements..."
+                        rows={4}
+                      />
+                    </div>
 
-                <div className="flex items-center justify-between">
-                  <Label htmlFor="sponsorsVisa" className="text-sm">
-                    Visa sponsorship available
-                  </Label>
-                  <Switch
-                    id="sponsorsVisa"
-                    checked={newJob.sponsorsVisa}
-                    onCheckedChange={(checked) => setNewJob({ ...newJob, sponsorsVisa: checked })}
-                  />
-                </div>
+                    <div>
+                      <Label htmlFor="applyUrl">Application URL</Label>
+                      <Input
+                        id="applyUrl"
+                        value={newJob.applyUrl}
+                        onChange={(e) => setNewJob({ ...newJob, applyUrl: e.target.value })}
+                        placeholder="https://..."
+                      />
+                    </div>
 
-                <Button
-                  onClick={handleCreateJob}
-                  disabled={isPosting}
-                  className="w-full"
-                  size="lg"
-                >
-                  {isPosting ? (
-                    <>
-                      <Plus className="h-4 w-4 animate-spin" />
-                      Posting...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4" />
-                      Post Internship
-                    </>
-                  )}
-                </Button>
-              </CardContent>
-            </Card>
-          </div>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <Label>Opens At</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !newJob.opensAt && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {newJob.opensAt ? format(newJob.opensAt, "PPP") : "Pick a date"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={newJob.opensAt}
+                              onSelect={(date) => setNewJob({ ...newJob, opensAt: date })}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
 
-          {/* Jobs & Candidates Section */}
-          <div className="lg:col-span-2">
-            <Card className="card-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Users className="h-5 w-5" />
-                  Posted Jobs & Candidates
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                {jobs.length === 0 ? (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                    <p className="text-lg mb-2">No jobs posted yet</p>
-                    <p>Post your first internship to start receiving applications!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {jobs.map((job) => (
-                      <div key={job.id} className="border rounded-lg p-6">
-                         <div className="flex items-center justify-between mb-4">
-                           <div className="flex-1">
-                             <h3 className="text-lg font-semibold mb-2">{job.title}</h3>
-                             <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
-                               <MapPin className="h-4 w-4" />
-                               {job.city}
-                             </div>
-                             <p className="text-muted-foreground text-sm">{job.description}</p>
-                              <div className="flex items-center gap-2 mt-2">
-                                <Badge variant="outline">Opens: {new Date(job.opens_at).toLocaleDateString()}</Badge>
-                                {job.closes_at && (
-                                  <Badge variant="outline">Closes: {new Date(job.closes_at).toLocaleDateString()}</Badge>
-                                )}
-                                <Badge variant={job.is_active ? "default" : "secondary"}>
-                                  {job.is_active ? "Active" : "Inactive"}
-                                </Badge>
-                                <Badge variant="outline" className="bg-blue-50 text-blue-700">
-                                  {job.applications?.[0]?.count || 0} applicant{(job.applications?.[0]?.count || 0) !== 1 ? 's' : ''}
-                                </Badge>
+                      <div>
+                        <Label>Closes At (Optional)</Label>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className={cn(
+                                "w-full justify-start text-left font-normal",
+                                !newJob.closesAt && "text-muted-foreground"
+                              )}
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {newJob.closesAt ? format(newJob.closesAt, "PPP") : "No deadline"}
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <Calendar
+                              mode="single"
+                              selected={newJob.closesAt}
+                              onSelect={(date) => setNewJob({ ...newJob, closesAt: date })}
+                              initialFocus
+                            />
+                          </PopoverContent>
+                        </Popover>
+                      </div>
+                    </div>
+
+                    <Button 
+                      onClick={handleCreateJob} 
+                      disabled={isPosting}
+                      className="w-full"
+                      size="lg"
+                    >
+                      {isPosting ? "Posting..." : "Post Job"}
+                    </Button>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Jobs & Candidates Section */}
+              <div className="lg:col-span-2">
+                <Card className="card-shadow">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Users className="h-5 w-5" />
+                      Posted Jobs & Candidates
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {jobs.length === 0 ? (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <Building className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                        <p className="text-lg mb-2">No jobs posted yet</p>
+                        <p>Post your first internship to start receiving applications!</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        {jobs.map((job) => (
+                          <div key={job.id} className="border border-border rounded-lg p-6 hover:shadow-md transition-shadow">
+                            <div className="flex justify-between items-start mb-4">
+                              <div className="flex-1">
+                                <h3 className="text-xl font-semibold mb-2">{job.title}</h3>
+                                <div className="flex items-center gap-4 text-muted-foreground mb-3">
+                                  <div className="flex items-center gap-1">
+                                    <Building className="h-4 w-4" />
+                                    {job.company}
+                                  </div>
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="h-4 w-4" />
+                                    {job.city}
+                                  </div>
+                                </div>
+                                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">{job.description}</p>
+                                <div className="flex gap-2 text-xs">
+                                  <Badge variant="outline">
+                                    Opens: {new Date(job.opens_at).toLocaleDateString()}
+                                  </Badge>
+                                  {job.closes_at && (
+                                    <Badge variant="outline">
+                                      Closes: {new Date(job.closes_at).toLocaleDateString()}
+                                    </Badge>
+                                  )}
+                                  <Badge variant={job.is_active ? "default" : "secondary"}>
+                                    {job.is_active ? "Active" : "Inactive"}
+                                  </Badge>
+                                </div>
                               </div>
-                           </div>
-                           
-                            <div className="flex items-center gap-3">
-                              <Button 
-                                variant="outline" 
-                                size="sm" 
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <Button
                                 onClick={() => {
-                                  setSelectedJob({ id: job.id, title: job.title });
+                                  setSelectedJob(job);
                                   setShowApplicants(true);
                                 }}
                                 disabled={(job.applications?.[0]?.count || 0) === 0}
@@ -471,14 +469,19 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
                               </Button>
                             </div>
                          </div>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </div>
-        </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
+          </TabsContent>
+
+          <TabsContent value="analytics" className="mt-6">
+            <Analytics />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Job Applicants Drawer */}
