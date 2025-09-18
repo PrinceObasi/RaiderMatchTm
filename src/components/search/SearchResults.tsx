@@ -1,12 +1,11 @@
 import React from "react";
-import { Building, MapPin, Calendar, ExternalLink, AlertCircle } from "lucide-react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Building, AlertCircle } from "lucide-react";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InternshipSearchResult } from "./types";
 import { ApplicationToggle } from "@/components/ApplicationToggle";
+import { EnrichedInternshipCard } from "@/components/EnrichedInternshipCard";
 import { toast } from "sonner";
 
 interface SearchResultsProps {
@@ -133,81 +132,15 @@ export function SearchResults({
 
       {/* Results */}
       {results.map((internship) => (
-        <Card key={internship.id} className="hover:shadow-md transition-shadow">
-          <CardHeader>
-            <div className="flex justify-between items-start gap-4">
-              <div className="flex-1 min-w-0">
-                <CardTitle className="text-lg leading-tight break-words">
-                  {internship.role_title}
-                </CardTitle>
-                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mt-1">
-                  <div className="flex items-center gap-1">
-                    <Building className="h-4 w-4 shrink-0" />
-                    <span className="break-words">{internship.company}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <MapPin className="h-4 w-4 shrink-0" />
-                    <span>{internship.location}</span>
-                  </div>
-                  {internship.date_posted && (
-                    <div className="flex items-center gap-1">
-                      <Calendar className="h-4 w-4 shrink-0" />
-                      <span>{new Date(internship.date_posted).toLocaleDateString()}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Visa sponsorship badge */}
-              {internship.visa_sponsorship && internship.visa_sponsorship !== 'Unspecified' && (
-                <Badge variant={internship.visa_sponsorship === 'Yes' ? 'default' : 'secondary'}>
-                  {internship.visa_sponsorship === 'Yes' ? 'Sponsors Visa' : 'No Visa'}
-                </Badge>
-              )}
-            </div>
-          </CardHeader>
-          
-          <CardContent>
-            {/* Tech stack */}
-            {internship.tech_stack && internship.tech_stack.length > 0 && (
-              <div className="mb-4">
-                <div className="flex flex-wrap gap-2">
-                  {internship.tech_stack.map((tech) => (
-                    <Badge key={tech} variant="outline" className="text-xs">
-                      {tech}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Deadline warning */}
-            {internship.deadline && (
-              <div className="mb-4 text-sm text-muted-foreground">
-                Application deadline: {new Date(internship.deadline).toLocaleDateString()}
-              </div>
-            )}
-
-            {/* Apply button */}
-            <div className="flex flex-col gap-2">
-              <div className="flex justify-end">
-                <Button 
-                  onClick={() => handleApply(internship)}
-                  disabled={!internship.application_link}
-                  className="gap-2"
-                >
-                  <ExternalLink className="h-4 w-4" />
-                  Apply Now
-                </Button>
-              </div>
-              
-              {/* Application toggle */}
-              <div className="flex justify-end">
-                <ApplicationToggle internshipId={internship.id} />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div key={internship.id} className="space-y-2">
+          <EnrichedInternshipCard
+            internship={internship}
+            onApply={handleApply}
+          />
+          <div className="flex justify-end">
+            <ApplicationToggle internshipId={internship.id} />
+          </div>
+        </div>
       ))}
     </div>
   );

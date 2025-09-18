@@ -188,14 +188,22 @@ export type Database = {
           date_posted: string | null
           deadline: string | null
           employment_type: string | null
+          enriched_at: string | null
+          enrichment_confidence: number | null
           id: string
           is_texas: boolean | null
+          jd_raw: string | null
+          jd_summary: string | null
           job_keywords: string[] | null
           last_checked_utc: string | null
           location: string | null
           notes: string | null
           remote_flag: boolean | null
           role_title: string | null
+          salary_currency: string | null
+          salary_max: number | null
+          salary_min: number | null
+          salary_period: string | null
           search_tsv: unknown | null
           source_url: string | null
           sponsorship_flag: string | null
@@ -212,14 +220,22 @@ export type Database = {
           date_posted?: string | null
           deadline?: string | null
           employment_type?: string | null
+          enriched_at?: string | null
+          enrichment_confidence?: number | null
           id?: string
           is_texas?: boolean | null
+          jd_raw?: string | null
+          jd_summary?: string | null
           job_keywords?: string[] | null
           last_checked_utc?: string | null
           location?: string | null
           notes?: string | null
           remote_flag?: boolean | null
           role_title?: string | null
+          salary_currency?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          salary_period?: string | null
           search_tsv?: unknown | null
           source_url?: string | null
           sponsorship_flag?: string | null
@@ -236,14 +252,22 @@ export type Database = {
           date_posted?: string | null
           deadline?: string | null
           employment_type?: string | null
+          enriched_at?: string | null
+          enrichment_confidence?: number | null
           id?: string
           is_texas?: boolean | null
+          jd_raw?: string | null
+          jd_summary?: string | null
           job_keywords?: string[] | null
           last_checked_utc?: string | null
           location?: string | null
           notes?: string | null
           remote_flag?: boolean | null
           role_title?: string | null
+          salary_currency?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          salary_period?: string | null
           search_tsv?: unknown | null
           source_url?: string | null
           sponsorship_flag?: string | null
@@ -517,14 +541,22 @@ export type Database = {
           date_posted: string | null
           deadline: string | null
           employment_type: string | null
+          enriched_at: string | null
+          enrichment_confidence: number | null
           id: string
           is_texas: boolean | null
+          jd_raw: string | null
+          jd_summary: string | null
           job_keywords: string[] | null
           last_checked_utc: string | null
           location: string | null
           notes: string | null
           remote_flag: boolean | null
           role_title: string | null
+          salary_currency: string | null
+          salary_max: number | null
+          salary_min: number | null
+          salary_period: string | null
           search_tsv: unknown | null
           source_url: string | null
           sponsorship_flag: string | null
@@ -553,14 +585,22 @@ export type Database = {
           date_posted: string | null
           deadline: string | null
           employment_type: string | null
+          enriched_at: string | null
+          enrichment_confidence: number | null
           id: string
           is_texas: boolean | null
+          jd_raw: string | null
+          jd_summary: string | null
           job_keywords: string[] | null
           last_checked_utc: string | null
           location: string | null
           notes: string | null
           remote_flag: boolean | null
           role_title: string | null
+          salary_currency: string | null
+          salary_max: number | null
+          salary_min: number | null
+          salary_period: string | null
           search_tsv: unknown | null
           source_url: string | null
           sponsorship_flag: string | null

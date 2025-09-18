@@ -11,6 +11,7 @@ import { AuthModal } from "./components/AuthModal";
 import { Settings } from "./components/Settings";
 import { AuthBootstrapper } from "./components/AuthBootstrapper";
 import { AdminImport } from "./components/AdminImport";
+import EnrichAdminPage from "./pages/admin/enrich";
 import { supabase } from "@/integrations/supabase/client";
 
 const queryClient = new QueryClient();
@@ -19,7 +20,7 @@ type UserType = 'student' | 'employer' | null;
 
 const App = () => {
   const [user, setUser] = useState<UserType>(null);
-  const [currentView, setCurrentView] = useState<'main' | 'settings' | 'admin'>('main');
+  const [currentView, setCurrentView] = useState<'main' | 'settings' | 'admin' | 'enrich'>('main');
   const [authModal, setAuthModal] = useState<{
     isOpen: boolean;
     defaultTab: 'student' | 'employer' | 'login';
@@ -65,6 +66,10 @@ const App = () => {
         setCurrentView('admin');
         // Clear the hash to avoid bookmarking
         window.history.replaceState(null, '', window.location.pathname);
+      } else if (window.location.hash === '#enrich') {
+        setCurrentView('enrich');
+        // Clear the hash to avoid bookmarking
+        window.history.replaceState(null, '', window.location.pathname);
       }
     };
 
@@ -78,6 +83,14 @@ const App = () => {
     if (currentView === 'admin') {
       return (
         <AdminImport 
+          onBack={() => setCurrentView('main')}
+        />
+      );
+    }
+
+    if (currentView === 'enrich') {
+      return (
+        <EnrichAdminPage 
           onBack={() => setCurrentView('main')}
         />
       );
