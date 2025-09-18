@@ -14,6 +14,8 @@ import { ExampleResumes } from "./ExampleResumes";
 import { MyApplications } from "./MyApplications";
 import { ApplicationToggle } from "./ApplicationToggle";
 import { ApplicationSchema } from "@/lib/schemas";
+import { useMatches } from "@/hooks/useMatches";
+import { extractKeywords } from "@/lib/extractKeywords";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   Upload, 
@@ -77,8 +79,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [isMatching, setIsMatching] = useState(false);
-  const [matches, setMatches] = useState<Job[]>([]);
+  
+  // Use the new matches hook instead of local state
+  const { data: matches = [], isLoading: isMatching, refetch: refetchMatches } = useMatches(20, 0);
+  
   const [student, setStudent] = useState<any>(null);
   const [resumeAnalyzed, setResumeAnalyzed] = useState(false);
   const [showProfileWizard, setShowProfileWizard] = useState(false);
@@ -93,51 +97,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     setTabHasSearched(hasSearched);
   }, []);
 
-  // Auto-load matches function - now uses random internships
-  const loadMatches = async (studentData?: any, forceLoad = false, showSuccessToast = false) => {
-    const currentStudent = studentData || student;
-    
-    setIsMatching(true);
-    try {
-      // Use random internships function instead of personalized matching
-      const { data, error } = await supabase.rpc('random_internships', {
-        limit_count: 10
-      });
-
-      if (error) throw error;
-
-      // Transform the internship data to match the Job interface
-      const transformedJobs = (data || []).map((internship: any) => ({
-        id: internship.id,
-        title: internship.role_title || 'Software Engineering Intern',
-        company: internship.company,
-        city: internship.location,
-        description: internship.notes || `${internship.role_title} position at ${internship.company}`,
-        skills: internship.tech_stack || [],
-        apply_url: internship.application_link || '',
-        overlap: 0, // Not relevant for random matches
-        missing_skills: [],
-        explanationLines: ['Random opportunity selected for you to explore!']
-      }));
-
-      setMatches(transformedJobs);
-      if (showSuccessToast) {
-        toast({
-          title: "New roles loaded!",
-          description: `Found ${transformedJobs.length} random internship opportunities for you.`,
-        });
-      }
-    } catch (error) {
-      console.error('Random internships error:', error);
-      toast({
-        title: "Loading failed",
-        description: "Failed to load random roles. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsMatching(false);
-    }
-  };
+  // Remove the loadMatches function since we're using the hook
 
   // Initialize profile and auto-load matches
   useEffect(() => {
@@ -160,8 +120,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       const hasResumeData = !!(s?.resume_url || (s?.skills?.length ?? 0) > 0);
       setResumeAnalyzed(hasResumeData);
       
-      // Auto-load random matches on initial load
-      await loadMatches(s, true, false);
+      // Initialize profile only - matches load automatically via hook
     };
     
     init();
@@ -201,6 +160,41 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
 
       if (error) throw error;
 
+      // Extract keywords from parsed data for matching
+      if (data?.skills && data.skills.length > 0) {
+        const allText = data.skills.join(' ') + ' ' + (data.text || '');
+        const keywords = extractKeywords(allText);
+        
+        console.log('Extracted keywords from resume:', keywords);
+        
+        // Send keywords to profile API
+        if (keywords.length > 0) {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              const response = await fetch('/api/profile/keywords', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ tokens: keywords })
+              });
+
+              if (response.ok) {
+                console.log('Profile keywords updated successfully');
+                // Refetch matches to get updated results
+                refetchMatches();
+              } else {
+                console.warn('Failed to update profile keywords:', await response.text());
+              }
+            }
+          } catch (keywordError) {
+            console.warn('Error updating profile keywords:', keywordError);
+          }
+        }
+      }
+
       // Update states and reload student data
       setResumeAnalyzed(true);
       
@@ -213,9 +207,6 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
           .eq('user_id', user.id)
           .single();
         setStudent(updatedStudent);
-        
-        // Auto-load matches after successful upload
-        await loadMatches(updatedStudent, false, true); // Show toast for resume upload
       }
 
       toast({
@@ -236,7 +227,11 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   };
 
   const handleRefreshMatches = async () => {
-    await loadMatches(undefined, true, true); // Show toast for manual refresh
+    refetchMatches();
+    toast({
+      title: "Refreshed matches",
+      description: "Loading updated recommendations based on your profile.",
+    });
   };
 
   const handleApply = async (id: string, applyUrl: string, isInternship: boolean = false) => {
@@ -312,7 +307,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
 
       setStudent({ ...student, resume_url: null, skills: [] });
       setResumeAnalyzed(false);
-      setMatches([]);
+      // Matches will automatically update via the hook
       
       toast({
         title: "Resume deleted",
@@ -360,6 +355,41 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
 
       if (error) throw error;
 
+      // Extract keywords from parsed data for matching  
+      if (data?.skills && data.skills.length > 0) {
+        const allText = data.skills.join(' ') + ' ' + (data.text || '');
+        const keywords = extractKeywords(allText);
+        
+        console.log('Extracted keywords from resume:', keywords);
+        
+        // Send keywords to profile API
+        if (keywords.length > 0) {
+          try {
+            const { data: { session } } = await supabase.auth.getSession();
+            if (session?.access_token) {
+              const response = await fetch('/api/profile/keywords', {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${session.access_token}`
+                },
+                body: JSON.stringify({ tokens: keywords })
+              });
+
+              if (response.ok) {
+                console.log('Profile keywords updated successfully');
+                // Refetch matches to get updated results
+                refetchMatches();
+              } else {
+                console.warn('Failed to update profile keywords:', await response.text());
+              }
+            }
+          } catch (keywordError) {
+            console.warn('Error updating profile keywords:', keywordError);
+          }
+        }
+      }
+
       // Update states and reload student data
       setResumeAnalyzed(true);
       
@@ -372,9 +402,6 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
           .eq('user_id', user.id)
           .single();
         setStudent(updatedStudent);
-        
-        // Auto-load matches after successful upload
-        await loadMatches(updatedStudent, false, true); // Show toast for resume upload
       }
 
       toast({
@@ -658,8 +685,8 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                       <Target className="h-5 w-5" />
                       <h3 className="font-semibold">Matches</h3>
                     </div>
-                    <Button 
-                      onClick={() => loadMatches(undefined, true, true)}
+                     <Button 
+                      onClick={handleRefreshMatches}
                       disabled={isMatching}
                       variant="outline"
                       size="sm"
@@ -674,7 +701,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                       <div className="text-center py-12 text-muted-foreground">
                         <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
                         <p className="text-lg mb-2">No roles yet</p>
-                        <p>Click "Refresh Matches" to discover random internship opportunities!</p>
+                        <p>Upload your resume to get personalized internship matches!</p>
                       </div>
                     ) : (
                       <div className="space-y-4 sm:space-y-6">
@@ -683,7 +710,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                <CardContent className="p-4 sm:p-6">
                                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                                    <div className="flex-1">
-                                     <h3 className="text-lg sm:text-xl font-semibold leading-tight mb-1">{job.title}</h3>
+                                     <h3 className="text-lg sm:text-xl font-semibold leading-tight mb-1">{job.role_title || 'Software Engineering Intern'}</h3>
                                     <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                       <div className="flex items-center gap-1">
                                         <Building className="h-4 w-4" />
@@ -691,7 +718,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                       </div>
                                       <div className="flex items-center gap-1">
                                         <MapPin className="h-4 w-4" />
-                                        {job.city}
+                                        {job.location || 'Location TBD'}
                                       </div>
                                     </div>
                                   </div>
@@ -702,33 +729,43 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                        </PopoverTrigger>
                                        <PopoverContent className="w-72 sm:w-96 text-sm">
                                          <ul className="list-disc pl-4 space-y-1">
-                                           {job.explanationLines.map((line, i) => (
-                                             <li key={i}>{line}</li>
-                                           ))}
+                                            <li>Match based on your profile skills</li>
                                          </ul>
                                        </PopoverContent>
                                      </Popover>
                                    </div>
                                 </div>
-                               
-                                 {(() => {
-                                   const safeHTML = renderSafeHTML(job.description);
-                                   return safeHTML ? (
-                                     <p 
-                                       className="mt-2 text-sm sm:text-base text-muted-foreground line-clamp-3 sm:line-clamp-none mb-4"
-                                       dangerouslySetInnerHTML={safeHTML}
-                                     />
-                                   ) : (
-                                     <p className="mt-2 text-sm sm:text-base text-muted-foreground line-clamp-3 sm:line-clamp-none mb-4">{job.description}</p>
-                                   );
-                                 })()}
+                                  {/* Tech Stack from matched internship */}
+                                  {job.tech_stack && job.tech_stack.length > 0 && (
+                                    <div className="mt-3 mb-4">
+                                      <div className="flex flex-wrap gap-2">
+                                        {job.tech_stack.slice(0, 8).map((tech) => (
+                                          <Badge key={tech} variant="outline" className="text-xs">
+                                            {tech}
+                                          </Badge>
+                                        ))}
+                                        {job.tech_stack.length > 8 && (
+                                          <Badge variant="outline" className="text-xs">
+                                            +{job.tech_stack.length - 8} more
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                
+                                  {/* Simple description for matched internship */}
+                                  <p className="mt-2 text-sm sm:text-base text-muted-foreground line-clamp-3 sm:line-clamp-none mb-4">
+                                    {job.role_title || 'Software Engineering Intern'} position at {job.company}
+                                    {job.location && ` in ${job.location}`}
+                                  </p>
                                 
                                  <div className="mt-4 flex flex-col sm:flex-row gap-2">
-                    <Button 
-                      onClick={() => handleApply(job.id, job.apply_url, false)}
-                      className="w-full sm:w-auto h-11"
-                      size="lg"
-                    >
+                     <Button 
+                       onClick={() => handleApply(job.id, job.application_link, true)}
+                       className="w-full sm:w-auto h-11"
+                       size="lg"
+                       disabled={!job.application_link}
+                     >
                                     <ExternalLink className="h-4 w-4" />
                                     Apply Now
                                   </Button>
