@@ -1,0 +1,1 @@
+DELETE FROM public.internships WHERE id = 'f57d8f89-e83d-457b-bbea-08d640ecf337';
