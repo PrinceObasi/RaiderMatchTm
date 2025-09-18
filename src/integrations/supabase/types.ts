@@ -190,6 +190,7 @@ export type Database = {
           employment_type: string | null
           id: string
           is_texas: boolean | null
+          job_keywords: string[] | null
           last_checked_utc: string | null
           location: string | null
           notes: string | null
@@ -213,6 +214,7 @@ export type Database = {
           employment_type?: string | null
           id?: string
           is_texas?: boolean | null
+          job_keywords?: string[] | null
           last_checked_utc?: string | null
           location?: string | null
           notes?: string | null
@@ -236,6 +238,7 @@ export type Database = {
           employment_type?: string | null
           id?: string
           is_texas?: boolean | null
+          job_keywords?: string[] | null
           last_checked_utc?: string | null
           location?: string | null
           notes?: string | null
@@ -307,6 +310,45 @@ export type Database = {
           title?: string
           type?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          resume_keywords: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          resume_keywords?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          resume_keywords?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      skill_aliases: {
+        Row: {
+          alias: string
+          canonical: string
+        }
+        Insert: {
+          alias: string
+          canonical: string
+        }
+        Update: {
+          alias?: string
+          canonical?: string
         }
         Relationships: []
       }
@@ -432,6 +474,20 @@ export type Database = {
           title: string
         }[]
       }
+      match_internships_for_user: {
+        Args: { p_limit?: number; p_offset?: number; p_user_id: string }
+        Returns: {
+          application_link: string
+          company: string
+          date_posted: string
+          deadline: string
+          id: string
+          location: string
+          role_title: string
+          tech_stack: string[]
+          visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
+        }[]
+      }
       match_jobs: {
         Args: { p_student_id: string }
         Returns: {
@@ -446,6 +502,10 @@ export type Database = {
           title: string
         }[]
       }
+      normalize_keywords: {
+        Args: { raw: string[] }
+        Returns: string[]
+      }
       random_internships: {
         Args: { limit_count?: number }
         Returns: {
@@ -459,6 +519,7 @@ export type Database = {
           employment_type: string | null
           id: string
           is_texas: boolean | null
+          job_keywords: string[] | null
           last_checked_utc: string | null
           location: string | null
           notes: string | null
@@ -494,6 +555,7 @@ export type Database = {
           employment_type: string | null
           id: string
           is_texas: boolean | null
+          job_keywords: string[] | null
           last_checked_utc: string | null
           location: string | null
           notes: string | null
@@ -506,6 +568,14 @@ export type Database = {
           updated_at: string | null
           visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
         }[]
+      }
+      set_job_keywords: {
+        Args: { p_job_id: string; raw: string[] }
+        Returns: undefined
+      }
+      set_profile_keywords: {
+        Args: { p_user_id: string; raw: string[] }
+        Returns: undefined
       }
     }
     Enums: {
