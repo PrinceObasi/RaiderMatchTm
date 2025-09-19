@@ -469,6 +469,47 @@ export type Database = {
         Args: { click_id: string }
         Returns: Json
       }
+      explore_internships: {
+        Args: {
+          p_cities?: string[]
+          p_limit?: number
+          p_offset?: number
+          p_stacks?: string[]
+          p_visa?: string
+        }
+        Returns: {
+          application_link: string
+          apply_url: string | null
+          category: string | null
+          company: string
+          created_at: string | null
+          date_posted: string | null
+          deadline: string | null
+          employment_type: string | null
+          enriched_at: string | null
+          enrichment_confidence: number | null
+          id: string
+          is_texas: boolean | null
+          jd_raw: string | null
+          jd_summary: string | null
+          job_keywords: string[] | null
+          last_checked_utc: string | null
+          location: string | null
+          notes: string | null
+          remote_flag: boolean | null
+          role_title: string | null
+          salary_currency: string | null
+          salary_max: number | null
+          salary_min: number | null
+          salary_period: string | null
+          search_tsv: unknown | null
+          source_url: string | null
+          sponsorship_flag: string | null
+          tech_stack: string[] | null
+          updated_at: string | null
+          visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
+        }[]
+      }
       get_applicant_info: {
         Args: { p_job_id: string }
         Returns: {
