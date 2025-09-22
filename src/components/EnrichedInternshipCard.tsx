@@ -119,9 +119,13 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
           )}
         </div>
 
-        {internship.jd_summary && (
+        {internship.jd_summary ? (
           <div className="text-sm text-foreground leading-relaxed">
             {internship.jd_summary}
+          </div>
+        ) : (
+          <div className="text-sm text-muted-foreground italic">
+            No description available - click "Get Details" to load job details
           </div>
         )}
 
@@ -159,7 +163,7 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
           </div>
           
           <div className="flex gap-2">
-            {showEnrichButton && (
+            {!internship.jd_summary && (
               <Button
                 variant="outline"
                 size="sm"
@@ -171,7 +175,7 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
                 ) : (
                   <RefreshCw className="h-4 w-4" />
                 )}
-                Enrich
+                Get Details
               </Button>
             )}
             
