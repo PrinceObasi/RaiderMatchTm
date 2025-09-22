@@ -3,12 +3,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { useTheme } from "next-themes";
-import { Settings2, Trash2, AlertTriangle, User, Shield, ArrowLeft, Moon, Sun } from "lucide-react";
+import { Settings2, Trash2, AlertTriangle, User, Shield, ArrowLeft } from "lucide-react";
 
 interface SettingsProps {
   userType: 'student' | 'employer';
@@ -20,7 +18,6 @@ export function Settings({ userType, onAccountDeleted, onBack }: SettingsProps) 
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
   const { toast } = useToast();
-  const { theme, setTheme } = useTheme();
 
 
   const handleDeleteAccount = async () => {
@@ -87,31 +84,6 @@ export function Settings({ userType, onAccountDeleted, onBack }: SettingsProps) 
 
       <div className="container mx-auto px-6 py-8 max-w-4xl">
         <div className="space-y-8">
-          {/* Appearance */}
-          <Card className="card-shadow">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Moon className="h-5 w-5" />
-                Appearance
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="dark-mode">Dark Mode</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Toggle between light and dark themes
-                  </p>
-                </div>
-                <Switch
-                  id="dark-mode"
-                  checked={theme === 'dark'}
-                  onCheckedChange={(checked) => setTheme(checked ? 'dark' : 'light')}
-                />
-              </div>
-            </CardContent>
-          </Card>
-
           {/* Account Security */}
           <Card className="card-shadow">
             <CardHeader>
