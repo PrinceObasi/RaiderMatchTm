@@ -76,49 +76,101 @@ const App = () => {
     };
 
     const handlePasswordReset = async () => {
-      const hashParams = new URLSearchParams(window.location.hash.substring(1));
-      const accessToken = hashParams.get('access_token');
-      const refreshToken = hashParams.get('refresh_token');
-      const type = hashParams.get('type');
-      const error = hashParams.get('error');
-      const errorCode = hashParams.get('error_code');
+      try {
+        // Get URL parameters from both query string and hash
+        const params = new URLSearchParams(window.location.search);
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        
+        // Supabase typically sends params in the hash fragment
+        const type = hashParams.get('type') || params.get('type');
+        const accessToken = hashParams.get('access_token') || params.get('access_token');
+        const refreshToken = hashParams.get('refresh_token') || params.get('refresh_token');
+        const error = hashParams.get('error') || params.get('error');
+        const errorCode = hashParams.get('error_code') || params.get('error_code');
+        const errorDescription = hashParams.get('error_description') || params.get('error_description');
 
-      if (error && errorCode === 'otp_expired') {
-        toast({
-          title: "Reset link expired",
-          description: "The password reset link has expired. Please request a new one.",
-          variant: "destructive"
-        });
-        // Clean up URL
-        window.history.replaceState(null, '', window.location.pathname);
-        return;
-      }
+        // Check for errors first
+        if (error) {
+          console.error('Auth error:', error, errorDescription);
+          
+          let userMessage = 'An error occurred during password reset.';
+          
+          if (error === 'access_denied') {
+            userMessage = 'Access denied. The reset link may be invalid or expired.';
+          } else if (errorCode === 'otp_expired' || errorDescription?.includes('expired')) {
+            userMessage = 'Your password reset link has expired. Please request a new one.';
+          } else if (errorDescription?.includes('invalid')) {
+            userMessage = 'Invalid reset link. Please request a new password reset.';
+          } else if (errorDescription) {
+            userMessage = errorDescription;
+          }
 
-      if (type === 'recovery' && accessToken && refreshToken) {
-        try {
-          const { error } = await supabase.auth.setSession({
-            access_token: accessToken,
-            refresh_token: refreshToken
+          toast({
+            title: "Reset link error",
+            description: userMessage,
+            variant: "destructive"
           });
 
-          if (!error) {
-            setAuthModal({ isOpen: true, defaultTab: 'reset-password' });
-            // Clean up URL
-            window.history.replaceState(null, '', window.location.pathname);
-          } else {
+          // Clean up URL
+          window.history.replaceState(null, '', window.location.pathname);
+          return;
+        }
+
+        // Handle password recovery type
+        if (type === 'recovery' && accessToken) {
+          try {
+            // Set the session with the tokens
+            const { data, error: sessionError } = await supabase.auth.setSession({
+              access_token: accessToken,
+              refresh_token: refreshToken || ''
+            });
+
+            if (sessionError) {
+              console.error('Session error:', sessionError);
+              
+              let errorMessage = 'Failed to validate reset link.';
+              if (sessionError.message.includes('expired')) {
+                errorMessage = 'Your reset link has expired. Please request a new password reset.';
+              } else if (sessionError.message.includes('invalid')) {
+                errorMessage = 'Invalid reset link. Please check your email for the correct link.';
+              }
+
+              toast({
+                title: "Reset link invalid",
+                description: errorMessage,
+                variant: "destructive"
+              });
+            } else if (data.session) {
+              // Successfully validated the reset token
+              setAuthModal({ isOpen: true, defaultTab: 'reset-password' });
+              
+              // Clean up URL after successful validation
+              window.history.replaceState(null, '', window.location.pathname);
+            }
+          } catch (err) {
+            console.error('Unexpected error during session setup:', err);
             toast({
-              title: "Reset link invalid",
-              description: "The password reset link is invalid or has expired. Please request a new one.",
+              title: "Reset failed",
+              description: "An unexpected error occurred. Please try again or request a new reset link.",
               variant: "destructive"
             });
           }
-        } catch (err) {
+        } else if (type === 'recovery' && !accessToken) {
+          // Recovery type but no token - likely expired or invalid
           toast({
-            title: "Reset failed",
-            description: "Failed to process password reset. Please try again.",
+            title: "Reset link invalid",
+            description: "Invalid or missing reset token. Please request a new password reset.",
             variant: "destructive"
           });
+          window.history.replaceState(null, '', window.location.pathname);
         }
+      } catch (err) {
+        console.error('Error in handlePasswordReset:', err);
+        toast({
+          title: "Reset failed",
+          description: "An error occurred while processing your reset link.",
+          variant: "destructive"
+        });
       }
     };
 

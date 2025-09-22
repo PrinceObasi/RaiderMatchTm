@@ -164,23 +164,34 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
     }
 
     setIsLoading(true);
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/`
-    });
-    setIsLoading(false);
-
-    if (error) {
-      toast({ 
-        title: 'Password reset failed', 
-        description: error.message, 
-        variant: 'destructive' 
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `https://raider-hire-match.lovable.app/`
       });
-    } else {
-      toast({ 
-        title: 'Password reset sent', 
-        description: 'Check your email for password reset instructions.' 
+      
+      if (error) {
+        console.error('Password reset error:', error);
+        toast({ 
+          title: 'Password reset failed', 
+          description: error.message, 
+          variant: 'destructive' 
+        });
+      } else {
+        toast({ 
+          title: 'Password reset sent', 
+          description: 'Check your email for password reset instructions. The link will redirect you back to this app.' 
+        });
+        setShowPasswordReset(false);
+      }
+    } catch (err) {
+      console.error('Unexpected error during password reset:', err);
+      toast({
+        title: 'Password reset failed',
+        description: 'An unexpected error occurred. Please try again.',
+        variant: 'destructive'
       });
-      setShowPasswordReset(false);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -213,23 +224,47 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
     }
 
     setIsLoading(true);
-    const { error } = await supabase.auth.updateUser({ 
-      password: password 
-    });
-    setIsLoading(false);
+    try {
+      const { data, error } = await supabase.auth.updateUser({ 
+        password: password 
+      });
 
-    if (error) {
-      toast({ 
-        title: 'Password update failed', 
-        description: error.message, 
-        variant: 'destructive' 
+      if (error) {
+        console.error('Password update error:', error);
+        
+        let errorMessage = 'Failed to update password.';
+        if (error.message.includes('expired')) {
+          errorMessage = 'Your session has expired. Please request a new password reset.';
+        } else if (error.message.includes('same')) {
+          errorMessage = 'New password must be different from your current password.';
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        toast({ 
+          title: 'Password update failed', 
+          description: errorMessage, 
+          variant: 'destructive' 
+        });
+      } else if (data.user) {
+        toast({ 
+          title: 'Password updated!', 
+          description: 'Your password has been successfully updated. You can now sign in with your new password.' 
+        });
+        
+        // Sign out after successful password reset to ensure clean state
+        await supabase.auth.signOut();
+        onClose();
+      }
+    } catch (err) {
+      console.error('Unexpected error during password update:', err);
+      toast({
+        title: 'Password update failed',
+        description: 'An unexpected error occurred. Please try again.',
+        variant: 'destructive'
       });
-    } else {
-      toast({ 
-        title: 'Password updated!', 
-        description: 'Your password has been successfully updated.' 
-      });
-      onClose();
+    } finally {
+      setIsLoading(false);
     }
   };
 
