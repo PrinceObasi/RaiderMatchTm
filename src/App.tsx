@@ -12,9 +12,10 @@ import { Settings } from "./components/Settings";
 import { AuthBootstrapper } from "./components/AuthBootstrapper";
 import { AdminImport } from "./components/AdminImport";
 import EnrichAdminPage from "./pages/admin/enrich";
-import { ResetPassword } from "./pages/ResetPassword";
+import { ResetPassword } from "./components/auth/ResetPassword";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { handleRecovery } from "./auth/handleRecovery";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +24,7 @@ type UserType = 'student' | 'employer' | null;
 const App = () => {
   const [user, setUser] = useState<UserType>(null);
   const [currentView, setCurrentView] = useState<'main' | 'settings' | 'admin' | 'enrich' | 'reset-password'>('main');
+  const [recoveryError, setRecoveryError] = useState<string | undefined>();
   const [authModal, setAuthModal] = useState<{
     isOpen: boolean;
     defaultTab: 'student' | 'employer' | 'login';
@@ -64,7 +66,7 @@ const App = () => {
 
   // Check for admin access via URL hash and handle password reset routing
   useEffect(() => {
-    const checkRouting = () => {
+    const checkRouting = async () => {
       if (window.location.hash === '#admin') {
         setCurrentView('admin');
         // Clear the hash to avoid bookmarking
@@ -74,16 +76,15 @@ const App = () => {
         // Clear the hash to avoid bookmarking
         window.history.replaceState(null, '', window.location.pathname);
       } else {
-        // Check for password reset parameters
-        const params = new URLSearchParams(window.location.search);
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        
-        const type = hashParams.get('type') || params.get('type');
-        const accessToken = hashParams.get('access_token') || params.get('access_token');
-        
-        // If we have password reset parameters, show the reset password page
-        if (type === 'recovery' || accessToken) {
-          setCurrentView('reset-password');
+        // Handle recovery flow
+        try {
+          const result = await handleRecovery();
+          if (result.isRecovery) {
+            setCurrentView('reset-password');
+            setRecoveryError(result.error);
+          }
+        } catch (error) {
+          console.error('Recovery check failed:', error);
         }
       }
     };
@@ -98,10 +99,15 @@ const App = () => {
     if (currentView === 'reset-password') {
       return (
         <ResetPassword 
-          onNavigateToLogin={() => {
+          onSuccess={() => {
             setCurrentView('main');
             setAuthModal({ isOpen: true, defaultTab: 'login' });
           }}
+          onRequestNewLink={() => {
+            setCurrentView('main');
+            setAuthModal({ isOpen: true, defaultTab: 'login' });
+          }}
+          error={recoveryError}
         />
       );
     }
