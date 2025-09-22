@@ -141,7 +141,23 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   }, []);
 
   const studentName = student?.name || "Student";
-  const studentGPA = student?.graduation_year ? `Class of ${student.graduation_year}` : "TTU Student";
+  
+  // Get user classification from auth metadata
+  const [userClassification, setUserClassification] = useState<string>("Student");
+  
+  useEffect(() => {
+    const getUserClassification = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user?.user_metadata?.student_year) {
+        const classification = user.user_metadata.student_year;
+        const capitalizedClassification = classification.charAt(0).toUpperCase() + classification.slice(1);
+        setUserClassification(capitalizedClassification);
+      }
+    };
+    getUserClassification();
+  }, []);
+
+  const studentGPA = student?.graduation_year ? `Class of ${student.graduation_year}` : `TTU ${userClassification}`;
 
   const handleResumeUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
