@@ -28,4 +28,5 @@ export interface InternshipSearchResult {
   application_link: string;
   date_posted: string | null;
   deadline: string | null;
+  jd_summary: string | null;
 }

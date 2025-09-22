@@ -29,7 +29,8 @@ export function useInternshipSearch(params: NormalizedParams | null, enabled = t
             visa_sponsorship,
             application_link,
             date_posted,
-            deadline
+            deadline,
+            jd_summary
           `);
 
         // Apply filters
