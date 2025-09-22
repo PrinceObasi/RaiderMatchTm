@@ -6,24 +6,16 @@ export interface RecoveryResult {
 }
 
 export async function handleRecovery(): Promise<RecoveryResult> {
-  const url = window.location.href;
-  const params = new URLSearchParams(window.location.search);
-  const hashParams = new URLSearchParams(window.location.hash.substring(1));
-  
-  // Check if this is a recovery flow
-  const type = hashParams.get('type') || params.get('type');
-  const code = hashParams.get('code') || params.get('code');
-  const accessToken = hashParams.get('access_token') || params.get('access_token');
-  const refreshToken = hashParams.get('refresh_token') || params.get('refresh_token');
-  
-  if (type !== 'recovery' && !code && !accessToken) {
-    return { isRecovery: false };
-  }
+  const url = new URL(window.location.href);
+  const isRecovery = url.searchParams.get('type') === 'recovery';
+
+  if (!isRecovery) return { isRecovery: false };
 
   try {
-    // Handle PKCE-style code exchange
+    // 1) PKCE-style links: /?type=recovery&code=...
+    const code = url.searchParams.get('code');
     if (code) {
-      const { error } = await supabase.auth.exchangeCodeForSession(url);
+      const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
       if (error) {
         console.error('Code exchange error:', error);
         return { 
@@ -32,25 +24,26 @@ export async function handleRecovery(): Promise<RecoveryResult> {
         };
       }
     }
-    // Handle hash-style tokens  
-    else if (accessToken && refreshToken) {
-      const { error } = await supabase.auth.setSession({
-        access_token: accessToken,
-        refresh_token: refreshToken
-      });
-      if (error) {
-        console.error('Session set error:', error);
-        return { 
-          isRecovery: true, 
-          error: 'This reset link is invalid or expired. Please request a new one.' 
-        };
+
+    // 2) Hash-style links: /?type=recovery#access_token=...&refresh_token=...
+    if (!code && window.location.hash.includes('access_token')) {
+      const hash = new URLSearchParams(window.location.hash.substring(1));
+      const access_token = hash.get('access_token');
+      const refresh_token = hash.get('refresh_token');
+      if (access_token && refresh_token) {
+        const { error } = await supabase.auth.setSession({ access_token, refresh_token });
+        if (error) {
+          console.error('Session set error:', error);
+          return { 
+            isRecovery: true, 
+            error: 'This reset link is invalid or expired. Please request a new one.' 
+          };
+        }
       }
     }
 
-    // Clean the URL of sensitive tokens while keeping the recovery flag
-    const cleanUrl = `${window.location.origin}/?type=recovery`;
-    window.history.replaceState(null, '', cleanUrl);
-
+    // Scrub tokens from the URL but keep the flag so UI knows to show the form
+    window.history.replaceState(null, '', `${window.location.origin}/?type=recovery`);
     return { isRecovery: true };
   } catch (error) {
     console.error('Recovery handling error:', error);
@@ -59,8 +52,4 @@ export async function handleRecovery(): Promise<RecoveryResult> {
       error: 'This reset link is invalid or expired. Please request a new one.' 
     };
   }
-}
-
-export function cleanRecoveryUrl(): void {
-  window.history.replaceState(null, '', window.location.origin + '/');
 }

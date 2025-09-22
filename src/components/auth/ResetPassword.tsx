@@ -11,7 +11,6 @@ import { PasswordStrengthIndicator } from "@/components/PasswordStrengthIndicato
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { validatePassword } from "@/lib/validators";
-import { cleanRecoveryUrl } from "@/auth/handleRecovery";
 import { Eye, EyeOff, AlertCircle } from "lucide-react";
 
 const resetPasswordSchema = z.object({
@@ -79,7 +78,7 @@ export function ResetPassword({ onSuccess, onRequestNewLink, error }: ResetPassw
       });
 
       // Clean the URL and redirect
-      cleanRecoveryUrl();
+      window.history.replaceState(null, '', window.location.origin + '/');
       onSuccess();
     } catch (error) {
       console.error('Unexpected error:', error);
