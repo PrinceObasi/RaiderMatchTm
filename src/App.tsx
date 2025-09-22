@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ThemeProvider } from "next-themes";
 import { Analytics } from "@vercel/analytics/react";
 import { LandingPage } from "./components/LandingPage";
 import { StudentDashboard } from "./components/StudentDashboard";
@@ -135,22 +136,29 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <div className="min-h-screen overflow-x-hidden bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-          <Toaster />
-          <Sonner />
-          <AuthBootstrapper onAuthStateChange={handleAuthStateChange} />
-          
-          {renderCurrentView()}
-          
-          <AuthModal
-            isOpen={authModal.isOpen}
-            onClose={() => setAuthModal({ ...authModal, isOpen: false })}
-            defaultTab={authModal.defaultTab}
-          />
-          <Analytics />
-        </div>
-      </TooltipProvider>
+      <ThemeProvider
+        attribute="class"
+        defaultTheme="system"
+        enableSystem
+        disableTransitionOnChange
+      >
+        <TooltipProvider>
+          <div className="min-h-screen overflow-x-hidden bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+            <Toaster />
+            <Sonner />
+            <AuthBootstrapper onAuthStateChange={handleAuthStateChange} />
+            
+            {renderCurrentView()}
+            
+            <AuthModal
+              isOpen={authModal.isOpen}
+              onClose={() => setAuthModal({ ...authModal, isOpen: false })}
+              defaultTab={authModal.defaultTab}
+            />
+            <Analytics />
+          </div>
+        </TooltipProvider>
+      </ThemeProvider>
     </QueryClientProvider>
   );
 };
