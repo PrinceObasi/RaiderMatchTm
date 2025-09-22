@@ -14,21 +14,28 @@ interface InternshipSearchContainerProps {
 }
 
 export function InternshipSearchContainer({ onApply, className, showResultsInTab = false, onSearchResults }: InternshipSearchContainerProps) {
-  const [params, setParams] = useState<NormalizedParams | null>(null);
+  const [params, setParams] = useState<NormalizedParams>({
+    q: null,
+    locations: null,
+    visa: 'any',
+    stacks: null,
+    limit_count: 20,
+    offset_count: 0,
+  });
   const [page, setPage] = useState(0);
-  const [hasSearched, setHasSearched] = useState(false);
+  const [hasFilters, setHasFilters] = useState(false);
   
   const limit = 20;
-  const currentParams = params ? { ...params, offset_count: page * limit } : null;
+  const currentParams = { ...params, offset_count: page * limit };
   
   const { data: results = [], isLoading, isFetching, error } = useInternshipSearch(currentParams);
 
   // Pass results back to parent when showResultsInTab is true
   React.useEffect(() => {
     if (showResultsInTab && onSearchResults) {
-      onSearchResults(results, isLoading || isFetching, hasSearched);
+      onSearchResults(results, isLoading || isFetching, true); // Always show results now
     }
-  }, [results, isLoading, isFetching, hasSearched, showResultsInTab, onSearchResults]);
+  }, [results, isLoading, isFetching, showResultsInTab, onSearchResults]);
 
   // Show error toast when query fails
   React.useEffect(() => {
@@ -42,7 +49,15 @@ export function InternshipSearchContainer({ onApply, className, showResultsInTab
     const normalized = normalizeFilters(formData, { limit_count: limit, offset_count: 0 });
     setParams(normalized);
     setPage(0); // Reset pagination on new search
-    setHasSearched(true);
+    
+    // Check if any filters are applied
+    const hasActiveFilters = !!(
+      normalized.q ||
+      (normalized.locations && normalized.locations.length > 0) ||
+      normalized.visa !== 'any' ||
+      (normalized.stacks && normalized.stacks.length > 0)
+    );
+    setHasFilters(hasActiveFilters);
   }, []);
 
   const handleReset = useCallback(() => {
@@ -56,7 +71,7 @@ export function InternshipSearchContainer({ onApply, className, showResultsInTab
       offset_count: 0,
     });
     setPage(0);
-    setHasSearched(false);
+    setHasFilters(false);
   }, []);
 
   const handleApplyToInternship = useCallback((internshipId: string, applicationUrl: string) => {

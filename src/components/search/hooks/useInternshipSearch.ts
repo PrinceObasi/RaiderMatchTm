@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { NormalizedParams, InternshipSearchResult } from '../types';
 
-export function useInternshipSearch(params: NormalizedParams | null) {
+export function useInternshipSearch(params: NormalizedParams | null, enabled = true) {
   const queryParams = params ?? {
     q: null,
     locations: null,
@@ -84,5 +84,6 @@ export function useInternshipSearch(params: NormalizedParams | null) {
     },
     staleTime: 30_000,
     placeholderData: (previousData) => previousData, // Updated from keepPreviousData
+    enabled,
   });
 }

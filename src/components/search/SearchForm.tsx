@@ -158,7 +158,7 @@ export function SearchForm({ onApply, onReset, defaultValues, isLoading }: Searc
               disabled={isLoading}
             >
               <Search className="h-4 w-4 mr-2" />
-              {isLoading ? 'Searching...' : 'Apply Filters'}
+              {isLoading ? 'Searching...' : 'Search'}
             </Button>
             <Button
               type="button"

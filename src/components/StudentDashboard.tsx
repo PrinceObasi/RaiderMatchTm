@@ -88,13 +88,11 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [showProfileWizard, setShowProfileWizard] = useState(false);
   const [tabSearchResults, setTabSearchResults] = useState<any[]>([]);
   const [tabIsSearching, setTabIsSearching] = useState(false);
-  const [tabHasSearched, setTabHasSearched] = useState(false);
   const { toast } = useToast();
   
-  const handleSearchResults = useCallback((results: any[], isLoading: boolean, hasSearched: boolean) => {
+  const handleSearchResults = useCallback((results: any[], isLoading: boolean) => {
     setTabSearchResults(results);
     setTabIsSearching(isLoading);
-    setTabHasSearched(hasSearched);
   }, []);
 
   // Remove the loadMatches function since we're using the hook
@@ -561,12 +559,12 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
 
           {/* Right Column: Main Content with Tabs */}
           <div>
-            <Tabs defaultValue={tabHasSearched ? "search" : "matches"} className="w-full">
+            <Tabs defaultValue="search" className="w-full">
               <div className="flex gap-2 overflow-x-auto sm:overflow-visible px-1">
                 <TabsList className="flex shrink-0 gap-2">
                   <TabsTrigger value="search" className="shrink-0 flex items-center gap-2">
                     <Search className="h-4 w-4" />
-                    Search Results ({tabSearchResults.length})
+                    Search ({tabSearchResults.length})
                   </TabsTrigger>
                   <TabsTrigger value="matches" className="shrink-0 flex items-center gap-2">
                     <Target className="h-4 w-4" />
@@ -586,13 +584,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
               <TabsContent value="search" className="mt-6">
                 <Card className="card-shadow">
                   <CardContent className="pt-6">
-                    {!tabHasSearched ? (
-                      <div className="text-center py-12 text-muted-foreground">
-                        <Search className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p className="text-lg mb-2">Search for internships</p>
-                        <p>Use the search form on the left to find internships that match your criteria.</p>
-                      </div>
-                    ) : tabIsSearching ? (
+                    {tabIsSearching ? (
                       <div className="text-center py-12">
                         <RefreshCw className="h-8 w-8 mx-auto mb-4 animate-spin text-primary" />
                         <p className="text-lg mb-2">Searching internships...</p>
