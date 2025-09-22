@@ -11,22 +11,24 @@ interface InternshipSearchContainerProps {
   className?: string;
   showResultsInTab?: boolean;
   onSearchResults?: (results: any[], isLoading: boolean, hasSearched: boolean) => void;
+  onRefresh?: () => void;
+  refreshCount?: number;
 }
 
-export function InternshipSearchContainer({ onApply, className, showResultsInTab = false, onSearchResults }: InternshipSearchContainerProps) {
+export function InternshipSearchContainer({ onApply, className, showResultsInTab = false, onSearchResults, onRefresh, refreshCount = 0 }: InternshipSearchContainerProps) {
   const [params, setParams] = useState<NormalizedParams>({
     q: null,
     locations: null,
     visa: 'any',
     stacks: null,
-    limit_count: 20,
+    limit_count: 10,
     offset_count: 0,
   });
   const [page, setPage] = useState(0);
   const [hasFilters, setHasFilters] = useState(false);
   
-  const limit = 20;
-  const currentParams = { ...params, offset_count: page * limit };
+  const limit = 10;
+  const currentParams = { ...params, offset_count: (page + refreshCount) * limit };
   
   const { data: results = [], isLoading, isFetching, error } = useInternshipSearch(currentParams);
 

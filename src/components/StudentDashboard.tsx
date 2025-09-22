@@ -88,12 +88,21 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [showProfileWizard, setShowProfileWizard] = useState(false);
   const [tabSearchResults, setTabSearchResults] = useState<any[]>([]);
   const [tabIsSearching, setTabIsSearching] = useState(false);
+  const [refreshCount, setRefreshCount] = useState(0);
   const { toast } = useToast();
   
   const handleSearchResults = useCallback((results: any[], isLoading: boolean) => {
     setTabSearchResults(results);
     setTabIsSearching(isLoading);
   }, []);
+
+  const handleRefreshSearch = useCallback(() => {
+    setRefreshCount(prev => prev + 1);
+    toast({
+      title: "Refreshing search",
+      description: "Loading next set of internships...",
+    });
+  }, [toast]);
 
   // Remove the loadMatches function since we're using the hook
 
@@ -551,7 +560,9 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                 <InternshipSearchContainer 
                   onApply={(id, url) => handleApply(id, url, true)} 
                   showResultsInTab={true} 
-                  onSearchResults={handleSearchResults} 
+                  onSearchResults={handleSearchResults}
+                  onRefresh={handleRefreshSearch}
+                  refreshCount={refreshCount}
                 />
               </CardContent>
             </Card>
@@ -583,7 +594,23 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
               
               <TabsContent value="search" className="mt-6">
                 <Card className="card-shadow">
-                  <CardContent className="pt-6">
+                  <CardHeader className="flex flex-row items-center justify-between pb-4">
+                    <div className="flex items-center gap-2">
+                      <Search className="h-5 w-5" />
+                      <h3 className="font-semibold">Search Results</h3>
+                    </div>
+                    <Button 
+                      onClick={handleRefreshSearch}
+                      disabled={tabIsSearching}
+                      variant="outline"
+                      size="sm"
+                      className="gap-2"
+                    >
+                      <RefreshCw className={`h-4 w-4 ${tabIsSearching ? 'animate-spin' : ''}`} />
+                      Show Different Results
+                    </Button>
+                  </CardHeader>
+                  <CardContent>
                     {tabIsSearching ? (
                       <div className="text-center py-12">
                         <RefreshCw className="h-8 w-8 mx-auto mb-4 animate-spin text-primary" />
