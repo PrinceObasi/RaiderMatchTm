@@ -16,7 +16,7 @@ import { X, Mail, Lock, User, Building } from "lucide-react";
 interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
-  defaultTab?: 'student' | 'employer' | 'login';
+  defaultTab?: 'student' | 'employer' | 'login' | 'reset-password';
 }
 
 
@@ -24,6 +24,7 @@ interface AuthModalProps {
 export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [company, setCompany] = useState("");
@@ -183,6 +184,55 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
     }
   };
 
+  const handleUpdatePassword = async () => {
+    if (!password || !confirmPassword) {
+      toast({
+        title: "Password required",
+        description: "Please enter and confirm your new password.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast({
+        title: "Passwords don't match",
+        description: "Please make sure both password fields match.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!passwordValidation.isValid) {
+      toast({
+        title: "Password requirements not met",
+        description: "Please ensure your password meets all the security requirements.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    const { error } = await supabase.auth.updateUser({ 
+      password: password 
+    });
+    setIsLoading(false);
+
+    if (error) {
+      toast({ 
+        title: 'Password update failed', 
+        description: error.message, 
+        variant: 'destructive' 
+      });
+    } else {
+      toast({ 
+        title: 'Password updated!', 
+        description: 'Your password has been successfully updated.' 
+      });
+      onClose();
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 overflow-y-auto">
       <Card className="w-full max-w-sm sm:max-w-md mx-4 my-6 card-shadow relative">
@@ -203,11 +253,13 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
 
         <CardContent className="p-4 sm:p-6">
           <Tabs defaultValue={defaultTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 text-xs sm:text-sm">
-              <TabsTrigger value="login">Sign In</TabsTrigger>
-              <TabsTrigger value="student">Student</TabsTrigger>
-              <TabsTrigger value="employer">Employer</TabsTrigger>
-            </TabsList>
+            {defaultTab !== 'reset-password' && (
+              <TabsList className="grid w-full grid-cols-3 text-xs sm:text-sm">
+                <TabsTrigger value="login">Sign In</TabsTrigger>
+                <TabsTrigger value="student">Student</TabsTrigger>
+                <TabsTrigger value="employer">Employer</TabsTrigger>
+              </TabsList>
+            )}
 
             <TabsContent value="login" className="space-y-4 mt-6">
               <div className="space-y-2">
@@ -444,6 +496,56 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
                 size="lg"
               >
                 {isLoading ? "Creating account..." : "Create Employer Account"}
+              </Button>
+            </TabsContent>
+
+            <TabsContent value="reset-password" className="space-y-4 mt-6">
+              <div className="text-center mb-4">
+                <h3 className="text-lg font-semibold">Set New Password</h3>
+                <p className="text-sm text-muted-foreground">Enter your new password below</p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="new-password">New Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="new-password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter new password"
+                    className="pl-10"
+                  />
+                </div>
+                <PasswordStrengthIndicator 
+                  password={password} 
+                  validation={passwordValidation}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="confirm-password">Confirm New Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    id="confirm-password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm new password"
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+
+              <Button 
+                onClick={handleUpdatePassword}
+                disabled={isLoading || !password || !confirmPassword || !passwordValidation.isValid}
+                className="w-full h-11 min-w-[44px]"
+                size="lg"
+              >
+                {isLoading ? "Updating password..." : "Update Password"}
               </Button>
             </TabsContent>
           </Tabs>

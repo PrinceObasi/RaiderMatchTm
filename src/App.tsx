@@ -13,6 +13,7 @@ import { AuthBootstrapper } from "./components/AuthBootstrapper";
 import { AdminImport } from "./components/AdminImport";
 import EnrichAdminPage from "./pages/admin/enrich";
 import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const queryClient = new QueryClient();
 
@@ -23,11 +24,12 @@ const App = () => {
   const [currentView, setCurrentView] = useState<'main' | 'settings' | 'admin' | 'enrich'>('main');
   const [authModal, setAuthModal] = useState<{
     isOpen: boolean;
-    defaultTab: 'student' | 'employer' | 'login';
+    defaultTab: 'student' | 'employer' | 'login' | 'reset-password';
   }>({
     isOpen: false,
     defaultTab: 'login'
   });
+  const { toast } = useToast();
 
   const handleStudentSignup = () => {
     setAuthModal({ isOpen: true, defaultTab: 'student' });
@@ -59,7 +61,7 @@ const App = () => {
     setCurrentView('main');
   };
 
-  // Check for admin access via URL hash
+  // Check for admin access via URL hash and handle password reset
   useEffect(() => {
     const checkAdminAccess = () => {
       if (window.location.hash === '#admin') {
@@ -73,11 +75,59 @@ const App = () => {
       }
     };
 
+    const handlePasswordReset = async () => {
+      const hashParams = new URLSearchParams(window.location.hash.substring(1));
+      const accessToken = hashParams.get('access_token');
+      const refreshToken = hashParams.get('refresh_token');
+      const type = hashParams.get('type');
+      const error = hashParams.get('error');
+      const errorCode = hashParams.get('error_code');
+
+      if (error && errorCode === 'otp_expired') {
+        toast({
+          title: "Reset link expired",
+          description: "The password reset link has expired. Please request a new one.",
+          variant: "destructive"
+        });
+        // Clean up URL
+        window.history.replaceState(null, '', window.location.pathname);
+        return;
+      }
+
+      if (type === 'recovery' && accessToken && refreshToken) {
+        try {
+          const { error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (!error) {
+            setAuthModal({ isOpen: true, defaultTab: 'reset-password' });
+            // Clean up URL
+            window.history.replaceState(null, '', window.location.pathname);
+          } else {
+            toast({
+              title: "Reset link invalid",
+              description: "The password reset link is invalid or has expired. Please request a new one.",
+              variant: "destructive"
+            });
+          }
+        } catch (err) {
+          toast({
+            title: "Reset failed",
+            description: "Failed to process password reset. Please try again.",
+            variant: "destructive"
+          });
+        }
+      }
+    };
+
     checkAdminAccess();
+    handlePasswordReset();
     window.addEventListener('hashchange', checkAdminAccess);
     
     return () => window.removeEventListener('hashchange', checkAdminAccess);
-  }, []);
+  }, [toast]);
 
   const renderCurrentView = () => {
     if (currentView === 'admin') {
