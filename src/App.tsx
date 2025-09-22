@@ -12,6 +12,7 @@ import { Settings } from "./components/Settings";
 import { AuthBootstrapper } from "./components/AuthBootstrapper";
 import { AdminImport } from "./components/AdminImport";
 import EnrichAdminPage from "./pages/admin/enrich";
+import { ResetPassword } from "./pages/ResetPassword";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -21,10 +22,10 @@ type UserType = 'student' | 'employer' | null;
 
 const App = () => {
   const [user, setUser] = useState<UserType>(null);
-  const [currentView, setCurrentView] = useState<'main' | 'settings' | 'admin' | 'enrich'>('main');
+  const [currentView, setCurrentView] = useState<'main' | 'settings' | 'admin' | 'enrich' | 'reset-password'>('main');
   const [authModal, setAuthModal] = useState<{
     isOpen: boolean;
-    defaultTab: 'student' | 'employer' | 'login' | 'reset-password';
+    defaultTab: 'student' | 'employer' | 'login';
   }>({
     isOpen: false,
     defaultTab: 'login'
@@ -61,9 +62,9 @@ const App = () => {
     setCurrentView('main');
   };
 
-  // Check for admin access via URL hash and handle password reset
+  // Check for admin access via URL hash and handle password reset routing
   useEffect(() => {
-    const checkAdminAccess = () => {
+    const checkRouting = () => {
       if (window.location.hash === '#admin') {
         setCurrentView('admin');
         // Clear the hash to avoid bookmarking
@@ -72,116 +73,39 @@ const App = () => {
         setCurrentView('enrich');
         // Clear the hash to avoid bookmarking
         window.history.replaceState(null, '', window.location.pathname);
-      }
-    };
-
-    const handlePasswordReset = async () => {
-      try {
-        // Get URL parameters from both query string and hash
+      } else {
+        // Check for password reset parameters
         const params = new URLSearchParams(window.location.search);
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         
-        // Supabase typically sends params in the hash fragment
         const type = hashParams.get('type') || params.get('type');
         const accessToken = hashParams.get('access_token') || params.get('access_token');
-        const refreshToken = hashParams.get('refresh_token') || params.get('refresh_token');
-        const error = hashParams.get('error') || params.get('error');
-        const errorCode = hashParams.get('error_code') || params.get('error_code');
-        const errorDescription = hashParams.get('error_description') || params.get('error_description');
-
-        // Check for errors first
-        if (error) {
-          console.error('Auth error:', error, errorDescription);
-          
-          let userMessage = 'An error occurred during password reset.';
-          
-          if (error === 'access_denied') {
-            userMessage = 'Access denied. The reset link may be invalid or expired.';
-          } else if (errorCode === 'otp_expired' || errorDescription?.includes('expired')) {
-            userMessage = 'Your password reset link has expired. Please request a new one.';
-          } else if (errorDescription?.includes('invalid')) {
-            userMessage = 'Invalid reset link. Please request a new password reset.';
-          } else if (errorDescription) {
-            userMessage = errorDescription;
-          }
-
-          toast({
-            title: "Reset link error",
-            description: userMessage,
-            variant: "destructive"
-          });
-
-          // Clean up URL
-          window.history.replaceState(null, '', window.location.pathname);
-          return;
+        
+        // If we have password reset parameters, show the reset password page
+        if (type === 'recovery' || accessToken) {
+          setCurrentView('reset-password');
         }
-
-        // Handle password recovery type
-        if (type === 'recovery' && accessToken) {
-          try {
-            // Set the session with the tokens
-            const { data, error: sessionError } = await supabase.auth.setSession({
-              access_token: accessToken,
-              refresh_token: refreshToken || ''
-            });
-
-            if (sessionError) {
-              console.error('Session error:', sessionError);
-              
-              let errorMessage = 'Failed to validate reset link.';
-              if (sessionError.message.includes('expired')) {
-                errorMessage = 'Your reset link has expired. Please request a new password reset.';
-              } else if (sessionError.message.includes('invalid')) {
-                errorMessage = 'Invalid reset link. Please check your email for the correct link.';
-              }
-
-              toast({
-                title: "Reset link invalid",
-                description: errorMessage,
-                variant: "destructive"
-              });
-            } else if (data.session) {
-              // Successfully validated the reset token
-              setAuthModal({ isOpen: true, defaultTab: 'reset-password' });
-              
-              // Clean up URL after successful validation
-              window.history.replaceState(null, '', window.location.pathname);
-            }
-          } catch (err) {
-            console.error('Unexpected error during session setup:', err);
-            toast({
-              title: "Reset failed",
-              description: "An unexpected error occurred. Please try again or request a new reset link.",
-              variant: "destructive"
-            });
-          }
-        } else if (type === 'recovery' && !accessToken) {
-          // Recovery type but no token - likely expired or invalid
-          toast({
-            title: "Reset link invalid",
-            description: "Invalid or missing reset token. Please request a new password reset.",
-            variant: "destructive"
-          });
-          window.history.replaceState(null, '', window.location.pathname);
-        }
-      } catch (err) {
-        console.error('Error in handlePasswordReset:', err);
-        toast({
-          title: "Reset failed",
-          description: "An error occurred while processing your reset link.",
-          variant: "destructive"
-        });
       }
     };
 
-    checkAdminAccess();
-    handlePasswordReset();
-    window.addEventListener('hashchange', checkAdminAccess);
+    checkRouting();
+    window.addEventListener('hashchange', checkRouting);
     
-    return () => window.removeEventListener('hashchange', checkAdminAccess);
-  }, [toast]);
+    return () => window.removeEventListener('hashchange', checkRouting);
+  }, []);
 
   const renderCurrentView = () => {
+    if (currentView === 'reset-password') {
+      return (
+        <ResetPassword 
+          onNavigateToLogin={() => {
+            setCurrentView('main');
+            setAuthModal({ isOpen: true, defaultTab: 'login' });
+          }}
+        />
+      );
+    }
+
     if (currentView === 'admin') {
       return (
         <AdminImport 

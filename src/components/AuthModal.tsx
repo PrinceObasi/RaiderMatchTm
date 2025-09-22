@@ -165,9 +165,9 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
 
     setIsLoading(true);
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `https://raider-hire-match.lovable.app/`
-      });
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: 'https://raider-hire-match.lovable.app/reset-password'
+        });
       
       if (error) {
         console.error('Password reset error:', error);
