@@ -7,13 +7,23 @@ export interface RecoveryResult {
 
 export async function handleRecovery(): Promise<RecoveryResult> {
   const url = new URL(window.location.href);
-  const isRecovery = url.searchParams.get('type') === 'recovery';
-
+  const hashParams = new URLSearchParams(window.location.hash.substring(1));
+  
+  // Check if this is a recovery flow - look for any recovery indicators
+  const typeInQuery = url.searchParams.get('type') === 'recovery';
+  const typeInHash = hashParams.get('type') === 'recovery';
+  const codeInQuery = url.searchParams.get('code');
+  const codeInHash = hashParams.get('code');
+  const accessTokenInQuery = url.searchParams.get('access_token');
+  const accessTokenInHash = hashParams.get('access_token');
+  
+  const isRecovery = typeInQuery || typeInHash || codeInQuery || codeInHash || accessTokenInQuery || accessTokenInHash;
+  
   if (!isRecovery) return { isRecovery: false };
 
   try {
-    // 1) PKCE-style links: /?type=recovery&code=...
-    const code = url.searchParams.get('code');
+    // 1) Handle PKCE-style code exchange from either query or hash
+    const code = codeInQuery || codeInHash;
     if (code) {
       const { error } = await supabase.auth.exchangeCodeForSession(window.location.href);
       if (error) {
@@ -25,11 +35,11 @@ export async function handleRecovery(): Promise<RecoveryResult> {
       }
     }
 
-    // 2) Hash-style links: /?type=recovery#access_token=...&refresh_token=...
-    if (!code && window.location.hash.includes('access_token')) {
-      const hash = new URLSearchParams(window.location.hash.substring(1));
-      const access_token = hash.get('access_token');
-      const refresh_token = hash.get('refresh_token');
+    // 2) Handle hash-style or query-style tokens
+    if (!code) {
+      const access_token = accessTokenInQuery || accessTokenInHash;
+      const refresh_token = url.searchParams.get('refresh_token') || hashParams.get('refresh_token');
+      
       if (access_token && refresh_token) {
         const { error } = await supabase.auth.setSession({ access_token, refresh_token });
         if (error) {
