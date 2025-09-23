@@ -1,0 +1,1 @@
+DELETE FROM internships WHERE company = 'Marshall Wace';
