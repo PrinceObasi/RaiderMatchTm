@@ -178,24 +178,74 @@ export type Database = {
         }
         Relationships: []
       }
+      internship_validation_history: {
+        Row: {
+          created_at: string | null
+          id: string
+          internship_id: string | null
+          message: string | null
+          status_code: number | null
+          validated_at: string | null
+          was_valid: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          internship_id?: string | null
+          message?: string | null
+          status_code?: number | null
+          validated_at?: string | null
+          was_valid?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          internship_id?: string | null
+          message?: string | null
+          status_code?: number | null
+          validated_at?: string | null
+          was_valid?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internship_validation_history_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "internships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internship_validation_history_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_for_app"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internships: {
         Row: {
           application_link: string
           apply_url: string | null
+          archived_at: string | null
           category: string | null
           company: string
           created_at: string | null
           date_posted: string | null
           deadline: string | null
+          duplicate_of: string | null
           employment_type: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
           id: string
+          is_active: boolean | null
           is_texas: boolean | null
           jd_raw: string | null
           jd_summary: string | null
           job_keywords: string[] | null
           last_checked_utc: string | null
+          last_validated_at: string | null
+          link_valid: boolean | null
           location: string | null
           notes: string | null
           remote_flag: boolean | null
@@ -204,30 +254,37 @@ export type Database = {
           salary_max: number | null
           salary_min: number | null
           salary_period: string | null
+          scrape_source: string | null
           search_tsv: unknown | null
           source_url: string | null
           sponsorship_flag: string | null
           tech_stack: string[] | null
           updated_at: string | null
+          validation_message: string | null
           visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
         }
         Insert: {
           application_link?: string
           apply_url?: string | null
+          archived_at?: string | null
           category?: string | null
           company: string
           created_at?: string | null
           date_posted?: string | null
           deadline?: string | null
+          duplicate_of?: string | null
           employment_type?: string | null
           enriched_at?: string | null
           enrichment_confidence?: number | null
           id?: string
+          is_active?: boolean | null
           is_texas?: boolean | null
           jd_raw?: string | null
           jd_summary?: string | null
           job_keywords?: string[] | null
           last_checked_utc?: string | null
+          last_validated_at?: string | null
+          link_valid?: boolean | null
           location?: string | null
           notes?: string | null
           remote_flag?: boolean | null
@@ -236,30 +293,37 @@ export type Database = {
           salary_max?: number | null
           salary_min?: number | null
           salary_period?: string | null
+          scrape_source?: string | null
           search_tsv?: unknown | null
           source_url?: string | null
           sponsorship_flag?: string | null
           tech_stack?: string[] | null
           updated_at?: string | null
+          validation_message?: string | null
           visa_sponsorship?: Database["public"]["Enums"]["visa_sponsorship_status"]
         }
         Update: {
           application_link?: string
           apply_url?: string | null
+          archived_at?: string | null
           category?: string | null
           company?: string
           created_at?: string | null
           date_posted?: string | null
           deadline?: string | null
+          duplicate_of?: string | null
           employment_type?: string | null
           enriched_at?: string | null
           enrichment_confidence?: number | null
           id?: string
+          is_active?: boolean | null
           is_texas?: boolean | null
           jd_raw?: string | null
           jd_summary?: string | null
           job_keywords?: string[] | null
           last_checked_utc?: string | null
+          last_validated_at?: string | null
+          link_valid?: boolean | null
           location?: string | null
           notes?: string | null
           remote_flag?: boolean | null
@@ -268,14 +332,31 @@ export type Database = {
           salary_max?: number | null
           salary_min?: number | null
           salary_period?: string | null
+          scrape_source?: string | null
           search_tsv?: unknown | null
           source_url?: string | null
           sponsorship_flag?: string | null
           tech_stack?: string[] | null
           updated_at?: string | null
+          validation_message?: string | null
           visa_sponsorship?: Database["public"]["Enums"]["visa_sponsorship_status"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "internships_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "internships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internships_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "jobs_for_app"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       jobs: {
         Row: {
@@ -480,20 +561,25 @@ export type Database = {
         Returns: {
           application_link: string
           apply_url: string | null
+          archived_at: string | null
           category: string | null
           company: string
           created_at: string | null
           date_posted: string | null
           deadline: string | null
+          duplicate_of: string | null
           employment_type: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
           id: string
+          is_active: boolean | null
           is_texas: boolean | null
           jd_raw: string | null
           jd_summary: string | null
           job_keywords: string[] | null
           last_checked_utc: string | null
+          last_validated_at: string | null
+          link_valid: boolean | null
           location: string | null
           notes: string | null
           remote_flag: boolean | null
@@ -502,11 +588,13 @@ export type Database = {
           salary_max: number | null
           salary_min: number | null
           salary_period: string | null
+          scrape_source: string | null
           search_tsv: unknown | null
           source_url: string | null
           sponsorship_flag: string | null
           tech_stack: string[] | null
           updated_at: string | null
+          validation_message: string | null
           visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
         }[]
       }
@@ -576,20 +664,25 @@ export type Database = {
         Returns: {
           application_link: string
           apply_url: string | null
+          archived_at: string | null
           category: string | null
           company: string
           created_at: string | null
           date_posted: string | null
           deadline: string | null
+          duplicate_of: string | null
           employment_type: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
           id: string
+          is_active: boolean | null
           is_texas: boolean | null
           jd_raw: string | null
           jd_summary: string | null
           job_keywords: string[] | null
           last_checked_utc: string | null
+          last_validated_at: string | null
+          link_valid: boolean | null
           location: string | null
           notes: string | null
           remote_flag: boolean | null
@@ -598,11 +691,13 @@ export type Database = {
           salary_max: number | null
           salary_min: number | null
           salary_period: string | null
+          scrape_source: string | null
           search_tsv: unknown | null
           source_url: string | null
           sponsorship_flag: string | null
           tech_stack: string[] | null
           updated_at: string | null
+          validation_message: string | null
           visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
         }[]
       }
@@ -620,20 +715,25 @@ export type Database = {
         Returns: {
           application_link: string
           apply_url: string | null
+          archived_at: string | null
           category: string | null
           company: string
           created_at: string | null
           date_posted: string | null
           deadline: string | null
+          duplicate_of: string | null
           employment_type: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
           id: string
+          is_active: boolean | null
           is_texas: boolean | null
           jd_raw: string | null
           jd_summary: string | null
           job_keywords: string[] | null
           last_checked_utc: string | null
+          last_validated_at: string | null
+          link_valid: boolean | null
           location: string | null
           notes: string | null
           remote_flag: boolean | null
@@ -642,11 +742,13 @@ export type Database = {
           salary_max: number | null
           salary_min: number | null
           salary_period: string | null
+          scrape_source: string | null
           search_tsv: unknown | null
           source_url: string | null
           sponsorship_flag: string | null
           tech_stack: string[] | null
           updated_at: string | null
+          validation_message: string | null
           visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
         }[]
       }
