@@ -127,7 +127,7 @@ serve(async (req) => {
 
       } catch (error) {
         result.is_valid = false;
-        result.validation_message = error.message?.includes('aborted') ? 'Timeout' : (error.message || 'Validation failed');
+        result.validation_message = (error as Error).message?.includes('aborted') ? 'Timeout' : ((error as Error).message || 'Validation failed');
       }
 
       validationResults.push(result);
@@ -197,7 +197,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Validation function error:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error as Error).message }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     );
   }

@@ -157,7 +157,7 @@ serve(async (req) => {
     console.error('Delete account error:', error);
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'Failed to delete account' 
+        error: (error as Error).message || 'Failed to delete account' 
       }),
       { 
         status: 500, 

@@ -261,7 +261,7 @@ serve(async (req) => {
     console.error('Error in import-internships function:', error)
     return new Response(JSON.stringify({ 
       error: 'Internal server error',
-      details: error.message 
+      details: (error as Error).message 
     }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
