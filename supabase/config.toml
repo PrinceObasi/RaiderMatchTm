@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.enrich-missing]
 verify_jwt = false
+
+[functions.validate-internship-links]
+verify_jwt = false
