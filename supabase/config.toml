@@ -23,3 +23,9 @@ verify_jwt = false
 
 [functions.validate-internship-links]
 verify_jwt = false
+
+[functions.scrape-simplify-github]
+verify_jwt = false
+
+[functions.scrape-simplify]
+verify_jwt = false
