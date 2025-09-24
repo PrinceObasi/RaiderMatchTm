@@ -28,16 +28,35 @@ serve(async (req) => {
 
     console.log('Fetching Simplify.jobs internship list...')
 
-    // Fetch the README from Simplify.jobs GitHub
-    const response = await fetch(
+    // Try multiple sources in order of preference
+    const sources = [
+      'https://raw.githubusercontent.com/SimplifyJobs/Summer2026-Internships/dev/README.md',
+      'https://raw.githubusercontent.com/SimplifyJobs/Summer2025-Internships/dev/README.md',
       'https://raw.githubusercontent.com/SimplifyJobs/Summer2025-Internships/main/README.md'
-    )
-    
-    if (!response.ok) {
-      throw new Error(`Failed to fetch Simplify data: ${response.status}`)
-    }
+    ]
 
-    const markdown = await response.text()
+    let markdown = ''
+    let sourceUsed = ''
+    
+    for (const source of sources) {
+      try {
+        console.log(`Trying source: ${source}`)
+        const response = await fetch(source)
+        if (response.ok) {
+          markdown = await response.text()
+          sourceUsed = source
+          console.log(`Successfully fetched from: ${source}`)
+          break
+        }
+      } catch (err) {
+        console.log(`Failed to fetch from ${source}: ${err}`)
+        continue
+      }
+    }
+    
+    if (!markdown) {
+      throw new Error('Failed to fetch data from all Simplify.jobs sources')
+    }
     
     // Parse the markdown table
     const lines = markdown.split('\n')
@@ -175,7 +194,7 @@ serve(async (req) => {
             is_texas: isTexas,
             remote_flag: isRemote,
             employment_type: 'internship',
-            source_url: 'https://github.com/SimplifyJobs/Summer2025-Internships',
+            source_url: sourceUsed.replace('/raw/', '/').replace('/README.md', ''),
             date_posted: internship.date_posted,
             visa_sponsorship: sponsorshipFlag === 'yes' ? 'Yes' : 'Unspecified',
             scrape_source: 'simplify_jobs',
@@ -202,7 +221,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        source: 'Simplify.jobs GitHub',
+        source: sourceUsed,
         total_parsed: internships.length,
         cs_relevant: relevantInternships.length,
         inserted,
