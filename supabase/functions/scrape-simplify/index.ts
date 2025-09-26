@@ -6,6 +6,305 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+async function parseInternships(markdown: string, sourceUrl: string): Promise<ParsedInternship[]> {
+  const lines = markdown.split('\n')
+  const internships: ParsedInternship[] = []
+  
+  console.log(`Processing ${lines.length} lines from markdown`)
+  console.log('First 30 lines:')
+  lines.slice(0, 30).forEach((line, i) => console.log(`${i}: ${line}`))
+  
+  // Strategy 1: Parse traditional markdown tables
+  const tableResults = parseMarkdownTables(lines)
+  internships.push(...tableResults)
+  console.log(`Strategy 1 (tables): Found ${tableResults.length} internships`)
+  
+  // Strategy 2: Parse HTML tables if markdown tables failed
+  if (tableResults.length === 0) {
+    const htmlResults = parseHtmlTables(markdown)
+    internships.push(...htmlResults)
+    console.log(`Strategy 2 (HTML): Found ${htmlResults.length} internships`)
+  }
+  
+  // Strategy 3: Parse bullet point lists if previous strategies failed
+  if (internships.length === 0) {
+    const listResults = parseBulletLists(lines)
+    internships.push(...listResults)
+    console.log(`Strategy 3 (lists): Found ${listResults.length} internships`)
+  }
+  
+  // Strategy 4: Parse category sections if still no results
+  if (internships.length === 0) {
+    const categoryResults = await parseCategorySections(markdown, sourceUrl)
+    internships.push(...categoryResults)
+    console.log(`Strategy 4 (categories): Found ${categoryResults.length} internships`)
+  }
+  
+  return internships
+}
+
+function parseMarkdownTables(lines: string[]): ParsedInternship[] {
+  const internships: ParsedInternship[] = []
+  let inTable = false
+  let skipHeader = true
+  let headerColumns: string[] = []
+  
+  for (const line of lines) {
+    // Flexible table detection - look for pipe-separated headers
+    if (line.includes('|') && line.split('|').length >= 3) {
+      const cells = line.split('|').map(c => c.trim()).filter(c => c)
+      
+      // Check if this looks like a header row
+      if (cells.some(cell => 
+          cell.toLowerCase().includes('company') || 
+          cell.toLowerCase().includes('role') || 
+          cell.toLowerCase().includes('position') ||
+          cell.toLowerCase().includes('location')
+        )) {
+        console.log(`Found table header: ${line}`)
+        headerColumns = cells
+        inTable = true
+        continue
+      }
+    }
+    
+    // Skip separator lines
+    if (inTable && line.includes('|') && line.includes('---')) {
+      console.log('Found table separator')
+      skipHeader = false
+      continue
+    }
+    
+    // Parse data rows
+    if (inTable && !skipHeader && line.includes('|')) {
+      const cells = line.split('|').map(c => c.trim()).filter(c => c)
+      
+      if (cells.length >= 3) {
+        const internship = extractInternshipFromCells(cells, headerColumns)
+        if (internship) {
+          internships.push(internship)
+        }
+      }
+    }
+    
+    // Stop parsing if we've left the table
+    if (inTable && !skipHeader && line.trim() && !line.includes('|') && !line.includes('---')) {
+      break
+    }
+  }
+  
+  return internships
+}
+
+function parseHtmlTables(markdown: string): ParsedInternship[] {
+  const internships: ParsedInternship[] = []
+  
+  // Look for HTML table structures
+  const tableRegex = /<table[^>]*>(.*?)<\/table>/gis
+  const tables = markdown.match(tableRegex) || []
+  
+  for (const table of tables) {
+    const rows = table.match(/<tr[^>]*>(.*?)<\/tr>/gis) || []
+    let headerProcessed = false
+    
+    for (const row of rows) {
+      const cells = (row.match(/<t[hd][^>]*>(.*?)<\/t[hd]>/gis) || [])
+        .map(cell => cell.replace(/<[^>]*>/g, '').trim())
+      
+      if (!headerProcessed) {
+        headerProcessed = true
+        continue
+      }
+      
+      if (cells.length >= 3) {
+        const internship = extractInternshipFromCells(cells, [])
+        if (internship) {
+          internships.push(internship)
+        }
+      }
+    }
+  }
+  
+  return internships
+}
+
+function parseBulletLists(lines: string[]): ParsedInternship[] {
+  const internships: ParsedInternship[] = []
+  
+  for (const line of lines) {
+    // Look for bullet points or list items with company and link patterns
+    if ((line.startsWith('- ') || line.startsWith('* ') || line.match(/^\d+\./)) && 
+        line.includes('http') && line.includes('[') && line.includes(']')) {
+      
+      const internship = extractInternshipFromText(line)
+      if (internship) {
+        internships.push(internship)
+      }
+    }
+  }
+  
+  return internships
+}
+
+async function parseCategorySections(markdown: string, baseUrl: string): Promise<ParsedInternship[]> {
+  const internships: ParsedInternship[] = []
+  
+  // Look for category sections like "💻 **[Software Engineering](...)**"
+  const categoryRegex = /\*\*\[([^\]]+)\]\(([^)]+)\)\*\*/g
+  const categories = []
+  let match
+  
+  while ((match = categoryRegex.exec(markdown)) !== null) {
+    const [, title, url] = match
+    if (title.toLowerCase().includes('software') || 
+        title.toLowerCase().includes('engineer') ||
+        title.toLowerCase().includes('data') ||
+        title.toLowerCase().includes('tech')) {
+      categories.push({ title, url })
+    }
+  }
+  
+  console.log(`Found ${categories.length} relevant categories`)
+  
+  // Try to fetch content from category URLs (first one only to avoid rate limiting)
+  if (categories.length > 0) {
+    try {
+      const categoryUrl = categories[0].url.startsWith('http') ? 
+        categories[0].url : 
+        `https://raw.githubusercontent.com/SimplifyJobs/Summer2026-Internships/dev/README.md${categories[0].url.split('#')[1] ? '#' + categories[0].url.split('#')[1] : ''}`
+      
+      console.log(`Fetching category content from: ${categoryUrl}`)
+      
+      // For now, just parse the main README more thoroughly
+      const sectionResults = parseInternshipSection(markdown)
+      internships.push(...sectionResults)
+    } catch (err) {
+      console.log(`Failed to fetch category content: ${err}`)
+    }
+  }
+  
+  return internships
+}
+
+function parseInternshipSection(markdown: string): ParsedInternship[] {
+  const internships: ParsedInternship[] = []
+  const lines = markdown.split('\n')
+  
+  // Look for lines that mention companies and have links
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    
+    // Skip headers and navigation
+    if (line.startsWith('#') || line.includes('Browse') || line.includes('Category')) {
+      continue
+    }
+    
+    // Look for lines with markdown links that might be internships
+    if (line.includes('[') && line.includes(']') && line.includes('(http') && 
+        (line.includes('intern') || line.includes('software') || line.includes('engineer'))) {
+      
+      const internship = extractInternshipFromText(line)
+      if (internship) {
+        internships.push(internship)
+      }
+    }
+  }
+  
+  return internships
+}
+
+function extractInternshipFromCells(cells: string[], headers: string[]): ParsedInternship | null {
+  if (cells.length < 3) return null
+  
+  // Try to map cells to expected fields
+  let company = '', role = '', location = '', link = ''
+  
+  // If we have headers, use them to map fields
+  if (headers.length > 0) {
+    for (let i = 0; i < cells.length && i < headers.length; i++) {
+      const header = headers[i].toLowerCase()
+      if (header.includes('company')) company = cleanText(cells[i])
+      else if (header.includes('role') || header.includes('position') || header.includes('title')) role = cleanText(cells[i])
+      else if (header.includes('location')) location = cleanText(cells[i])
+      else if (header.includes('link') || header.includes('apply') || header.includes('url')) link = extractLink(cells[i])
+    }
+  } else {
+    // Default assumption: Company, Role, Location, Link
+    company = cleanText(cells[0])
+    role = cleanText(cells[1])
+    location = cleanText(cells[2])
+    link = extractLink(cells[3] || cells[2] || cells[1])
+  }
+  
+  // Validate fields
+  if (!company || !role || !link || company.length < 2 || role.length < 2) {
+    return null
+  }
+  
+  return {
+    company,
+    role_title: role,
+    location: location || 'Not specified',
+    application_link: link,
+    date_posted: new Date().toISOString().split('T')[0],
+    is_sponsorship_available: cells.join(' ').includes('🛂')
+  }
+}
+
+function extractInternshipFromText(text: string): ParsedInternship | null {
+  // Extract company name (usually at the beginning)
+  const companyMatch = text.match(/(?:[-*]\s*)?([^[]+?)\s*[-–]\s*/) || 
+                      text.match(/(?:[-*]\s*)?([^[]{2,}?)\s*\[/)
+  
+  // Extract role from markdown link text
+  const roleMatch = text.match(/\[([^\]]+)\]/)
+  
+  // Extract link from markdown
+  const linkMatch = text.match(/\(([^)]+https[^)]+)\)/)
+  
+  // Extract location (often after the link or in parentheses)
+  const locationMatch = text.match(/\)\s*[-–]?\s*([^,\n]+)/) || 
+                       text.match(/\(([^)]+(?:Remote|Office|Location|[A-Z]{2})[^)]*)\)/)
+  
+  if (!companyMatch || !roleMatch || !linkMatch) {
+    return null
+  }
+  
+  const company = cleanText(companyMatch[1])
+  const role = cleanText(roleMatch[1])
+  const link = linkMatch[1].trim()
+  const location = locationMatch ? cleanText(locationMatch[1]) : 'Not specified'
+  
+  if (company.length < 2 || role.length < 2 || !link.startsWith('http')) {
+    return null
+  }
+  
+  return {
+    company,
+    role_title: role,
+    location,
+    application_link: link,
+    date_posted: new Date().toISOString().split('T')[0],
+    is_sponsorship_available: text.includes('🛂')
+  }
+}
+
+function cleanText(text: string): string {
+  return text
+    .replace(/[📍🔒🛂⭐️↳]/g, '')
+    .replace(/\*\*/g, '')
+    .replace(/`/g, '')
+    .trim()
+}
+
+function extractLink(text: string): string {
+  const linkMatch = text.match(/\[.*?\]\((.*?)\)/) || 
+                   text.match(/(https?:\/\/[^\s\)]+)/) ||
+                   text.match(/href=["']([^"']+)["']/)
+  
+  return linkMatch ? linkMatch[1] : ''
+}
+
 interface ParsedInternship {
   company: string
   role_title: string
@@ -58,101 +357,8 @@ serve(async (req) => {
       throw new Error('Failed to fetch data from all Simplify.jobs sources')
     }
     
-    // Parse the markdown table
-    const lines = markdown.split('\n')
-    const internships: ParsedInternship[] = []
-    let inTable = false
-    let skipHeader = true
-    
-    console.log(`Processing ${lines.length} lines from markdown`)
-    console.log('First 20 lines:')
-    lines.slice(0, 20).forEach((line, i) => console.log(`${i}: ${line}`))
-    
-    for (const line of lines) {
-      // More flexible table detection - look for any table with Company and Role columns
-      if (line.includes('|') && 
-          (line.toLowerCase().includes('company') || line.toLowerCase().includes('role')) &&
-          line.split('|').length >= 4) {
-        console.log(`Found potential table header: ${line}`)
-        inTable = true
-        continue
-      }
-      
-      // Skip the separator line
-      if (inTable && line.includes('|') && line.includes('---')) {
-        console.log('Found table separator, starting data parsing')
-        skipHeader = false
-        continue
-      }
-      
-      // Parse table rows
-      if (inTable && !skipHeader && line.startsWith('|') && line.includes('|')) {
-        const parts = line.split('|').map(p => p.trim()).filter(p => p)
-        console.log(`Parsing row with ${parts.length} parts: ${parts.join(' | ')}`)
-        
-        if (parts.length >= 4) {
-          // Extract company name (remove emoji indicators and clean)
-          let company = parts[0].replace(/↳/g, '').replace(/🛂/g, '').trim()
-          // Remove common emoji and special characters but keep company names intact
-          company = company.replace(/[📍🔒🛂⭐️]/g, '').trim()
-          
-          // Extract role title (clean up any emoji)
-          let role = parts[1].replace(/[📍🔒🛂⭐️]/g, '').trim()
-          
-          // Extract location (clean up any emoji)
-          let location = parts[2].replace(/[📍🔒🛂⭐️]/g, '').trim()
-          
-          // Extract application link - handle multiple formats
-          let appLink = ''
-          const applicationCell = parts[3] || ''
-          
-          // Try different link formats
-          const linkMatch = applicationCell.match(/\[.*?\]\((.*?)\)/) || 
-                           applicationCell.match(/(https?:\/\/[^\s\)]+)/) ||
-                           applicationCell.match(/href=["']([^"']+)["']/)
-          
-          if (linkMatch) {
-            appLink = linkMatch[1]
-          } else if (applicationCell.includes('http')) {
-            // Last resort: extract any URL-like string
-            const urlMatch = applicationCell.match(/(https?:\/\/[^\s<>]+)/)
-            if (urlMatch) appLink = urlMatch[1]
-          }
-          
-          // Skip if no valid application link or if it's locked
-          if (!appLink || appLink === '🔒' || appLink.includes('🔒') || 
-              applicationCell.includes('🔒') || applicationCell.toLowerCase().includes('closed')) {
-            console.log(`Skipping ${company} - no valid application link`)
-            continue
-          }
-          
-          // Check for visa sponsorship (look for visa emoji 🛂)
-          const sponsorshipAvailable = line.includes('🛂')
-          
-          // Validate required fields
-          if (company && role && location && appLink && 
-              company.length > 1 && role.length > 1 && location.length > 1) {
-            console.log(`✓ Valid internship: ${company} - ${role} in ${location}`)
-            internships.push({
-              company,
-              role_title: role,
-              location,
-              application_link: appLink,
-              date_posted: new Date().toISOString().split('T')[0],
-              is_sponsorship_available: sponsorshipAvailable
-            })
-          } else {
-            console.log(`✗ Invalid data: company="${company}", role="${role}", location="${location}", link="${appLink}"`)
-          }
-        }
-      }
-      
-      // Detect end of table - stop when we hit non-table content
-      if (inTable && !skipHeader && line.trim() && !line.startsWith('|') && !line.includes('---')) {
-        console.log(`End of table detected at line: ${line}`)
-        break
-      }
-    }
+    // Parse multiple content formats - tables, lists, and HTML
+    const internships = await parseInternships(markdown, sourceUsed)
 
     console.log(`Parsed ${internships.length} internships from Simplify.jobs`)
 
