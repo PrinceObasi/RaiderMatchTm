@@ -64,15 +64,23 @@ serve(async (req) => {
     let inTable = false
     let skipHeader = true
     
+    console.log(`Processing ${lines.length} lines from markdown`)
+    console.log('First 20 lines:')
+    lines.slice(0, 20).forEach((line, i) => console.log(`${i}: ${line}`))
+    
     for (const line of lines) {
-      // Detect start of table
-      if (line.includes('| Company |') && line.includes('| Role |')) {
+      // More flexible table detection - look for any table with Company and Role columns
+      if (line.includes('|') && 
+          (line.toLowerCase().includes('company') || line.toLowerCase().includes('role')) &&
+          line.split('|').length >= 4) {
+        console.log(`Found potential table header: ${line}`)
         inTable = true
         continue
       }
       
       // Skip the separator line
-      if (inTable && line.includes('|---')) {
+      if (inTable && line.includes('|') && line.includes('---')) {
+        console.log('Found table separator, starting data parsing')
         skipHeader = false
         continue
       }
@@ -80,36 +88,51 @@ serve(async (req) => {
       // Parse table rows
       if (inTable && !skipHeader && line.startsWith('|') && line.includes('|')) {
         const parts = line.split('|').map(p => p.trim()).filter(p => p)
+        console.log(`Parsing row with ${parts.length} parts: ${parts.join(' | ')}`)
         
         if (parts.length >= 4) {
-          // Extract company name (remove emoji indicators)
-          let company = parts[0].replace(/↳/g, '').trim()
-          // Remove any emoji or special characters
-          company = company.replace(/[^\w\s\-\.&]/g, '').trim()
+          // Extract company name (remove emoji indicators and clean)
+          let company = parts[0].replace(/↳/g, '').replace(/🛂/g, '').trim()
+          // Remove common emoji and special characters but keep company names intact
+          company = company.replace(/[📍🔒🛂⭐️]/g, '').trim()
           
-          // Extract role title
-          let role = parts[1].trim()
+          // Extract role title (clean up any emoji)
+          let role = parts[1].replace(/[📍🔒🛂⭐️]/g, '').trim()
           
-          // Extract location
-          let location = parts[2].trim()
+          // Extract location (clean up any emoji)
+          let location = parts[2].replace(/[📍🔒🛂⭐️]/g, '').trim()
           
-          // Extract application link from markdown format [Apply](URL)
+          // Extract application link - handle multiple formats
           let appLink = ''
-          const linkMatch = parts[3].match(/\[.*?\]\((.*?)\)/)
+          const applicationCell = parts[3] || ''
+          
+          // Try different link formats
+          const linkMatch = applicationCell.match(/\[.*?\]\((.*?)\)/) || 
+                           applicationCell.match(/(https?:\/\/[^\s\)]+)/) ||
+                           applicationCell.match(/href=["']([^"']+)["']/)
+          
           if (linkMatch) {
             appLink = linkMatch[1]
+          } else if (applicationCell.includes('http')) {
+            // Last resort: extract any URL-like string
+            const urlMatch = applicationCell.match(/(https?:\/\/[^\s<>]+)/)
+            if (urlMatch) appLink = urlMatch[1]
           }
           
-          // Skip if no valid application link
-          if (!appLink || appLink === '🔒' || appLink.includes('🔒')) {
+          // Skip if no valid application link or if it's locked
+          if (!appLink || appLink === '🔒' || appLink.includes('🔒') || 
+              applicationCell.includes('🔒') || applicationCell.toLowerCase().includes('closed')) {
+            console.log(`Skipping ${company} - no valid application link`)
             continue
           }
           
           // Check for visa sponsorship (look for visa emoji 🛂)
           const sponsorshipAvailable = line.includes('🛂')
           
-          // Only add if we have valid data
-          if (company && role && location && appLink) {
+          // Validate required fields
+          if (company && role && location && appLink && 
+              company.length > 1 && role.length > 1 && location.length > 1) {
+            console.log(`✓ Valid internship: ${company} - ${role} in ${location}`)
             internships.push({
               company,
               role_title: role,
@@ -118,12 +141,15 @@ serve(async (req) => {
               date_posted: new Date().toISOString().split('T')[0],
               is_sponsorship_available: sponsorshipAvailable
             })
+          } else {
+            console.log(`✗ Invalid data: company="${company}", role="${role}", location="${location}", link="${appLink}"`)
           }
         }
       }
       
-      // Detect end of table
-      if (inTable && !line.startsWith('|')) {
+      // Detect end of table - stop when we hit non-table content
+      if (inTable && !skipHeader && line.trim() && !line.startsWith('|') && !line.includes('---')) {
+        console.log(`End of table detected at line: ${line}`)
         break
       }
     }
