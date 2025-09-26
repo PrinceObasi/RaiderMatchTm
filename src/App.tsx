@@ -13,6 +13,7 @@ import { AuthBootstrapper } from "./components/AuthBootstrapper";
 import { AdminImport } from "./components/AdminImport";
 import EnrichAdminPage from "./pages/admin/enrich";
 import { ResetPassword } from "./components/auth/ResetPassword";
+import { TriggerScraper } from "./components/TriggerScraper";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { handleRecovery } from "./auth/handleRecovery";
@@ -23,7 +24,7 @@ type UserType = 'student' | 'employer' | null;
 
 const App = () => {
   const [user, setUser] = useState<UserType>(null);
-  const [currentView, setCurrentView] = useState<'main' | 'settings' | 'admin' | 'enrich' | 'reset-password'>('main');
+  const [currentView, setCurrentView] = useState<'main' | 'settings' | 'admin' | 'enrich' | 'reset-password' | 'scraper'>('main');
   const [recoveryError, setRecoveryError] = useState<string | undefined>();
   const [authModal, setAuthModal] = useState<{
     isOpen: boolean;
@@ -73,6 +74,10 @@ const App = () => {
         window.history.replaceState(null, '', window.location.pathname);
       } else if (window.location.hash === '#enrich') {
         setCurrentView('enrich');
+        // Clear the hash to avoid bookmarking
+        window.history.replaceState(null, '', window.location.pathname);
+      } else if (window.location.hash === '#scraper') {
+        setCurrentView('scraper');
         // Clear the hash to avoid bookmarking
         window.history.replaceState(null, '', window.location.pathname);
       } else {
@@ -125,6 +130,12 @@ const App = () => {
         <EnrichAdminPage 
           onBack={() => setCurrentView('main')}
         />
+      );
+    }
+
+    if (currentView === 'scraper') {
+      return (
+        <TriggerScraper />
       );
     }
 
