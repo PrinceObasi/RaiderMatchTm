@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Loader2, RefreshCw, Zap } from "lucide-react";
+import { Loader2, RefreshCw, Zap, Download } from "lucide-react";
 import { useToast } from "@/components/ui/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -19,6 +19,12 @@ interface BatchResult {
   }>;
 }
 
+interface ScrapeResult {
+  parsed: number;
+  inserted: number;
+  skipped: number;
+}
+
 interface EnrichAdminPageProps {
   onBack: () => void;
 }
@@ -26,6 +32,8 @@ interface EnrichAdminPageProps {
 export default function EnrichAdminPage({ onBack }: EnrichAdminPageProps) {
   const [isEnrichingBatch, setIsEnrichingBatch] = useState(false);
   const [batchResult, setBatchResult] = useState<BatchResult | null>(null);
+  const [isScraping, setIsScraping] = useState(false);
+  const [scrapeResult, setScrapeResult] = useState<ScrapeResult | null>(null);
   const { toast } = useToast();
 
   // Fetch internships for display
@@ -94,6 +102,38 @@ export default function EnrichAdminPage({ onBack }: EnrichAdminPageProps) {
     }
   };
 
+  const handleScrapeSimplifyJobs = async () => {
+    setIsScraping(true);
+    setScrapeResult(null);
+    
+    try {
+      const response = await supabase.functions.invoke('scrape-simplify', {});
+      
+      if (!response.error) {
+        setScrapeResult(response.data);
+        toast({
+          title: "SimplifyJobs Scrape Complete",
+          description: `Parsed ${response.data.parsed} jobs, inserted ${response.data.inserted} new ones.`,
+        });
+        refetch();
+      } else {
+        toast({
+          title: "SimplifyJobs Scrape Failed",
+          description: response.error.message || "Failed to scrape SimplifyJobs",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to run SimplifyJobs scraper",
+        variant: "destructive",
+      });
+    } finally {
+      setIsScraping(false);
+    }
+  };
+
   const handleApply = (internship: any) => {
     window.open(internship.application_link, '_blank');
   };
@@ -110,7 +150,7 @@ export default function EnrichAdminPage({ onBack }: EnrichAdminPageProps) {
           <p className="text-muted-foreground">Manage and enrich job posting data</p>
 
         {/* Stats and Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Unenriched Jobs</CardTitle>
@@ -143,6 +183,45 @@ export default function EnrichAdminPage({ onBack }: EnrichAdminPageProps) {
               </Button>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">SimplifyJobs</CardTitle>
+              <CardDescription>Scrape latest internships from SimplifyJobs</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={handleScrapeSimplifyJobs}
+                disabled={isScraping}
+                className="w-full"
+              >
+                {isScraping ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <Download className="h-4 w-4 mr-2" />
+                )}
+                Scrape SimplifyJobs
+              </Button>
+            </CardContent>
+          </Card>
+
+          {scrapeResult && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Last Scrape Result</CardTitle>
+                <CardDescription>Results from the last SimplifyJobs scrape</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex gap-2">
+                  <Badge variant="default">{scrapeResult.inserted} Inserted</Badge>
+                  <Badge variant="secondary">{scrapeResult.skipped} Skipped</Badge>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Parsed {scrapeResult.parsed} jobs from SimplifyJobs
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {batchResult && (
             <Card>
