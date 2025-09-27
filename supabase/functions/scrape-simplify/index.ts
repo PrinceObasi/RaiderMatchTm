@@ -30,107 +30,30 @@ serve(async (req) => {
     const markdown = await response.text()
     console.log(`Fetched ${markdown.length} characters of markdown`)
     
-    const internships = []
-    
-    // They're using HTML table format now
-    // Look for <tr> tags with actual data
-    const tableRowRegex = /<tr>\s*<td>([^<]+)<\/td>\s*<td>([^<]+)<\/td>\s*<td>([^<]+)<\/td>\s*<td>(.*?)<\/td>\s*<\/tr>/g
-    
-    let match
-    while ((match = tableRowRegex.exec(markdown)) !== null) {
-      const company = match[1].trim()
-      const role = match[2].trim()
-      const location = match[3].trim()
-      const applyCell = match[4]
-      
-      // Skip header row
-      if (company.toLowerCase() === 'company' || company.includes('Company')) {
-        continue
-      }
-      
-      // Extract link from apply cell
-      const linkMatch = applyCell.match(/href="([^"]+)"/)
-      if (!linkMatch) continue
-      
-      const applicationLink = linkMatch[1]
-      
-      // Skip closed positions (look for 🔒 or "closed" text)
-      if (applyCell.includes('🔒') || applyCell.toLowerCase().includes('closed')) {
-        continue
-      }
-      
-      // Clean up company name
-      const cleanCompany = company
-        .replace(/🛂|🔒|🇺🇸|↳/g, '')
-        .replace(/\*\*/g, '')
-        .trim()
-      
-      if (cleanCompany && applicationLink.startsWith('http')) {
-        internships.push({
-          company: cleanCompany,
-          role_title: role || 'Software Engineering Intern',
-          location: location || 'United States',
-          application_link: applicationLink,
-          date_posted: new Date().toISOString().split('T')[0],
-          is_sponsorship_available: applyCell.includes('🛂') || company.includes('🛂')
-        })
-      }
-    }
-    
-    // Alternative: Parse line by line if regex doesn't work
-    if (internships.length === 0) {
-      console.log('HTML regex failed, trying line-by-line parsing...')
-      
-      const lines = markdown.split('\n')
-      let inTableBody = false
-      
-      for (const line of lines) {
-        // Look for table body start
-        if (line.includes('<tbody>')) {
-          inTableBody = true
-          continue
-        }
+    const lines = markdown.split('\n');
+    const internships = [];
+
+    for (const line of lines) {
+      // Look for table rows with company data
+      if (line.includes('<td>') && line.includes('<strong>') && line.includes('href=')) {
+        // Extract company from: <strong><a href="...">COMPANY</a></strong>
+        const companyMatch = line.match(/<strong><a[^>]*>([^<]+)<\/a><\/strong>/);
         
-        // Look for table body end
-        if (line.includes('</tbody>')) {
-          inTableBody = false
-          break
-        }
+        // Extract role from the next <td>
+        const roleMatch = line.match(/<\/td>\s*<td>([^<]+)<\/td>/);
         
-        // Parse table rows
-        if (inTableBody && line.includes('<tr>')) {
-          // Extract cells using a simpler approach
-          const cells = line.match(/<td>([^<]*)<\/td>/g)
-          
-          if (cells && cells.length >= 4) {
-            const company = cells[0].replace(/<\/?td>/g, '').trim()
-            const role = cells[1].replace(/<\/?td>/g, '').trim()
-            const location = cells[2].replace(/<\/?td>/g, '').trim()
-            
-            // Extract link from the 4th cell
-            const linkMatch = cells[3].match(/href="([^"]+)"/)
-            if (linkMatch) {
-              const applicationLink = linkMatch[1]
-              
-              // Clean and add
-              const cleanCompany = company
-                .replace(/🛂|🔒|🇺🇸|↳/g, '')
-                .replace(/\*\*/g, '')
-                .trim()
-              
-              if (cleanCompany && !cleanCompany.toLowerCase().includes('company') && 
-                  applicationLink.startsWith('http')) {
-                internships.push({
-                  company: cleanCompany,
-                  role_title: role || 'Software Engineering Intern',
-                  location: location || 'United States',
-                  application_link: applicationLink,
-                  date_posted: new Date().toISOString().split('T')[0],
-                  is_sponsorship_available: line.includes('🛂')
-                })
-              }
-            }
-          }
+        // Extract apply link (the Simplify redirect URL)
+        const applyMatch = line.match(/href="(https:\/\/simplify\.jobs\/[^"]+)"/);
+        
+        if (companyMatch && applyMatch) {
+          internships.push({
+            company: companyMatch[1].trim(),
+            role_title: roleMatch ? roleMatch[1].trim() : 'Software Engineering Intern',
+            location: 'United States', // Will need to parse this better
+            application_link: applyMatch[1],
+            date_posted: new Date().toISOString().split('T')[0],
+            is_sponsorship_available: line.includes('🛂')
+          });
         }
       }
     }
