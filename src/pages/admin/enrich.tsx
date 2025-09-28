@@ -136,20 +136,24 @@ export default function EnrichAdminPage({ onBack }: EnrichAdminPageProps) {
     }
   };
 
-  const handleExtractDirectLinks = async () => {
+  const handleExtractDirectLinks = async (batchSize = 20) => {
     setIsExtractingLinks(true);
     setLinkExtractionResult(null);
     
     try {
-      const response = await supabase.functions.invoke('extract-direct-links', {});
+      const response = await supabase.functions.invoke('extract-direct-links', {
+        body: { batch_size: batchSize }
+      });
       
       if (!response.error) {
         setLinkExtractionResult(response.data);
+        const { processed, extracted, failed, remaining } = response.data;
         toast({
           title: "Direct Link Extraction Complete",
-          description: `Successfully extracted ${response.data.updated} direct links from ${response.data.total_processed} internships.`,
+          description: `Processed: ${processed}, Extracted: ${extracted}, Failed: ${failed}, Remaining: ${remaining}`,
         });
         refetch();
+        console.log('Sample extractions:', response.data.samples);
       } else {
         toast({
           title: "Link Extraction Failed",
@@ -245,19 +249,29 @@ export default function EnrichAdminPage({ onBack }: EnrichAdminPageProps) {
               <CardTitle className="text-lg">Direct Links</CardTitle>
               <CardDescription>Extract direct company URLs from SimplifyJobs</CardDescription>
             </CardHeader>
-            <CardContent>
-              <Button
-                onClick={handleExtractDirectLinks}
-                disabled={isExtractingLinks}
-                className="w-full"
-              >
-                {isExtractingLinks ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                ) : (
-                  <RefreshCw className="h-4 w-4 mr-2" />
-                )}
-                Extract Direct Links
-              </Button>
+            <CardContent className="space-y-2">
+              <div className="flex gap-2">
+                <Button
+                  onClick={() => handleExtractDirectLinks()}
+                  disabled={isExtractingLinks}
+                  className="flex-1"
+                >
+                  {isExtractingLinks ? (
+                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4 mr-2" />
+                  )}
+                  Extract (20)
+                </Button>
+                <Button
+                  onClick={() => handleExtractDirectLinks(5)}
+                  disabled={isExtractingLinks}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Test (5)
+                </Button>
+              </div>
             </CardContent>
           </Card>
 
