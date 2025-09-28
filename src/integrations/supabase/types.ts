@@ -238,6 +238,7 @@ export type Database = {
           employment_type: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
+          extraction_attempts: number | null
           id: string
           is_active: boolean | null
           is_texas: boolean | null
@@ -246,7 +247,9 @@ export type Database = {
           job_keywords: string[] | null
           last_checked_utc: string | null
           last_validated_at: string | null
+          link_extracted_at: string | null
           link_resolved_at: string | null
+          link_type: string | null
           link_valid: boolean | null
           location: string | null
           notes: string | null
@@ -279,6 +282,7 @@ export type Database = {
           employment_type?: string | null
           enriched_at?: string | null
           enrichment_confidence?: number | null
+          extraction_attempts?: number | null
           id?: string
           is_active?: boolean | null
           is_texas?: boolean | null
@@ -287,7 +291,9 @@ export type Database = {
           job_keywords?: string[] | null
           last_checked_utc?: string | null
           last_validated_at?: string | null
+          link_extracted_at?: string | null
           link_resolved_at?: string | null
+          link_type?: string | null
           link_valid?: boolean | null
           location?: string | null
           notes?: string | null
@@ -320,6 +326,7 @@ export type Database = {
           employment_type?: string | null
           enriched_at?: string | null
           enrichment_confidence?: number | null
+          extraction_attempts?: number | null
           id?: string
           is_active?: boolean | null
           is_texas?: boolean | null
@@ -328,7 +335,9 @@ export type Database = {
           job_keywords?: string[] | null
           last_checked_utc?: string | null
           last_validated_at?: string | null
+          link_extracted_at?: string | null
           link_resolved_at?: string | null
+          link_type?: string | null
           link_valid?: boolean | null
           location?: string | null
           notes?: string | null
@@ -578,6 +587,7 @@ export type Database = {
           employment_type: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
+          extraction_attempts: number | null
           id: string
           is_active: boolean | null
           is_texas: boolean | null
@@ -586,7 +596,9 @@ export type Database = {
           job_keywords: string[] | null
           last_checked_utc: string | null
           last_validated_at: string | null
+          link_extracted_at: string | null
           link_resolved_at: string | null
+          link_type: string | null
           link_valid: boolean | null
           location: string | null
           notes: string | null
@@ -685,6 +697,7 @@ export type Database = {
           employment_type: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
+          extraction_attempts: number | null
           id: string
           is_active: boolean | null
           is_texas: boolean | null
@@ -693,7 +706,9 @@ export type Database = {
           job_keywords: string[] | null
           last_checked_utc: string | null
           last_validated_at: string | null
+          link_extracted_at: string | null
           link_resolved_at: string | null
+          link_type: string | null
           link_valid: boolean | null
           location: string | null
           notes: string | null
@@ -738,6 +753,7 @@ export type Database = {
           employment_type: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
+          extraction_attempts: number | null
           id: string
           is_active: boolean | null
           is_texas: boolean | null
@@ -746,7 +762,9 @@ export type Database = {
           job_keywords: string[] | null
           last_checked_utc: string | null
           last_validated_at: string | null
+          link_extracted_at: string | null
           link_resolved_at: string | null
+          link_type: string | null
           link_valid: boolean | null
           location: string | null
           notes: string | null
