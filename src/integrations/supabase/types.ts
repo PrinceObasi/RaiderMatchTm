@@ -233,6 +233,7 @@ export type Database = {
           created_at: string | null
           date_posted: string | null
           deadline: string | null
+          direct_link: string | null
           duplicate_of: string | null
           employment_type: string | null
           enriched_at: string | null
@@ -245,6 +246,7 @@ export type Database = {
           job_keywords: string[] | null
           last_checked_utc: string | null
           last_validated_at: string | null
+          link_resolved_at: string | null
           link_valid: boolean | null
           location: string | null
           notes: string | null
@@ -272,6 +274,7 @@ export type Database = {
           created_at?: string | null
           date_posted?: string | null
           deadline?: string | null
+          direct_link?: string | null
           duplicate_of?: string | null
           employment_type?: string | null
           enriched_at?: string | null
@@ -284,6 +287,7 @@ export type Database = {
           job_keywords?: string[] | null
           last_checked_utc?: string | null
           last_validated_at?: string | null
+          link_resolved_at?: string | null
           link_valid?: boolean | null
           location?: string | null
           notes?: string | null
@@ -311,6 +315,7 @@ export type Database = {
           created_at?: string | null
           date_posted?: string | null
           deadline?: string | null
+          direct_link?: string | null
           duplicate_of?: string | null
           employment_type?: string | null
           enriched_at?: string | null
@@ -323,6 +328,7 @@ export type Database = {
           job_keywords?: string[] | null
           last_checked_utc?: string | null
           last_validated_at?: string | null
+          link_resolved_at?: string | null
           link_valid?: boolean | null
           location?: string | null
           notes?: string | null
@@ -567,6 +573,7 @@ export type Database = {
           created_at: string | null
           date_posted: string | null
           deadline: string | null
+          direct_link: string | null
           duplicate_of: string | null
           employment_type: string | null
           enriched_at: string | null
@@ -579,6 +586,7 @@ export type Database = {
           job_keywords: string[] | null
           last_checked_utc: string | null
           last_validated_at: string | null
+          link_resolved_at: string | null
           link_valid: boolean | null
           location: string | null
           notes: string | null
@@ -672,6 +680,7 @@ export type Database = {
           created_at: string | null
           date_posted: string | null
           deadline: string | null
+          direct_link: string | null
           duplicate_of: string | null
           employment_type: string | null
           enriched_at: string | null
@@ -684,6 +693,7 @@ export type Database = {
           job_keywords: string[] | null
           last_checked_utc: string | null
           last_validated_at: string | null
+          link_resolved_at: string | null
           link_valid: boolean | null
           location: string | null
           notes: string | null
@@ -723,6 +733,7 @@ export type Database = {
           created_at: string | null
           date_posted: string | null
           deadline: string | null
+          direct_link: string | null
           duplicate_of: string | null
           employment_type: string | null
           enriched_at: string | null
@@ -735,6 +746,7 @@ export type Database = {
           job_keywords: string[] | null
           last_checked_utc: string | null
           last_validated_at: string | null
+          link_resolved_at: string | null
           link_valid: boolean | null
           location: string | null
           notes: string | null

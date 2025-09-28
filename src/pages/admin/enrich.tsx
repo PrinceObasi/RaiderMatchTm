@@ -34,6 +34,8 @@ export default function EnrichAdminPage({ onBack }: EnrichAdminPageProps) {
   const [batchResult, setBatchResult] = useState<BatchResult | null>(null);
   const [isScraping, setIsScraping] = useState(false);
   const [scrapeResult, setScrapeResult] = useState<ScrapeResult | null>(null);
+  const [isExtractingLinks, setIsExtractingLinks] = useState(false);
+  const [linkExtractionResult, setLinkExtractionResult] = useState<any>(null);
   const { toast } = useToast();
 
   // Fetch internships for display
@@ -134,8 +136,41 @@ export default function EnrichAdminPage({ onBack }: EnrichAdminPageProps) {
     }
   };
 
+  const handleExtractDirectLinks = async () => {
+    setIsExtractingLinks(true);
+    setLinkExtractionResult(null);
+    
+    try {
+      const response = await supabase.functions.invoke('extract-direct-links', {});
+      
+      if (!response.error) {
+        setLinkExtractionResult(response.data);
+        toast({
+          title: "Direct Link Extraction Complete",
+          description: `Successfully extracted ${response.data.updated} direct links from ${response.data.total_processed} internships.`,
+        });
+        refetch();
+      } else {
+        toast({
+          title: "Link Extraction Failed",
+          description: response.error.message || "Failed to extract direct links",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to run direct link extraction",
+        variant: "destructive",
+      });
+    } finally {
+      setIsExtractingLinks(false);
+    }
+  };
+
   const handleApply = (internship: any) => {
-    window.open(internship.application_link, '_blank');
+    const linkToUse = internship.direct_link || internship.application_link;
+    window.open(linkToUse, '_blank');
   };
 
   return (
@@ -204,6 +239,47 @@ export default function EnrichAdminPage({ onBack }: EnrichAdminPageProps) {
               </Button>
             </CardContent>
           </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg">Direct Links</CardTitle>
+              <CardDescription>Extract direct company URLs from SimplifyJobs</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button
+                onClick={handleExtractDirectLinks}
+                disabled={isExtractingLinks}
+                className="w-full"
+              >
+                {isExtractingLinks ? (
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                ) : (
+                  <RefreshCw className="h-4 w-4 mr-2" />
+                )}
+                Extract Direct Links
+              </Button>
+            </CardContent>
+          </Card>
+
+          {linkExtractionResult && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg">Last Link Extraction</CardTitle>
+                <CardDescription>Results from the last direct link extraction</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="flex gap-2">
+                  <Badge variant="default">{linkExtractionResult.updated} Updated</Badge>
+                  {linkExtractionResult.failed > 0 && (
+                    <Badge variant="destructive">{linkExtractionResult.failed} Failed</Badge>
+                  )}
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Processed {linkExtractionResult.total_processed} SimplifyJobs links
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {scrapeResult && (
             <Card>
