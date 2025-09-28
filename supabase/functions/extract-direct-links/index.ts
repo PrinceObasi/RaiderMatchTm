@@ -70,21 +70,36 @@ async function getDirectLink(simplifyUrl: string): Promise<{url: string | null, 
       // Look for any external link in the page that might be the application
       const externalLinks = html.match(/https?:\/\/(?!simplify\.jobs)[a-zA-Z0-9\-._~:\/?#\[\]@!$&'()*+,;=]+/g)
       if (externalLinks && externalLinks.length > 0) {
-        // Filter for likely application URLs
-        const appLinks = externalLinks.filter(link => 
-          link.includes('career') || 
-          link.includes('job') || 
-          link.includes('apply') ||
-          link.includes('greenhouse') ||
-          link.includes('lever') ||
-          link.includes('workday') ||
-          link.includes('taleo') ||
-          link.includes('myworkday')
-        )
+        // Filter and score potential application URLs
+        const scoredLinks = externalLinks
+          .filter(link => isValidApplicationUrl(link))
+          .map(link => {
+            let score = 0
+            const lowerLink = link.toLowerCase()
+            
+            // Higher scores for job-related keywords
+            if (lowerLink.includes('career')) score += 10
+            if (lowerLink.includes('job')) score += 8
+            if (lowerLink.includes('apply')) score += 15
+            if (lowerLink.includes('application')) score += 12
+            if (lowerLink.includes('position')) score += 6
+            if (lowerLink.includes('opportunity')) score += 5
+            
+            // Popular ATS systems get high scores
+            if (lowerLink.includes('greenhouse')) score += 20
+            if (lowerLink.includes('lever')) score += 20
+            if (lowerLink.includes('workday')) score += 20
+            if (lowerLink.includes('taleo')) score += 15
+            if (lowerLink.includes('myworkday')) score += 18
+            if (lowerLink.includes('recruiting')) score += 10
+            
+            return { url: link, score }
+          })
+          .sort((a, b) => b.score - a.score)
         
-        if (appLinks.length > 0) {
-          console.log(`Found potential application link: ${appLinks[0]}`)
-          return { url: appLinks[0], type: 'extracted' }
+        if (scoredLinks.length > 0 && scoredLinks[0].score > 0) {
+          console.log(`Found scored application link: ${scoredLinks[0].url} (score: ${scoredLinks[0].score})`)
+          return { url: scoredLinks[0].url, type: 'extracted' }
         }
       }
       
@@ -111,17 +126,49 @@ async function getDirectLink(simplifyUrl: string): Promise<{url: string | null, 
 function isValidApplicationUrl(url: string): boolean {
   if (!url) return false
   
-  // Exclude social media and non-application sites
+  // Exclude image files and storage URLs
+  const imageExtensions = ['.png', '.jpg', '.jpeg', '.gif', '.svg', '.webp', '.ico']
+  if (imageExtensions.some(ext => url.toLowerCase().includes(ext))) {
+    return false
+  }
+  
+  // Exclude storage and CDN URLs
   const excludedDomains = [
     'facebook.com', 
     'twitter.com', 
     'linkedin.com/company', // Company pages, not job listings
     'instagram.com',
     'youtube.com',
-    'simplify.jobs'
+    'simplify.jobs',
+    'storage.googleapis.com',
+    'cdn.',
+    'assets.',
+    'static.',
+    'img.',
+    'images.'
   ]
   
-  return !excludedDomains.some(domain => url.includes(domain))
+  // Must be a valid HTTP/HTTPS URL
+  if (!url.startsWith('http://') && !url.startsWith('https://')) {
+    return false
+  }
+  
+  // Exclude if it contains excluded domains
+  if (excludedDomains.some(domain => url.includes(domain))) {
+    return false
+  }
+  
+  // Prefer URLs that contain job/career-related keywords
+  const jobKeywords = [
+    'career', 'job', 'apply', 'application', 'position', 'opportunity',
+    'greenhouse', 'lever', 'workday', 'taleo', 'myworkday', 'recruiting',
+    'jobs', 'careers', 'hire', 'employment'
+  ]
+  
+  // Give preference to URLs with job-related keywords
+  const hasJobKeywords = jobKeywords.some(keyword => url.toLowerCase().includes(keyword))
+  
+  return hasJobKeywords || url.length > 30 // Basic length check for legitimate URLs
 }
 
 serve(async (req) => {
