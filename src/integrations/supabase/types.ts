@@ -623,6 +623,7 @@ export type Database = {
         Returns: {
           application_id: string
           applied_at: string
+          email: string
           gpa: number
           graduation_year: number
           has_prev_intern: boolean
