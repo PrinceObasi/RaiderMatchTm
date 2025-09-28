@@ -28,6 +28,8 @@ export function useInternshipSearch(params: NormalizedParams | null, enabled = t
             tech_stack,
             visa_sponsorship,
             application_link,
+            direct_link,
+            link_type,
             date_posted,
             deadline,
             jd_summary
