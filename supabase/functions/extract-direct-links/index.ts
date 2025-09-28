@@ -6,69 +6,122 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-async function getDirectLink(simplifyUrl: string): Promise<string | null> {
+/**
+ * Follows redirect chain to get the final destination URL
+ */
+async function getDirectLink(simplifyUrl: string): Promise<{url: string | null, type: string}> {
   try {
-    console.log(`Processing URL: ${simplifyUrl}`)
+    console.log(`Extracting direct link from: ${simplifyUrl}`)
     
-    // Follow the redirect chain
-    const response = await fetch(simplifyUrl, {
-      method: 'HEAD',
-      redirect: 'manual', // Don't auto-follow, we want to see each redirect
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-      }
-    })
+    // Step 1: Try following HTTP redirects
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), 10000) // 10 second timeout
     
-    // SimplifyJobs usually returns a 302 redirect to the actual company URL
-    const location = response.headers.get('location')
-    if (location) {
-      console.log(`Found redirect to: ${location}`)
+    try {
+      // First, get the SimplifyJobs page
+      const response = await fetch(simplifyUrl, {
+        method: 'GET',
+        signal: controller.signal,
+        redirect: 'manual', // Don't auto-follow
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+      })
+      clearTimeout(timeoutId)
       
-      // If it's still a simplify.jobs URL, follow it again
-      if (location.includes('simplify.jobs')) {
-        const secondResponse = await fetch(location, {
-          method: 'HEAD',
-          redirect: 'manual',
-          headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
-          }
-        })
-        const finalLocation = secondResponse.headers.get('location')
-        console.log(`Final redirect to: ${finalLocation}`)
-        return finalLocation || location
+      // Check for HTTP redirect
+      const location = response.headers.get('location')
+      if (location && !location.includes('simplify.jobs')) {
+        console.log(`Found HTTP redirect to: ${location}`)
+        return { url: location, type: 'direct' }
       }
-      return location
-    }
-    
-    // If no redirect, try to fetch the page and look for meta refresh or JS redirect
-    console.log('No redirect found, fetching page content')
-    const pageResponse = await fetch(simplifyUrl, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+      
+      // If no immediate redirect, parse the HTML
+      const html = await response.text()
+      
+      // Look for meta refresh redirect
+      const metaRefresh = html.match(/<meta[^>]*?http-equiv=["']refresh["'][^>]*?content=["']\d+;\s*url=([^"']+)/i)
+      if (metaRefresh && metaRefresh[1]) {
+        const url = metaRefresh[1].replace(/&amp;/g, '&')
+        if (!url.includes('simplify.jobs')) {
+          console.log(`Found meta refresh to: ${url}`)
+          return { url, type: 'direct' }
+        }
       }
-    })
-    const html = await pageResponse.text()
-    
-    // Look for meta refresh
-    const metaRefresh = html.match(/meta.*?refresh.*?url=([^"']+)"/i)
-    if (metaRefresh) {
-      console.log(`Found meta refresh to: ${metaRefresh[1]}`)
-      return metaRefresh[1]
+      
+      // Look for JavaScript redirects
+      const jsPatterns = [
+        /window\.location\.href\s*=\s*["']([^"']+)["']/,
+        /window\.location\s*=\s*["']([^"']+)["']/,
+        /window\.location\.replace\(["']([^"']+)["']\)/,
+        /window\.open\(["']([^"']+)["']/,
+        /data-url=["']([^"']+)["']/,
+        /href=["'](https?:\/\/(?!simplify\.jobs)[^"']+)["']/
+      ]
+      
+      for (const pattern of jsPatterns) {
+        const match = html.match(pattern)
+        if (match && match[1] && !match[1].includes('simplify.jobs')) {
+          console.log(`Found JS redirect to: ${match[1]}`)
+          return { url: match[1], type: 'direct' }
+        }
+      }
+      
+      // Look for any external link in the page that might be the application
+      const externalLinks = html.match(/https?:\/\/(?!simplify\.jobs)[a-zA-Z0-9\-._~:\/?#\[\]@!$&'()*+,;=]+/g)
+      if (externalLinks && externalLinks.length > 0) {
+        // Filter for likely application URLs
+        const appLinks = externalLinks.filter(link => 
+          link.includes('career') || 
+          link.includes('job') || 
+          link.includes('apply') ||
+          link.includes('greenhouse') ||
+          link.includes('lever') ||
+          link.includes('workday') ||
+          link.includes('taleo') ||
+          link.includes('myworkday')
+        )
+        
+        if (appLinks.length > 0) {
+          console.log(`Found potential application link: ${appLinks[0]}`)
+          return { url: appLinks[0], type: 'extracted' }
+        }
+      }
+      
+    } catch (error: any) {
+      if (error.name === 'AbortError') {
+        console.error('Request timeout')
+      } else {
+        console.error('Fetch error:', error)
+      }
     }
     
-    // Look for JavaScript redirects
-    const jsRedirect = html.match(/window\.location.*?=.*?["']([^"']+)["']/i)
-    if (jsRedirect) {
-      console.log(`Found JS redirect to: ${jsRedirect[1]}`)
-      return jsRedirect[1]
-    }
+    // If we can't find a direct link, return null
+    return { url: null, type: 'failed' }
     
-    console.log('No direct link found')
-    return null
-  } catch (error) {
-    console.error('Error extracting direct link:', error)
-    return null
+  } catch (error: any) {
+    console.error(`Error extracting direct link from ${simplifyUrl}:`, error)
+    return { url: null, type: 'error' }
   }
+}
+
+/**
+ * Validates if a URL is actually a valid application link
+ */
+function isValidApplicationUrl(url: string): boolean {
+  if (!url) return false
+  
+  // Exclude social media and non-application sites
+  const excludedDomains = [
+    'facebook.com', 
+    'twitter.com', 
+    'linkedin.com/company', // Company pages, not job listings
+    'instagram.com',
+    'youtube.com',
+    'simplify.jobs'
+  ]
+  
+  return !excludedDomains.some(domain => url.includes(domain))
 }
 
 serve(async (req) => {
@@ -82,109 +135,135 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    console.log('Starting direct link extraction...')
+    // Get batch size from request or default to 20
+    const { batch_size = 20 } = await req.json().catch(() => ({}))
 
-    // Get all SimplifyJobs links that haven't been processed
-    const { data: internships, error } = await supabase
+    // Get SimplifyJobs internships that don't have direct links yet
+    const { data: internships, error: fetchError } = await supabase
       .from('internships')
-      .select('id, application_link')
+      .select('id, company, role_title, application_link, extraction_attempts')
       .eq('scrape_source', 'simplify_jobs')
-      .is('direct_link', null) // Only get ones we haven't processed
-      .limit(50)
+      .is('direct_link', null)
+      .lt('extraction_attempts', 3) // Don't retry too many times
+      .limit(batch_size)
 
-    if (error) {
-      console.error('Error fetching internships:', error)
+    if (fetchError) {
+      throw new Error(`Failed to fetch internships: ${fetchError.message}`)
+    }
+
+    if (!internships || internships.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch internships' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
+        JSON.stringify({
+          success: true,
+          message: 'No internships to process',
+          processed: 0
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    console.log(`Found ${internships?.length || 0} internships to process`)
+    console.log(`Processing ${internships.length} internships`)
 
-    let updated = 0
-    let failed = 0
-    const results = []
+    const results = {
+      success: 0,
+      failed: 0,
+      errors: [] as string[],
+      samples: [] as any[]
+    }
 
-    for (const internship of internships || []) {
+    for (const internship of internships) {
       try {
-        const directLink = await getDirectLink(internship.application_link)
+        console.log(`Processing: ${internship.company} - ${internship.role_title}`)
         
-        if (directLink && !directLink.includes('simplify.jobs')) {
-          // Update with the real company link
+        // Increment attempt counter
+        await supabase
+          .from('internships')
+          .update({ 
+            extraction_attempts: (internship.extraction_attempts || 0) + 1 
+          })
+          .eq('id', internship.id)
+        
+        // Extract the direct link
+        const { url: directLink, type } = await getDirectLink(internship.application_link)
+        
+        if (directLink && isValidApplicationUrl(directLink)) {
+          // Update with the direct link
           const { error: updateError } = await supabase
             .from('internships')
-            .update({ 
+            .update({
               direct_link: directLink,
-              link_resolved_at: new Date().toISOString()
+              link_type: type,
+              link_extracted_at: new Date().toISOString(),
+              application_link: directLink // Replace the SimplifyJobs URL entirely
             })
             .eq('id', internship.id)
           
           if (!updateError) {
-            updated++
-            console.log(`Updated ${internship.id} with direct link: ${directLink}`)
-            results.push({
-              id: internship.id,
-              original: internship.application_link,
-              resolved: directLink,
-              status: 'success'
-            })
+            results.success++
+            if (results.samples.length < 5) {
+              results.samples.push({
+                company: internship.company,
+                original: internship.application_link,
+                direct: directLink,
+                type
+              })
+            }
+            console.log(`✓ Updated ${internship.company} with direct link`)
           } else {
-            failed++
-            console.error(`Failed to update ${internship.id}:`, updateError)
-            results.push({
-              id: internship.id,
-              original: internship.application_link,
-              status: 'update_failed',
-              error: updateError.message
-            })
+            throw updateError
           }
         } else {
-          // Mark as processed even if we couldn't resolve it
+          // Mark as failed extraction
           await supabase
             .from('internships')
-            .update({ 
-              link_resolved_at: new Date().toISOString()
+            .update({
+              link_type: 'redirect_failed',
+              link_extracted_at: new Date().toISOString()
             })
             .eq('id', internship.id)
           
-          console.log(`Could not resolve direct link for ${internship.id}`)
-          results.push({
-            id: internship.id,
-            original: internship.application_link,
-            status: 'no_direct_link_found'
-          })
+          results.failed++
+          console.log(`✗ Failed to extract direct link for ${internship.company}`)
         }
         
-        // Rate limit to avoid getting blocked (500ms between requests)
-        await new Promise(resolve => setTimeout(resolve, 500))
+        // Rate limiting - wait between requests to avoid being blocked
+        await new Promise(resolve => setTimeout(resolve, 1000)) // 1 second delay
         
-      } catch (error) {
-        failed++
-        console.error(`Error processing ${internship.id}:`, error)
-        results.push({
-          id: internship.id,
-          original: internship.application_link,
-          status: 'error',
-          error: error.message
-        })
+      } catch (error: any) {
+        console.error(`Error processing ${internship.company}:`, error)
+        results.errors.push(`${internship.company}: ${error.message}`)
+        results.failed++
       }
     }
 
+    // Get stats
+    const { count: remaining } = await supabase
+      .from('internships')
+      .select('*', { count: 'exact', head: true })
+      .eq('scrape_source', 'simplify_jobs')
+      .is('direct_link', null)
+      .lt('extraction_attempts', 3)
+
     return new Response(
-      JSON.stringify({ 
-        updated, 
-        failed,
-        total_processed: internships?.length || 0,
-        results: results.slice(0, 10) // Only return first 10 for brevity
+      JSON.stringify({
+        success: true,
+        processed: internships.length,
+        extracted: results.success,
+        failed: results.failed,
+        remaining: remaining || 0,
+        samples: results.samples,
+        errors: results.errors.slice(0, 5)
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('Function error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ 
+        success: false,
+        error: error.message 
+      }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
     )
   }
