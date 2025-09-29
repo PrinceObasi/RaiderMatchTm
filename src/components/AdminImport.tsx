@@ -42,6 +42,8 @@ export function AdminImport({ onBack }: AdminImportProps) {
   const [sampleData, setSampleData] = useState<NormalizedRow[]>([])
   const [isExtractingLinks, setIsExtractingLinks] = useState(false)
   const [extractionStats, setExtractionStats] = useState<any>(null)
+  const [isScrapingGreenhouse, setIsScrapingGreenhouse] = useState(false)
+  const [isScrapingLever, setIsScrapingLever] = useState(false)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
@@ -202,6 +204,60 @@ export function AdminImport({ onBack }: AdminImportProps) {
       })
     } finally {
       setIsExtractingLinks(false)
+    }
+  }
+
+  const handleScrapeGreenhouse = async () => {
+    setIsScrapingGreenhouse(true)
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('scrape-direct-internships', {
+        body: { source: 'greenhouse', limit: 10 }
+      })
+      
+      if (error) throw error
+      
+      toast({
+        title: "Greenhouse Scraping Complete",
+        description: `Added ${data.inserted} internships from Greenhouse! ${data.skipped} duplicates skipped.`,
+      })
+      
+    } catch (error: any) {
+      console.error('Greenhouse scraping error:', error)
+      toast({
+        title: "Greenhouse scraping failed",
+        description: `Failed to scrape Greenhouse: ${error.message}`,
+        variant: "destructive"
+      })
+    } finally {
+      setIsScrapingGreenhouse(false)
+    }
+  }
+
+  const handleScrapeLever = async () => {
+    setIsScrapingLever(true)
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('scrape-direct-internships', {
+        body: { source: 'lever', limit: 10 }
+      })
+      
+      if (error) throw error
+      
+      toast({
+        title: "Lever Scraping Complete",
+        description: `Added ${data.inserted} internships from Lever! ${data.skipped} duplicates skipped.`,
+      })
+      
+    } catch (error: any) {
+      console.error('Lever scraping error:', error)
+      toast({
+        title: "Lever scraping failed",
+        description: `Failed to scrape Lever: ${error.message}`,
+        variant: "destructive"
+      })
+    } finally {
+      setIsScrapingLever(false)
     }
   }
 
@@ -370,6 +426,51 @@ export function AdminImport({ onBack }: AdminImportProps) {
                       <Link className="mr-2 h-4 w-4" />
                       Extract Links
                     </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Direct Scraping */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileSpreadsheet className="h-5 w-5" />
+                Direct Scraping (Greenhouse & Lever)
+              </CardTitle>
+              <CardDescription>
+                Scrape internships directly from ATS platforms with no redirects
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-2 gap-4">
+                <Button 
+                  onClick={handleScrapeGreenhouse} 
+                  disabled={isScrapingGreenhouse}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  {isScrapingGreenhouse ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Scraping...
+                    </>
+                  ) : (
+                    'Scrape Greenhouse (Direct Links)'
+                  )}
+                </Button>
+                <Button 
+                  onClick={handleScrapeLever} 
+                  disabled={isScrapingLever}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  {isScrapingLever ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Scraping...
+                    </>
+                  ) : (
+                    'Scrape Lever (Direct Links)'
                   )}
                 </Button>
               </div>
