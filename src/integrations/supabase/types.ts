@@ -657,7 +657,9 @@ export type Database = {
           company: string
           date_posted: string
           deadline: string
+          direct_link: string
           id: string
+          link_type: string
           location: string
           role_title: string
           tech_stack: string[]

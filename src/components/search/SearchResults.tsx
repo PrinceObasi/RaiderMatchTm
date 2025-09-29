@@ -32,7 +32,7 @@ export function SearchResults({
     }
 
     // Use direct_link if available, fallback to application_link
-    const linkToUse = (internship as any).direct_link || internship.application_link;
+    const linkToUse = internship.direct_link || internship.application_link;
 
     // 1️⃣ OPEN IMMEDIATELY (synchronous) - prevents popup blocking
     const a = document.createElement('a');
