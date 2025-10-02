@@ -14,69 +14,6 @@ export type Database = {
   }
   public: {
     Tables: {
-      application_clicks: {
-        Row: {
-          apply_url: string
-          clicked_at: string
-          confirmation_date: string | null
-          confirmed: boolean | null
-          created_at: string
-          id: string
-          internship_id: string | null
-          job_id: string | null
-          user_id: string
-        }
-        Insert: {
-          apply_url: string
-          clicked_at?: string
-          confirmation_date?: string | null
-          confirmed?: boolean | null
-          created_at?: string
-          id?: string
-          internship_id?: string | null
-          job_id?: string | null
-          user_id: string
-        }
-        Update: {
-          apply_url?: string
-          clicked_at?: string
-          confirmation_date?: string | null
-          confirmed?: boolean | null
-          created_at?: string
-          id?: string
-          internship_id?: string | null
-          job_id?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      application_events: {
-        Row: {
-          application_url: string
-          created_at: string | null
-          id: string
-          internship_id: string | null
-          user_agent: string | null
-          user_id: string | null
-        }
-        Insert: {
-          application_url: string
-          created_at?: string | null
-          id?: string
-          internship_id?: string | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          application_url?: string
-          created_at?: string | null
-          id?: string
-          internship_id?: string | null
-          user_agent?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       applications: {
         Row: {
           applied_at: string | null
@@ -177,51 +114,6 @@ export type Database = {
           student_name?: string
         }
         Relationships: []
-      }
-      internship_validation_history: {
-        Row: {
-          created_at: string | null
-          id: string
-          internship_id: string | null
-          message: string | null
-          status_code: number | null
-          validated_at: string | null
-          was_valid: boolean | null
-        }
-        Insert: {
-          created_at?: string | null
-          id?: string
-          internship_id?: string | null
-          message?: string | null
-          status_code?: number | null
-          validated_at?: string | null
-          was_valid?: boolean | null
-        }
-        Update: {
-          created_at?: string | null
-          id?: string
-          internship_id?: string | null
-          message?: string | null
-          status_code?: number | null
-          validated_at?: string | null
-          was_valid?: boolean | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "internship_validation_history_internship_id_fkey"
-            columns: ["internship_id"]
-            isOneToOne: false
-            referencedRelation: "internships"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "internship_validation_history_internship_id_fkey"
-            columns: ["internship_id"]
-            isOneToOne: false
-            referencedRelation: "jobs_for_app"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       internships: {
         Row: {

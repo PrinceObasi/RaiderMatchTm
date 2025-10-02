@@ -126,37 +126,13 @@ Deno.serve(async (req) => {
 
       if (!job) {
         console.log(`Job with id ${job_id} not found or inactive`);
-        // For internship applications, we'll track in application_clicks instead
-        if (internship_id && apply_url) {
-          await supabaseClient
-            .from('application_clicks')
-            .insert({
-              user_id: user.id,
-              internship_id: internship_id,
-              job_id: null,
-              apply_url: apply_url
-            });
-
-          return new Response(
-            JSON.stringify({ 
-              success: true, 
-              apply_url: apply_url,
-              message: 'Application click recorded'
-            }),
-            { 
-              status: 200, 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-            }
-          );
-        } else {
-          return new Response(
-            JSON.stringify({ error: 'Job not found or inactive' }),
-            { 
-              status: 404, 
-              headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-            }
-          );
-        }
+        return new Response(
+          JSON.stringify({ error: 'Job not found or inactive' }),
+          { 
+            status: 404, 
+            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+          }
+        );
       }
 
       jobRecord = job;
@@ -203,29 +179,9 @@ Deno.serve(async (req) => {
 
       console.log(`Successfully recorded job application for user ${user.id}, job ${job_id}`);
     } else if (internship_id && apply_url) {
-      // Handle internship application click (no job_id)
-      const { error: clickError } = await supabaseClient
-        .from('application_clicks')
-        .insert({
-          user_id: user.id,
-          internship_id: internship_id,
-          job_id: null,
-          apply_url: apply_url
-        });
-
-      if (clickError) {
-        console.error('Insert application click error:', clickError);
-        return new Response(
-          JSON.stringify({ error: 'Failed to record application click' }),
-          { 
-            status: 500, 
-            headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-          }
-        );
-      }
-
+      // Handle internship application (no job_id, just return the URL)
       finalApplyUrl = apply_url;
-      console.log(`Successfully recorded internship application click for user ${user.id}, internship ${internship_id}`);
+      console.log(`Internship application for user ${user.id}, internship ${internship_id}`);
     } else {
       return new Response(
         JSON.stringify({ error: 'Invalid request: missing required parameters' }),
