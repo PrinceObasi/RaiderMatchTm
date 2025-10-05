@@ -79,6 +79,36 @@ export type Database = {
           },
         ]
       }
+      direct_link_cache: {
+        Row: {
+          created_at: string | null
+          direct_url: string
+          final_domain: string | null
+          id: string
+          is_direct: boolean | null
+          seen_at: string | null
+          simplify_url: string
+        }
+        Insert: {
+          created_at?: string | null
+          direct_url: string
+          final_domain?: string | null
+          id?: string
+          is_direct?: boolean | null
+          seen_at?: string | null
+          simplify_url: string
+        }
+        Update: {
+          created_at?: string | null
+          direct_url?: string
+          final_domain?: string | null
+          id?: string
+          is_direct?: boolean | null
+          seen_at?: string | null
+          simplify_url?: string
+        }
+        Relationships: []
+      }
       example_resumes: {
         Row: {
           company: string
@@ -126,19 +156,23 @@ export type Database = {
           date_posted: string | null
           deadline: string | null
           direct_link: string | null
+          direct_url: string | null
           duplicate_of: string | null
           employment_type: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
           extraction_attempts: number | null
+          final_domain: string | null
           id: string
           is_active: boolean | null
+          is_direct: boolean | null
           is_texas: boolean | null
           jd_raw: string | null
           jd_summary: string | null
           job_keywords: string[] | null
           last_checked_utc: string | null
           last_validated_at: string | null
+          last_verified_at: string | null
           link_extracted_at: string | null
           link_resolved_at: string | null
           link_type: string | null
@@ -153,6 +187,7 @@ export type Database = {
           salary_period: string | null
           scrape_source: string | null
           search_tsv: unknown | null
+          simplify_url: string | null
           source_url: string | null
           sponsorship_flag: string | null
           tech_stack: string[] | null
@@ -170,19 +205,23 @@ export type Database = {
           date_posted?: string | null
           deadline?: string | null
           direct_link?: string | null
+          direct_url?: string | null
           duplicate_of?: string | null
           employment_type?: string | null
           enriched_at?: string | null
           enrichment_confidence?: number | null
           extraction_attempts?: number | null
+          final_domain?: string | null
           id?: string
           is_active?: boolean | null
+          is_direct?: boolean | null
           is_texas?: boolean | null
           jd_raw?: string | null
           jd_summary?: string | null
           job_keywords?: string[] | null
           last_checked_utc?: string | null
           last_validated_at?: string | null
+          last_verified_at?: string | null
           link_extracted_at?: string | null
           link_resolved_at?: string | null
           link_type?: string | null
@@ -197,6 +236,7 @@ export type Database = {
           salary_period?: string | null
           scrape_source?: string | null
           search_tsv?: unknown | null
+          simplify_url?: string | null
           source_url?: string | null
           sponsorship_flag?: string | null
           tech_stack?: string[] | null
@@ -214,19 +254,23 @@ export type Database = {
           date_posted?: string | null
           deadline?: string | null
           direct_link?: string | null
+          direct_url?: string | null
           duplicate_of?: string | null
           employment_type?: string | null
           enriched_at?: string | null
           enrichment_confidence?: number | null
           extraction_attempts?: number | null
+          final_domain?: string | null
           id?: string
           is_active?: boolean | null
+          is_direct?: boolean | null
           is_texas?: boolean | null
           jd_raw?: string | null
           jd_summary?: string | null
           job_keywords?: string[] | null
           last_checked_utc?: string | null
           last_validated_at?: string | null
+          last_verified_at?: string | null
           link_extracted_at?: string | null
           link_resolved_at?: string | null
           link_type?: string | null
@@ -241,6 +285,7 @@ export type Database = {
           salary_period?: string | null
           scrape_source?: string | null
           search_tsv?: unknown | null
+          simplify_url?: string | null
           source_url?: string | null
           sponsorship_flag?: string | null
           tech_stack?: string[] | null
@@ -475,19 +520,23 @@ export type Database = {
           date_posted: string | null
           deadline: string | null
           direct_link: string | null
+          direct_url: string | null
           duplicate_of: string | null
           employment_type: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
           extraction_attempts: number | null
+          final_domain: string | null
           id: string
           is_active: boolean | null
+          is_direct: boolean | null
           is_texas: boolean | null
           jd_raw: string | null
           jd_summary: string | null
           job_keywords: string[] | null
           last_checked_utc: string | null
           last_validated_at: string | null
+          last_verified_at: string | null
           link_extracted_at: string | null
           link_resolved_at: string | null
           link_type: string | null
@@ -502,6 +551,7 @@ export type Database = {
           salary_period: string | null
           scrape_source: string | null
           search_tsv: unknown | null
+          simplify_url: string | null
           source_url: string | null
           sponsorship_flag: string | null
           tech_stack: string[] | null
@@ -588,19 +638,23 @@ export type Database = {
           date_posted: string | null
           deadline: string | null
           direct_link: string | null
+          direct_url: string | null
           duplicate_of: string | null
           employment_type: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
           extraction_attempts: number | null
+          final_domain: string | null
           id: string
           is_active: boolean | null
+          is_direct: boolean | null
           is_texas: boolean | null
           jd_raw: string | null
           jd_summary: string | null
           job_keywords: string[] | null
           last_checked_utc: string | null
           last_validated_at: string | null
+          last_verified_at: string | null
           link_extracted_at: string | null
           link_resolved_at: string | null
           link_type: string | null
@@ -615,6 +669,7 @@ export type Database = {
           salary_period: string | null
           scrape_source: string | null
           search_tsv: unknown | null
+          simplify_url: string | null
           source_url: string | null
           sponsorship_flag: string | null
           tech_stack: string[] | null
@@ -644,19 +699,23 @@ export type Database = {
           date_posted: string | null
           deadline: string | null
           direct_link: string | null
+          direct_url: string | null
           duplicate_of: string | null
           employment_type: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
           extraction_attempts: number | null
+          final_domain: string | null
           id: string
           is_active: boolean | null
+          is_direct: boolean | null
           is_texas: boolean | null
           jd_raw: string | null
           jd_summary: string | null
           job_keywords: string[] | null
           last_checked_utc: string | null
           last_validated_at: string | null
+          last_verified_at: string | null
           link_extracted_at: string | null
           link_resolved_at: string | null
           link_type: string | null
@@ -671,6 +730,7 @@ export type Database = {
           salary_period: string | null
           scrape_source: string | null
           search_tsv: unknown | null
+          simplify_url: string | null
           source_url: string | null
           sponsorship_flag: string | null
           tech_stack: string[] | null

@@ -7,6 +7,7 @@ import { useToast } from "@/components/ui/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { EnrichedInternshipCard } from "@/components/EnrichedInternshipCard";
+import { ResolveDirectLinks } from "@/components/ResolveDirectLinks";
 
 interface BatchResult {
   processed: number;
@@ -347,6 +348,9 @@ export default function EnrichAdminPage({ onBack }: EnrichAdminPageProps) {
             </Card>
           )}
         </div>
+
+        {/* Direct Link Resolver */}
+        <ResolveDirectLinks />
 
         {/* Job Listings */}
         <div className="space-y-4">

@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.scrape-universal-ats]
 verify_jwt = false
+
+[functions.resolve-direct-links]
+verify_jwt = false
