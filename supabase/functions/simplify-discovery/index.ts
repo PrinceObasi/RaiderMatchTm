@@ -295,19 +295,24 @@ serve(async (req) => {
     console.log(`\n✅ Successfully resolved ${successCount} direct links`)
     console.log(`⚠️ Used fallback search for ${fallbackCount} jobs`)
     
-    // Insert to database
+    // Upsert to database (idempotent)
+    let duplicates = 0
     if (processedJobs.length > 0) {
-      // Clear old data
-      await supabase.from('internships').delete().eq('scrape_source', 'simplify_discovery')
-      
-      // Insert new jobs
-      const { error } = await supabase
+      const { error, count } = await supabase
         .from('internships')
-        .insert(processedJobs)
+        .upsert(processedJobs, { 
+          onConflict: 'internships_uniq',
+          ignoreDuplicates: false
+        })
       
       if (error) {
-        console.error('Database error:', error)
+        console.error('❌ Database upsert error:', error)
+        throw error
       }
+      
+      // Estimate duplicates (total processed - rows affected if available)
+      duplicates = count !== null ? processedJobs.length - count : 0
+      console.log(`📊 Upsert complete: ${processedJobs.length} total, ~${duplicates} duplicates`)
     }
     
     // Summary
@@ -320,6 +325,7 @@ serve(async (req) => {
       texasJobs: processedJobs.filter(j => j.is_texas).length,
       companies: [...new Set(processedJobs.map(j => j.company))],
       databaseStats: dbStats,
+      dbWarnings: duplicates > 0 ? { duplicates } : {},
       topCompanies: Object.entries(
         processedJobs.reduce((acc: any, job) => {
           acc[job.company] = (acc[job.company] || 0) + 1

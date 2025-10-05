@@ -111,24 +111,34 @@ export default function EnrichAdminPage({ onBack }: EnrichAdminPageProps) {
     try {
       const response = await supabase.functions.invoke('simplify-discovery', {});
       
-      if (!response.error) {
-        setScrapeResult({
-          parsed: response.data.totalProcessed,
-          inserted: response.data.totalInserted,
-          skipped: 0
-        });
-        toast({
-          title: "SimplifyJobs Discovery Complete",
-          description: `Found ${response.data.totalInserted} internships with direct links.`,
-        });
-        refetch();
-      } else {
+      if (response.error) {
         toast({
           title: "SimplifyJobs Scrape Failed",
           description: response.error.message || "Failed to scrape SimplifyJobs",
           variant: "destructive",
         });
+        return;
       }
+      
+      if (response.data?.ok === false) {
+        toast({
+          title: "Server Error",
+          description: response.data.error || "Unknown server error",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setScrapeResult({
+        parsed: response.data.totalProcessed,
+        inserted: response.data.totalInserted,
+        skipped: 0
+      });
+      toast({
+        title: "SimplifyJobs Discovery Complete",
+        description: `Found ${response.data.totalInserted} internships with direct links.`,
+      });
+      refetch();
     } catch (error) {
       toast({
         title: "Error",
