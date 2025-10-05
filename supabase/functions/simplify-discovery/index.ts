@@ -389,9 +389,9 @@ serve(async (req) => {
           link_type: linkType,
           tech_stack: extractTechStack(job.role),
           visa_sponsorship: 'Unspecified',
-          is_texas: isTexasLocation(job.location),
+          is_texas: true, // All nationwide internships are available to Texas students
           remote_flag: job.location.toLowerCase().includes('remote'),
-          scrape_source: 'simplify_discovery',
+          scrape_source: 'simplify_jobs',
           jd_summary: null,
           date_posted: new Date().toISOString().split('T')[0],
           salary_min: null,
