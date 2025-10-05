@@ -135,7 +135,7 @@ const App = () => {
 
     if (currentView === 'scraper') {
       return (
-        <TriggerScraper onBack={() => setCurrentView('main')} />
+        <TriggerScraper />
       );
     }
 

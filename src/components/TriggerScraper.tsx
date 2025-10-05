@@ -1,31 +1,67 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
-import { TriggerSimplifyDiscovery } from './TriggerSimplifyDiscovery';
-import { ArrowLeft } from 'lucide-react';
+import { toast } from 'sonner';
 
-interface TriggerScraperProps {
-  onBack?: () => void;
-}
+export const TriggerScraper = () => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
 
-export const TriggerScraper = ({ onBack }: TriggerScraperProps) => {
+  const handleScrape = async () => {
+    setIsLoading(true);
+    try {
+      console.log('Triggering scrape-simplify function...');
+      
+      const { data, error } = await supabase.functions.invoke('scrape-simplify', {
+        body: {}
+      });
+
+      if (error) {
+        console.error('Scraper error:', error);
+        toast.error('Scraper failed: ' + error.message);
+        return;
+      }
+
+      console.log('Scraper result:', data);
+      setResult(data);
+      
+      if (data?.success) {
+        toast.success(`Scraper completed! 
+          Parsed: ${data.parsed || 0}, 
+          Relevant: ${data.relevant || 0}, 
+          Inserted: ${data.inserted || 0}, 
+          Skipped: ${data.skipped || 0}`);
+      } else {
+        toast.error('Scraper completed with errors');
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast.error('Unexpected error occurred');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      {onBack && (
-        <Button 
-          onClick={onBack} 
-          variant="ghost" 
-          className="mb-4"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" />
-          Back
-        </Button>
+    <div className="p-6 space-y-4">
+      <h2 className="text-2xl font-bold">SimplifyJobs Scraper</h2>
+      
+      <Button 
+        onClick={handleScrape} 
+        disabled={isLoading}
+        className="w-full"
+      >
+        {isLoading ? 'Scraping...' : 'Run SimplifyJobs Scraper'}
+      </Button>
+
+      {result && (
+        <div className="mt-4 p-4 bg-secondary rounded-lg">
+          <h3 className="font-semibold mb-2">Scraper Results:</h3>
+          <pre className="text-sm overflow-auto">
+            {JSON.stringify(result, null, 2)}
+          </pre>
+        </div>
       )}
-      
-      <h1 className="text-3xl font-bold mb-6">Data Scraper</h1>
-      
-      <div className="max-w-2xl">
-        <TriggerSimplifyDiscovery />
-      </div>
     </div>
   );
 };

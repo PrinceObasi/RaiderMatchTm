@@ -7,7 +7,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { EnrichedInternshipCard } from "@/components/EnrichedInternshipCard";
-import { ResolveDirectLinks } from "@/components/ResolveDirectLinks";
 
 interface BatchResult {
   processed: number;
@@ -110,36 +109,22 @@ export default function EnrichAdminPage({ onBack }: EnrichAdminPageProps) {
     setScrapeResult(null);
     
     try {
-      const response = await supabase.functions.invoke('simplify-discovery', {});
+      const response = await supabase.functions.invoke('scrape-simplify', {});
       
-      if (response.error) {
+      if (!response.error) {
+        setScrapeResult(response.data);
+        toast({
+          title: "SimplifyJobs Scrape Complete",
+          description: `Parsed ${response.data.parsed} jobs, inserted ${response.data.inserted} new ones.`,
+        });
+        refetch();
+      } else {
         toast({
           title: "SimplifyJobs Scrape Failed",
           description: response.error.message || "Failed to scrape SimplifyJobs",
           variant: "destructive",
         });
-        return;
       }
-      
-      if (response.data?.ok === false) {
-        toast({
-          title: "Server Error",
-          description: response.data.error || "Unknown server error",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      setScrapeResult({
-        parsed: response.data.totalProcessed,
-        inserted: response.data.totalInserted,
-        skipped: 0
-      });
-      toast({
-        title: "SimplifyJobs Discovery Complete",
-        description: `Found ${response.data.totalInserted} internships with direct links.`,
-      });
-      refetch();
     } catch (error) {
       toast({
         title: "Error",
@@ -348,9 +333,6 @@ export default function EnrichAdminPage({ onBack }: EnrichAdminPageProps) {
             </Card>
           )}
         </div>
-
-        {/* Direct Link Resolver */}
-        <ResolveDirectLinks />
 
         {/* Job Listings */}
         <div className="space-y-4">
