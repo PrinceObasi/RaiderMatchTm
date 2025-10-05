@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { findCompanyMapping, generateDirectUrl, getDatabaseStats, detectATSFromUrl } from '../company-mappings/database.ts'
+import { getDatabaseStats } from '../company-mappings/database.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -90,156 +90,7 @@ async function discoverJobsFromSimplify(): Promise<SimplifyJob[]> {
   }
 }
 
-// Step 2: Try to find direct link using company database or URL detection
-async function findDirectLink(job: SimplifyJob): Promise<{ url: string | null; method: string; error?: string }> {
-  // First, try company database mapping
-  const mapping = findCompanyMapping(job.company)
-  
-  if (mapping) {
-    try {
-      // Handle Greenhouse
-      if (mapping.ats_type === 'greenhouse') {
-        const url = `https://boards.greenhouse.io/${mapping.ats_identifier}`
-        const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 9000)
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          redirect: 'follow',
-          signal: controller.signal,
-          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; InternshipBot/1.0)' }
-        })
-        clearTimeout(timeout)
-        
-        if (!response.ok) return { url: null, method: 'mapping_failed', error: `HTTP ${response.status}` }
-        
-        const html = await response.text()
-        
-        // Search for the role title in the HTML
-        const roleKeywords = job.role.toLowerCase()
-          .replace('software engineering', 'software engineer')
-          .replace('swe ', 'software engineer ')
-          .split(' ')
-          .filter(word => word.length > 3)
-        
-        // Find all job links
-        const jobLinkPattern = /<a[^>]*href="(\/[^"]+)"[^>]*>(.*?)<\/a>/gi
-        let bestMatch = null
-        let bestScore = 0
-        
-        let match
-        while ((match = jobLinkPattern.exec(html)) !== null) {
-          const link = match[1]
-          const title = match[2].toLowerCase()
-          
-          // Score based on keyword matches
-          let score = 0
-          roleKeywords.forEach(keyword => {
-            if (title.includes(keyword)) score++
-          })
-          
-          if (score > bestScore && title.includes('intern')) {
-            bestScore = score
-            bestMatch = `https://boards.greenhouse.io${link}`
-          }
-        }
-        
-        return { url: bestMatch, method: 'mapping_greenhouse' }
-      }
-      
-      // Handle Lever
-      if (mapping.ats_type === 'lever') {
-        const url = `https://jobs.lever.co/${mapping.ats_identifier}`
-        const controller = new AbortController()
-        const timeout = setTimeout(() => controller.abort(), 9000)
-        
-        const response = await fetch(url, {
-          method: 'GET',
-          redirect: 'follow',
-          signal: controller.signal,
-          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; InternshipBot/1.0)' }
-        })
-        clearTimeout(timeout)
-        
-        if (!response.ok) return { url: null, method: 'mapping_failed', error: `HTTP ${response.status}` }
-        
-        const html = await response.text()
-        
-        // Similar matching logic for Lever
-        const roleKeywords = job.role.toLowerCase().split(' ').filter(word => word.length > 3)
-        const linkPattern = /<a[^>]*href="(https:\/\/jobs\.lever\.co\/[^"]+)"[^>]*>(.*?)<\/a>/gi
-        
-        let bestMatch = null
-        let bestScore = 0
-        
-        let match
-        while ((match = linkPattern.exec(html)) !== null) {
-          const link = match[1]
-          const title = match[2].toLowerCase()
-          
-          let score = 0
-          roleKeywords.forEach(keyword => {
-            if (title.includes(keyword)) score++
-          })
-          
-          if (score > bestScore && title.includes('intern')) {
-            bestScore = score
-            bestMatch = link
-          }
-        }
-        
-        return { url: bestMatch, method: 'mapping_lever' }
-      }
-      
-      // For other ATS types, use the helper function
-      const directUrl = generateDirectUrl(mapping, job.role)
-      return { url: directUrl || null, method: 'mapping_generic' }
-      
-    } catch (error: any) {
-      return { url: null, method: 'mapping_error', error: error.message }
-    }
-  }
-  
-  // If no mapping, try to detect ATS from Simplify redirect
-  try {
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 9000)
-    
-    const response = await fetch(job.simplifyLink, { 
-      method: 'GET',
-      redirect: 'follow',
-      signal: controller.signal,
-      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; InternshipBot/1.0)' }
-    })
-    clearTimeout(timeout)
-    
-    const redirectUrl = response.url !== job.simplifyLink ? response.url : null
-    if (redirectUrl) {
-      const atsInfo = detectATSFromUrl(redirectUrl)
-      if (atsInfo) {
-        console.log(`🔍 Detected ${atsInfo.ats_type} for ${job.company} from URL`)
-        
-        // Build URL based on detected ATS
-        if (atsInfo.ats_type === 'greenhouse' && atsInfo.identifier) {
-          return { url: `https://boards.greenhouse.io/${atsInfo.identifier}`, method: 'url_detection' }
-        } else if (atsInfo.ats_type === 'lever' && atsInfo.identifier) {
-          return { url: `https://jobs.lever.co/${atsInfo.identifier}`, method: 'url_detection' }
-        } else if (atsInfo.ats_type === 'ashby' && atsInfo.identifier) {
-          return { url: `https://jobs.ashbyhq.com/${atsInfo.identifier}`, method: 'url_detection' }
-        } else if (atsInfo.ats_type === 'workday' && atsInfo.identifier) {
-          return { url: redirectUrl, method: 'url_detection' }
-        } else {
-          // Use the redirect URL directly
-          return { url: redirectUrl, method: 'url_detection' }
-        }
-      }
-    }
-  } catch (error: any) {
-    return { url: null, method: 'url_error', error: error.message }
-  }
-  
-  return { url: null, method: 'no_mapping' }
-}
+// Step 2 is now handled by resolve-direct-links edge function
 
 // Concurrency limiter
 async function runWithConcurrencyLimit<T>(
@@ -267,15 +118,7 @@ async function runWithConcurrencyLimit<T>(
   return Promise.allSettled(results)
 }
 
-// Step 3: Quick fallback - Google search for career page
-async function googleSearchCareerPage(company: string, role: string): Promise<string | null> {
-  try {
-    const query = encodeURIComponent(`${company} careers ${role} intern apply`)
-    return `https://www.google.com/search?q=${query}&btnI=1`
-  } catch (error) {
-    return null
-  }
-}
+// Step 3: Fallback is now handled by resolve-direct-links edge function
 
 // Helper functions
 function isTexasLocation(location: string): boolean {
@@ -343,50 +186,16 @@ serve(async (req) => {
     console.log(`\n🔍 Processing ${simplifyJobs.length} jobs...`)
     
     const processedJobs = []
-    let successCount = 0
-    let fallbackCount = 0
-    const fallbackCompanies: Map<string, number> = new Map()
-    const methodStats: Map<string, number> = new Map()
     
-    // Process with concurrency limit
-    const jobsToProcess = simplifyJobs.slice(0, 200)
-    const results = await runWithConcurrencyLimit(jobsToProcess, async (job) => {
+    // Process jobs (no concurrency needed, just map the data)
+    for (const job of simplifyJobs) {
       try {
-        // Try to find direct link
-        const result = await findDirectLink(job)
-        let directLink = result.url
-        let linkType = 'direct'
-        
-        // Track method
-        methodStats.set(result.method, (methodStats.get(result.method) || 0) + 1)
-        
-        // If error occurred, log it
-        if (result.error && errors.length < 20) {
-          errors.push(`${job.company}: ${result.error}`)
-        }
-        
-        // If no direct link found, use fallback
-        if (!directLink) {
-          directLink = await googleSearchCareerPage(job.company, job.role)
-          linkType = 'search'
-          fallbackCount++
-          fallbackCompanies.set(job.company, (fallbackCompanies.get(job.company) || 0) + 1)
-        } else {
-          successCount++
-        }
-        
-        // If still no link, skip this job
-        if (!directLink) {
-          return null
-        }
-        
-        return {
+        processedJobs.push({
           company: job.company,
           role_title: job.role,
           location: job.location,
-          application_link: directLink,
-          direct_link: directLink,
-          link_type: linkType,
+          simplify_url: job.simplifyLink,
+          application_link: job.simplifyLink,
           tech_stack: extractTechStack(job.role),
           visa_sponsorship: 'Unspecified',
           is_texas: true, // All nationwide internships are available to Texas students
@@ -397,49 +206,24 @@ serve(async (req) => {
           salary_min: null,
           salary_max: null,
           is_active: true
-        }
+        })
       } catch (error: any) {
         if (errors.length < 20) {
           errors.push(`${job.company}: ${error.message}`)
         }
-        return null
-      }
-    }, 10) // Concurrency limit of 10
-    
-    // Collect successful results
-    for (const result of results) {
-      if (result.status === 'fulfilled' && result.value) {
-        processedJobs.push(result.value)
       }
     }
     
-    console.log(`\n✅ Successfully resolved ${successCount} direct links`)
-    console.log(`⚠️ Used fallback search for ${fallbackCount} jobs`)
+    console.log(`\n✅ Processed ${processedJobs.length} jobs with Simplify URLs`)
     
-    // Log method breakdown
-    console.log(`\n📊 Resolution methods:`)
-    for (const [method, count] of methodStats.entries()) {
-      console.log(`   ${method}: ${count}`)
-    }
-    
-    // Log top 10 fallback companies
-    if (fallbackCompanies.size > 0) {
-      const topFallbacks = Array.from(fallbackCompanies.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 10)
-      console.log(`\n🔝 Top 10 companies using fallback:`)
-      topFallbacks.forEach(([company, count]) => {
-        console.log(`   ${company}: ${count} jobs`)
-      })
-    }
-    
-    // Insert to database (using upsert for safety)
+    // Insert to database (using upsert on simplify_url)
     let duplicates = 0
     if (processedJobs.length > 0) {
       try {
         const { error } = await supabase
           .from('internships')
           .upsert(processedJobs, { 
+            onConflict: 'simplify_url',
             ignoreDuplicates: false
           })
         
@@ -463,12 +247,15 @@ serve(async (req) => {
       success: true,
       totalProcessed: simplifyJobs.length,
       totalInserted: processedJobs.length,
-      directLinksFound: successCount,
-      fallbacksUsed: fallbackCount,
       texasJobs: processedJobs.filter(j => j.is_texas).length,
       companies: [...new Set(processedJobs.map(j => j.company))],
       databaseStats: dbStats,
       errors: errors.slice(0, 20),
+      sampleJobs: processedJobs.slice(0, 10).map(j => ({
+        company: j.company,
+        role_title: j.role_title,
+        simplify_url: j.simplify_url
+      })),
       topCompanies: Object.entries(
         processedJobs.reduce((acc: any, job) => {
           acc[job.company] = (acc[job.company] || 0) + 1
