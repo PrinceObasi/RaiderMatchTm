@@ -1,63 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-
-// Known company -> career site mappings
-const COMPANY_CAREER_MAPPINGS: Record<string, any> = {
-  // Greenhouse boards
-  "Stripe": { type: "greenhouse", slug: "stripe" },
-  "Coinbase": { type: "greenhouse", slug: "coinbase" },
-  "Databricks": { type: "greenhouse", slug: "databricks" },
-  "Uber": { type: "greenhouse", slug: "uber" },
-  "Airbnb": { type: "greenhouse", slug: "airbnb" },
-  "Figma": { type: "greenhouse", slug: "figma" },
-  "Discord": { type: "greenhouse", slug: "discord" },
-  "Roblox": { type: "greenhouse", slug: "roblox" },
-  "Scale AI": { type: "greenhouse", slug: "scaleai" },
-  "Anthropic": { type: "greenhouse", slug: "anthropic" },
-  "Chime": { type: "greenhouse", slug: "chime" },
-  "Brex": { type: "greenhouse", slug: "brex" },
-  "Plaid": { type: "greenhouse", slug: "plaid" },
-  "Nuro": { type: "greenhouse", slug: "nuro" },
-  "Samsara": { type: "greenhouse", slug: "samsara" },
-  "Affirm": { type: "greenhouse", slug: "affirm" },
-  "Indeed": { type: "greenhouse", slug: "indeed" },
-  "Capital One": { type: "greenhouse", slug: "capitalone" },
-  
-  // Lever boards
-  "Netflix": { type: "lever", slug: "netflix" },
-  "Spotify": { type: "lever", slug: "spotify" },
-  "Snap": { type: "lever", slug: "snap" },
-  "Block": { type: "lever", slug: "block" },
-  "Square": { type: "lever", slug: "block" },
-  "Twitch": { type: "lever", slug: "twitch" },
-  "Reddit": { type: "lever", slug: "reddit" },
-  "Palantir": { type: "lever", slug: "palantir" },
-  "Yelp": { type: "lever", slug: "yelp" },
-  "Instacart": { type: "lever", slug: "instacart" },
-  "Gusto": { type: "lever", slug: "gusto" },
-  "Convoy": { type: "lever", slug: "convoy" },
-  
-  // Custom career sites with search
-  "Microsoft": { type: "custom", searchUrl: "https://careers.microsoft.com/v2/global/en/search-results.html?keywords=" },
-  "Google": { type: "custom", searchUrl: "https://www.google.com/about/careers/applications/jobs/results/?q=" },
-  "Meta": { type: "custom", searchUrl: "https://www.metacareers.com/jobs?q=" },
-  "Facebook": { type: "custom", searchUrl: "https://www.metacareers.com/jobs?q=" },
-  "Apple": { type: "custom", searchUrl: "https://jobs.apple.com/en-us/search?search=" },
-  "Amazon": { type: "custom", searchUrl: "https://www.amazon.jobs/en/search?base_query=" },
-  "Tesla": { type: "custom", searchUrl: "https://www.tesla.com/careers/search/?query=" },
-  "Oracle": { type: "custom", searchUrl: "https://careers.oracle.com/jobs/#en/sites/jobsearch/requisitions?keyword=" },
-  "IBM": { type: "custom", searchUrl: "https://careers.ibm.com/job-search?query=" },
-  "Intel": { type: "custom", searchUrl: "https://jobs.intel.com/en/search-jobs/" },
-  "Adobe": { type: "custom", searchUrl: "https://careers.adobe.com/us/en/search-results?keywords=" },
-  "Salesforce": { type: "custom", searchUrl: "https://careers.salesforce.com/en/jobs/?search=" },
-  
-  // Workday systems
-  "Nvidia": { type: "workday", company: "NVIDIA", tenant: "nvidia" },
-  "AMD": { type: "workday", company: "AMD", tenant: "amd" },
-  "Qualcomm": { type: "workday", company: "Qualcomm", tenant: "qualcomm" },
-  "Visa": { type: "workday", company: "Visa", tenant: "visa" },
-  "ServiceNow": { type: "workday", company: "ServiceNow", tenant: "servicenow" }
-}
+import { findCompanyMapping, generateDirectUrl, getDatabaseStats } from '../company-mappings/database.ts'
 
 interface SimplifyJob {
   company: string
@@ -122,10 +65,9 @@ async function discoverJobsFromSimplify(): Promise<SimplifyJob[]> {
   return jobs
 }
 
-// Step 2: Try to find direct link on company career page
+// Step 2: Try to find direct link using company database
 async function findDirectLink(job: SimplifyJob): Promise<string | null> {
-  const mapping = COMPANY_CAREER_MAPPINGS[job.company] || 
-                  COMPANY_CAREER_MAPPINGS[job.company.split(' ')[0]] // Try first word only
+  const mapping = findCompanyMapping(job.company)
   
   if (!mapping) {
     console.log(`❌ No mapping for ${job.company}`)
@@ -134,8 +76,8 @@ async function findDirectLink(job: SimplifyJob): Promise<string | null> {
   
   try {
     // Handle Greenhouse
-    if (mapping.type === 'greenhouse') {
-      const url = `https://boards.greenhouse.io/${mapping.slug}`
+    if (mapping.ats_type === 'greenhouse') {
+      const url = `https://boards.greenhouse.io/${mapping.ats_identifier}`
       const response = await fetch(url)
       if (!response.ok) return null
       
@@ -146,7 +88,7 @@ async function findDirectLink(job: SimplifyJob): Promise<string | null> {
         .replace('software engineering', 'software engineer')
         .replace('swe ', 'software engineer ')
         .split(' ')
-        .filter(word => word.length > 3) // Filter short words
+        .filter(word => word.length > 3)
       
       // Find all job links
       const jobLinkPattern = /<a[^>]*href="(\/[^"]+)"[^>]*>(.*?)<\/a>/gi
@@ -174,8 +116,8 @@ async function findDirectLink(job: SimplifyJob): Promise<string | null> {
     }
     
     // Handle Lever
-    if (mapping.type === 'lever') {
-      const url = `https://jobs.lever.co/${mapping.slug}`
+    if (mapping.ats_type === 'lever') {
+      const url = `https://jobs.lever.co/${mapping.ats_identifier}`
       const response = await fetch(url)
       if (!response.ok) return null
       
@@ -207,17 +149,8 @@ async function findDirectLink(job: SimplifyJob): Promise<string | null> {
       return bestMatch
     }
     
-    // Handle custom career sites (return search URL)
-    if (mapping.type === 'custom' && mapping.searchUrl) {
-      // For these, we return a search URL that will show relevant results
-      const searchQuery = encodeURIComponent(`${job.role} intern 2026`)
-      return `${mapping.searchUrl}${searchQuery}`
-    }
-    
-    // Handle Workday (return general careers page)
-    if (mapping.type === 'workday') {
-      return `https://${mapping.tenant}.wd1.myworkdayjobs.com/en-US/${mapping.company}`
-    }
+    // For other ATS types, use the helper function
+    return generateDirectUrl(mapping, job.role)
     
   } catch (error: any) {
     console.log(`⚠️ Error finding link for ${job.company}: ${error.message}`)
@@ -229,9 +162,8 @@ async function findDirectLink(job: SimplifyJob): Promise<string | null> {
 // Step 3: Quick fallback - Google search for career page
 async function googleSearchCareerPage(company: string, role: string): Promise<string | null> {
   try {
-    // Build a Google search URL (users will need to click through)
     const query = encodeURIComponent(`${company} careers ${role} intern apply`)
-    return `https://www.google.com/search?q=${query}&btnI=1` // I'm Feeling Lucky
+    return `https://www.google.com/search?q=${query}&btnI=1`
   } catch (error) {
     return null
   }
@@ -268,6 +200,12 @@ serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
     const supabase = createClient(supabaseUrl, supabaseKey)
     
+    // Log database stats
+    const dbStats = getDatabaseStats()
+    console.log(`📊 Company database: ${dbStats.total} companies`)
+    console.log(`   Greenhouse: ${dbStats.byATS.greenhouse}, Lever: ${dbStats.byATS.lever}, Ashby: ${dbStats.byATS.ashby}`)
+    console.log(`   Workday: ${dbStats.byATS.workday}, Custom: ${dbStats.byATS.custom}`)
+    
     // Step 1: Discover jobs from SimplifyJobs
     const simplifyJobs = await discoverJobsFromSimplify()
     
@@ -279,7 +217,7 @@ serve(async (req) => {
     
     // Process in batches to avoid overwhelming servers
     const batchSize = 10
-    for (let i = 0; i < Math.min(simplifyJobs.length, 200); i += batchSize) { // Limit to 200 for quick launch
+    for (let i = 0; i < Math.min(simplifyJobs.length, 200); i += batchSize) {
       const batch = simplifyJobs.slice(i, i + batchSize)
       
       const batchPromises = batch.map(async (job) => {
@@ -364,6 +302,7 @@ serve(async (req) => {
       fallbacksUsed: fallbackCount,
       texasJobs: processedJobs.filter(j => j.is_texas).length,
       companies: [...new Set(processedJobs.map(j => j.company))],
+      databaseStats: dbStats,
       topCompanies: Object.entries(
         processedJobs.reduce((acc: any, job) => {
           acc[job.company] = (acc[job.company] || 0) + 1
