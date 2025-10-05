@@ -2,6 +2,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 import { findCompanyMapping, generateDirectUrl, getDatabaseStats } from '../company-mappings/database.ts'
 
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+}
+
 interface SimplifyJob {
   company: string
   role: string
@@ -12,7 +17,7 @@ interface SimplifyJob {
 
 // Step 1: Scrape SimplifyJobs to discover what's available
 async function discoverJobsFromSimplify(): Promise<SimplifyJob[]> {
-  console.log("📡 Fetching SimplifyJobs data...")
+  console.log("📡 Fetching SimplifyJobs 2026 data...")
   
   const response = await fetch('https://raw.githubusercontent.com/SimplifyJobs/Summer2026-Internships/dev/README.md')
   if (!response.ok) {
@@ -65,7 +70,10 @@ async function discoverJobsFromSimplify(): Promise<SimplifyJob[]> {
     }
   }
   
-  console.log(`✅ Found ${jobs.length} jobs on SimplifyJobs`)
+  console.log(`✅ Found ${jobs.length} jobs on SimplifyJobs 2026`)
+  if (jobs.length > 0) {
+    console.log(`📋 Sample companies: ${jobs.slice(0, 3).map(j => j.company).join(', ')}`)
+  }
   return jobs
 }
 
@@ -199,6 +207,11 @@ function extractTechStack(role: string): string[] {
 }
 
 serve(async (req) => {
+  // Handle CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response(null, { status: 204, headers: corsHeaders })
+  }
+
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -251,7 +264,7 @@ serve(async (req) => {
           direct_link: directLink,
           link_type: linkType,
           tech_stack: extractTechStack(job.role),
-          visa_sponsorship: null,
+          visa_sponsorship: 'Unspecified',
           is_texas: isTexasLocation(job.location),
           remote_flag: job.location.toLowerCase().includes('remote'),
           scrape_source: 'simplify_discovery',
@@ -319,15 +332,18 @@ serve(async (req) => {
     }
     
     return new Response(
-      JSON.stringify(summary),
-      { headers: { 'Content-Type': 'application/json' } }
+      JSON.stringify({ ok: true, ...summary }),
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
     
   } catch (error: any) {
-    console.error('Error:', error)
+    console.error('❌ Discovery error:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { 'Content-Type': 'application/json' } }
+      JSON.stringify({ ok: false, error: error.message }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      }
     )
   }
 })

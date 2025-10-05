@@ -20,21 +20,26 @@ export const TriggerSimplifyDiscovery = () => {
 
       if (error) {
         console.error('Discovery scraper error:', error);
-        toast.error('Discovery scraper failed: ' + error.message);
+        toast.error(`Scraper failed: ${error.message || 'Unknown error'}`);
         return;
       }
 
       console.log('Discovery scraper result:', data);
       setResult(data);
       
-      if (data?.success) {
+      if (data?.ok === false) {
+        toast.error(`Server error: ${data.error || 'Unknown error'}`);
+        return;
+      }
+      
+      if (data?.totalInserted > 0) {
         toast.success(`Discovery complete! 
-          Found: ${data.totalInserted || 0} direct links
+          Found: ${data.totalInserted || 0} jobs
           Direct: ${data.directLinksFound || 0}
           Fallback: ${data.fallbacksUsed || 0}
           Texas: ${data.texasJobs || 0}`);
       } else {
-        toast.error('Discovery completed with errors');
+        toast.error(`No jobs found. Check if source data is available.`);
       }
     } catch (error) {
       console.error('Unexpected error:', error);
