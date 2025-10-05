@@ -55,10 +55,11 @@ export function Analytics() {
     try {
       // Load job application analytics
       const { data: jobData, error: jobError } = await supabase
-        .from('application_clicks')
+        .from('applications')
         .select(`
           job_id,
-          apply_url,
+          user_id,
+          applied_at,
           jobs:job_id (
             title,
             company,
@@ -71,10 +72,11 @@ export function Analytics() {
 
       // Load internship application analytics  
       const { data: internshipData, error: internshipError } = await supabase
-        .from('application_clicks')
+        .from('applications')
         .select(`
           internship_id,
-          apply_url,
+          user_id,
+          applied_at,
           internships:internship_id (
             role_title,
             company,
@@ -93,21 +95,21 @@ export function Analytics() {
         lastApplied: string;
       }>();
 
-      jobData?.forEach((click: any) => {
-        const jobId = click.job_id;
+      jobData?.forEach((app: any) => {
+        const jobId = app.job_id;
         if (!jobStatsMap.has(jobId)) {
           jobStatsMap.set(jobId, {
-            job: click.jobs,
+            job: app.jobs,
             count: 0,
             applicants: new Set(),
-            lastApplied: click.clicked_at
+            lastApplied: app.applied_at
           });
         }
         const stat = jobStatsMap.get(jobId)!;
         stat.count++;
-        stat.applicants.add(click.user_id);
-        if (click.clicked_at > stat.lastApplied) {
-          stat.lastApplied = click.clicked_at;
+        stat.applicants.add(app.user_id);
+        if (app.applied_at > stat.lastApplied) {
+          stat.lastApplied = app.applied_at;
         }
       });
 
@@ -131,21 +133,21 @@ export function Analytics() {
         lastApplied: string;
       }>();
 
-      internshipData?.forEach((click: any) => {
-        const internshipId = click.internship_id;
+      internshipData?.forEach((app: any) => {
+        const internshipId = app.internship_id;
         if (!internshipStatsMap.has(internshipId)) {
           internshipStatsMap.set(internshipId, {
-            internship: click.internships,
+            internship: app.internships,
             count: 0,
             applicants: new Set(),
-            lastApplied: click.clicked_at
+            lastApplied: app.applied_at
           });
         }
         const stat = internshipStatsMap.get(internshipId)!;
         stat.count++;
-        stat.applicants.add(click.user_id);
-        if (click.clicked_at > stat.lastApplied) {
-          stat.lastApplied = click.clicked_at;
+        stat.applicants.add(app.user_id);
+        if (app.applied_at > stat.lastApplied) {
+          stat.lastApplied = app.applied_at;
         }
       });
 
@@ -168,8 +170,8 @@ export function Analytics() {
         applicants: Set<string>;
       }>();
 
-      [...(jobData || []), ...(internshipData || [])].forEach((click: any) => {
-        const company = click.jobs?.company || click.internships?.company;
+      [...(jobData || []), ...(internshipData || [])].forEach((app: any) => {
+        const company = app.jobs?.company || app.internships?.company;
         if (!company) return;
         
         if (!companyStatsMap.has(company)) {
@@ -182,12 +184,12 @@ export function Analytics() {
         
         const stat = companyStatsMap.get(company)!;
         stat.count++;
-        stat.applicants.add(click.user_id);
+        stat.applicants.add(app.user_id);
         
-        if (click.jobs) {
-          stat.roles.add(click.jobs.title);
-        } else if (click.internships) {
-          stat.roles.add(click.internships.role_title);
+        if (app.jobs) {
+          stat.roles.add(app.jobs.title);
+        } else if (app.internships) {
+          stat.roles.add(app.internships.role_title);
         }
       });
 
@@ -207,8 +209,8 @@ export function Analytics() {
         applicants: Set<string>;
       }>();
 
-      [...(jobData || []), ...(internshipData || [])].forEach((click: any) => {
-        const location = click.jobs?.city || click.internships?.location;
+      [...(jobData || []), ...(internshipData || [])].forEach((app: any) => {
+        const location = app.jobs?.city || app.internships?.location;
         if (!location) return;
         
         if (!locationStatsMap.has(location)) {
@@ -221,9 +223,9 @@ export function Analytics() {
         
         const stat = locationStatsMap.get(location)!;
         stat.count++;
-        stat.applicants.add(click.user_id);
+        stat.applicants.add(app.user_id);
         
-        const company = click.jobs?.company || click.internships?.company;
+        const company = app.jobs?.company || app.internships?.company;
         if (company) {
           stat.companies.add(company);
         }

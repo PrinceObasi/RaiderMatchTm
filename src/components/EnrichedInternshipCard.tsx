@@ -13,12 +13,18 @@ interface EnrichedInternshipCardProps {
     company: string;
     role_title: string | null;
     location: string | null;
+    locations?: string[] | null;
+    work_mode?: string | null;
     tech_stack: string[] | null;
     visa_sponsorship: 'Yes' | 'No' | 'Unspecified';
     application_link: string;
+    direct_link?: string | null;
     date_posted: string | null;
     deadline: string | null;
     jd_summary?: string | null;
+    description_html?: string | null;
+    requirements?: string[] | null;
+    responsibilities?: string[] | null;
     salary_min?: number | null;
     salary_max?: number | null;
     salary_period?: string | null;
@@ -35,16 +41,18 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
   const handleEnrich = async () => {
     setIsEnriching(true);
     try {
-      const response = await supabase.functions.invoke('enrich-internship', {
-        body: { id: internship.id }
+      const response = await supabase.functions.invoke('enrich-from-simplify', {
+        body: { 
+          simplify_url: internship.application_link,
+          internship_id: internship.id 
+        }
       });
 
       if (!response.error) {
         toast({
           title: "Enrichment Complete",
-          description: "Job description has been updated with detailed information.",
+          description: "Job details loaded successfully from Simplify.",
         });
-        // Reload page to show updated data
         window.location.reload();
       } else {
         toast({
@@ -83,11 +91,15 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
   };
 
   const salaryBadge = formatSalary(internship.salary_min, internship.salary_max, internship.salary_period);
+  
+  const displayLocations = internship.locations && internship.locations.length > 0 
+    ? internship.locations 
+    : (internship.location ? [internship.location] : []);
 
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader className="pb-3">
-        <div className="flex items-start justify-between">
+        <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <CardTitle className="text-lg font-semibold text-foreground mb-1">
               {internship.role_title || 'Software Engineering Intern'}
@@ -95,7 +107,7 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
             <p className="text-muted-foreground font-medium">{internship.company}</p>
           </div>
           {salaryBadge && (
-            <Badge variant="secondary" className="ml-2 font-medium">
+            <Badge variant="secondary" className="ml-2 font-medium shrink-0">
               {salaryBadge}
             </Badge>
           )}
@@ -103,12 +115,23 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
       </CardHeader>
       
       <CardContent className="space-y-4">
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          {internship.location && (
+        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+          {displayLocations.length > 0 && displayLocations[0] !== 'United States' && (
             <div className="flex items-center gap-1">
               <MapPin className="h-4 w-4" />
-              <span>{internship.location}</span>
+              <span>
+                {displayLocations[0]}
+                {displayLocations.length > 1 && (
+                  <span className="text-xs ml-1">+{displayLocations.length - 1} more</span>
+                )}
+              </span>
             </div>
+          )}
+          
+          {internship.work_mode && (
+            <Badge variant="outline" className="text-xs">
+              {internship.work_mode}
+            </Badge>
           )}
           
           {internship.date_posted && (
@@ -125,13 +148,27 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
           </div>
         ) : (
           <div className="text-sm text-muted-foreground italic">
-            No description available - click "Get Details" to load job details
+            No description available - click "Get Details" to load full job details from Simplify
+          </div>
+        )}
+
+        {internship.requirements && internship.requirements.length > 0 && (
+          <div className="space-y-2">
+            <p className="text-sm font-semibold text-foreground">Requirements:</p>
+            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
+              {internship.requirements.slice(0, 3).map((req, idx) => (
+                <li key={idx} className="line-clamp-1">{req}</li>
+              ))}
+              {internship.requirements.length > 3 && (
+                <li className="text-xs italic">+{internship.requirements.length - 3} more requirements</li>
+              )}
+            </ul>
           </div>
         )}
 
         {internship.enriched_at && (
           <div className="text-xs text-muted-foreground">
-            Updated {formatDistanceToNow(new Date(internship.enriched_at), { addSuffix: true })}
+            Enriched {formatDistanceToNow(new Date(internship.enriched_at), { addSuffix: true })}
           </div>
         )}
 
@@ -150,8 +187,8 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
           </div>
         )}
 
-        <div className="flex items-center justify-between pt-2">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between pt-2 gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             {internship.visa_sponsorship === 'Yes' && (
               <Badge variant="default">Visa Sponsorship</Badge>
             )}
@@ -162,8 +199,8 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
             )}
           </div>
           
-          <div className="flex gap-2">
-            {!internship.jd_summary && (
+          <div className="flex gap-2 shrink-0">
+            {!internship.enriched_at && (
               <Button
                 variant="outline"
                 size="sm"
