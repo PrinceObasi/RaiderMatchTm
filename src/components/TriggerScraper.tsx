@@ -2,8 +2,15 @@ import React, { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { TriggerUniversalScraper } from './TriggerUniversalScraper';
+import { ArrowLeft } from 'lucide-react';
 
-export const TriggerScraper = () => {
+interface TriggerScraperProps {
+  onBack?: () => void;
+}
+
+export const TriggerScraper = ({ onBack }: TriggerScraperProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<any>(null);
 
@@ -43,25 +50,50 @@ export const TriggerScraper = () => {
   };
 
   return (
-    <div className="p-6 space-y-4">
-      <h2 className="text-2xl font-bold">SimplifyJobs Scraper</h2>
-      
-      <Button 
-        onClick={handleScrape} 
-        disabled={isLoading}
-        className="w-full"
-      >
-        {isLoading ? 'Scraping...' : 'Run SimplifyJobs Scraper'}
-      </Button>
-
-      {result && (
-        <div className="mt-4 p-4 bg-secondary rounded-lg">
-          <h3 className="font-semibold mb-2">Scraper Results:</h3>
-          <pre className="text-sm overflow-auto">
-            {JSON.stringify(result, null, 2)}
-          </pre>
-        </div>
+    <div className="container mx-auto p-6 space-y-6">
+      {onBack && (
+        <Button 
+          onClick={onBack} 
+          variant="ghost" 
+          className="mb-4"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back
+        </Button>
       )}
+      
+      <h1 className="text-3xl font-bold mb-6">Data Scrapers</h1>
+      
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>SimplifyJobs GitHub Scraper</CardTitle>
+            <CardDescription>
+              Scrapes internship data from the SimplifyJobs GitHub repository (redirect links)
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button 
+              onClick={handleScrape} 
+              disabled={isLoading}
+              className="w-full"
+            >
+              {isLoading ? 'Scraping...' : 'Run SimplifyJobs Scraper'}
+            </Button>
+
+            {result && (
+              <div className="mt-4 p-4 bg-secondary rounded-lg">
+                <h3 className="font-semibold mb-2">Results:</h3>
+                <pre className="text-sm overflow-auto max-h-64">
+                  {JSON.stringify(result, null, 2)}
+                </pre>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        <TriggerUniversalScraper />
+      </div>
     </div>
   );
 };

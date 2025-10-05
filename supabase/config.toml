@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.scrape-simplify]
 verify_jwt = false
+
+[functions.scrape-universal-ats]
+verify_jwt = false
