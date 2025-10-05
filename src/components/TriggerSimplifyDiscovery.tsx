@@ -28,18 +28,27 @@ export const TriggerSimplifyDiscovery = () => {
       setResult(data);
       
       if (data?.ok === false) {
-        toast.error(`Server error: ${data.error || 'Unknown error'}`);
+        const errorMsg = data.errors?.[0] || data.error || 'Unknown error';
+        toast.error(`Server error: ${errorMsg}`);
         return;
       }
       
       if (data?.totalInserted > 0) {
-        toast.success(`Discovery complete! 
+        const hasErrors = data.errors && data.errors.length > 0;
+        const message = `Discovery complete! 
           Found: ${data.totalInserted || 0} jobs
           Direct: ${data.directLinksFound || 0}
           Fallback: ${data.fallbacksUsed || 0}
-          Texas: ${data.texasJobs || 0}`);
+          Texas: ${data.texasJobs || 0}${hasErrors ? `\n⚠️ ${data.errors.length} errors` : ''}`;
+        
+        if (hasErrors) {
+          toast.warning(message);
+        } else {
+          toast.success(message);
+        }
       } else {
-        toast.error(`No jobs found. Check if source data is available.`);
+        const errorMsg = data?.errors?.[0] || 'No jobs found. Check if source data is available.';
+        toast.error(errorMsg);
       }
     } catch (error) {
       console.error('Unexpected error:', error);

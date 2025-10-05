@@ -19,13 +19,22 @@ interface SimplifyJob {
 async function discoverJobsFromSimplify(): Promise<SimplifyJob[]> {
   console.log("📡 Fetching SimplifyJobs 2026 data...")
   
-  const response = await fetch('https://raw.githubusercontent.com/SimplifyJobs/Summer2026-Internships/dev/README.md')
-  if (!response.ok) {
-    throw new Error('Failed to fetch SimplifyJobs data')
-  }
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), 9000)
   
-  const markdown = await response.text()
-  const jobs: SimplifyJob[] = []
+  try {
+    const response = await fetch('https://raw.githubusercontent.com/SimplifyJobs/Summer2026-Internships/dev/README.md', {
+      signal: controller.signal,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; InternshipBot/1.0)' }
+    })
+    clearTimeout(timeout)
+    
+    if (!response.ok) {
+      throw new Error(`GitHub fetch failed: ${response.status}`)
+    }
+  
+    const markdown = await response.text()
+    const jobs: SimplifyJob[] = []
   
   // Parse HTML tables (new format in 2026 README)
   // We scan all <tr> rows and extract: Company, Role, Location, Simplify link
@@ -69,16 +78,20 @@ async function discoverJobsFromSimplify(): Promise<SimplifyJob[]> {
       jobs.push({ company, role, location, simplifyLink })
     }
   }
-  
-  console.log(`✅ Found ${jobs.length} jobs on SimplifyJobs 2026`)
-  if (jobs.length > 0) {
-    console.log(`📋 Sample companies: ${jobs.slice(0, 3).map(j => j.company).join(', ')}`)
+    
+    console.log(`✅ Found ${jobs.length} jobs on SimplifyJobs 2026`)
+    if (jobs.length > 0) {
+      console.log(`📋 Sample companies: ${jobs.slice(0, 3).map(j => j.company).join(', ')}`)
+    }
+    return jobs
+  } catch (error: any) {
+    clearTimeout(timeout)
+    throw new Error(`GitHub fetch error: ${error.message}`)
   }
-  return jobs
 }
 
 // Step 2: Try to find direct link using company database or URL detection
-async function findDirectLink(job: SimplifyJob): Promise<{ url: string | null; method: string }> {
+async function findDirectLink(job: SimplifyJob): Promise<{ url: string | null; method: string; error?: string }> {
   // First, try company database mapping
   const mapping = findCompanyMapping(job.company)
   
@@ -87,8 +100,18 @@ async function findDirectLink(job: SimplifyJob): Promise<{ url: string | null; m
       // Handle Greenhouse
       if (mapping.ats_type === 'greenhouse') {
         const url = `https://boards.greenhouse.io/${mapping.ats_identifier}`
-        const response = await fetch(url)
-        if (!response.ok) return { url: null, method: 'mapping_failed' }
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 9000)
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          redirect: 'follow',
+          signal: controller.signal,
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; InternshipBot/1.0)' }
+        })
+        clearTimeout(timeout)
+        
+        if (!response.ok) return { url: null, method: 'mapping_failed', error: `HTTP ${response.status}` }
         
         const html = await response.text()
         
@@ -127,8 +150,18 @@ async function findDirectLink(job: SimplifyJob): Promise<{ url: string | null; m
       // Handle Lever
       if (mapping.ats_type === 'lever') {
         const url = `https://jobs.lever.co/${mapping.ats_identifier}`
-        const response = await fetch(url)
-        if (!response.ok) return { url: null, method: 'mapping_failed' }
+        const controller = new AbortController()
+        const timeout = setTimeout(() => controller.abort(), 9000)
+        
+        const response = await fetch(url, {
+          method: 'GET',
+          redirect: 'follow',
+          signal: controller.signal,
+          headers: { 'User-Agent': 'Mozilla/5.0 (compatible; InternshipBot/1.0)' }
+        })
+        clearTimeout(timeout)
+        
+        if (!response.ok) return { url: null, method: 'mapping_failed', error: `HTTP ${response.status}` }
         
         const html = await response.text()
         
@@ -163,19 +196,24 @@ async function findDirectLink(job: SimplifyJob): Promise<{ url: string | null; m
       return { url: directUrl || null, method: 'mapping_generic' }
       
     } catch (error: any) {
-      console.log(`⚠️ Error with mapping for ${job.company}: ${error.message}`)
-      return { url: null, method: 'mapping_error' }
+      return { url: null, method: 'mapping_error', error: error.message }
     }
   }
   
   // If no mapping, try to detect ATS from Simplify redirect
   try {
-    const response = await fetch(job.simplifyLink, { 
-      redirect: 'manual',
-      headers: { 'User-Agent': 'Mozilla/5.0' }
-    })
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 9000)
     
-    const redirectUrl = response.headers.get('location')
+    const response = await fetch(job.simplifyLink, { 
+      method: 'GET',
+      redirect: 'follow',
+      signal: controller.signal,
+      headers: { 'User-Agent': 'Mozilla/5.0 (compatible; InternshipBot/1.0)' }
+    })
+    clearTimeout(timeout)
+    
+    const redirectUrl = response.url !== job.simplifyLink ? response.url : null
     if (redirectUrl) {
       const atsInfo = detectATSFromUrl(redirectUrl)
       if (atsInfo) {
@@ -197,10 +235,36 @@ async function findDirectLink(job: SimplifyJob): Promise<{ url: string | null; m
       }
     }
   } catch (error: any) {
-    // Silently fail URL detection attempts
+    return { url: null, method: 'url_error', error: error.message }
   }
   
   return { url: null, method: 'no_mapping' }
+}
+
+// Concurrency limiter
+async function runWithConcurrencyLimit<T>(
+  items: T[],
+  fn: (item: T) => Promise<any>,
+  limit: number
+): Promise<any[]> {
+  const results: any[] = []
+  const executing: Promise<any>[] = []
+  
+  for (const item of items) {
+    const promise = fn(item).then(result => {
+      executing.splice(executing.indexOf(promise), 1)
+      return result
+    })
+    
+    results.push(promise)
+    executing.push(promise)
+    
+    if (executing.length >= limit) {
+      await Promise.race(executing)
+    }
+  }
+  
+  return Promise.allSettled(results)
 }
 
 // Step 3: Quick fallback - Google search for career page
@@ -244,6 +308,8 @@ serve(async (req) => {
     return new Response(null, { status: 204, headers: corsHeaders })
   }
 
+  const errors: string[] = []
+  
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -256,7 +322,23 @@ serve(async (req) => {
     console.log(`   Workday: ${dbStats.byATS.workday}, Custom: ${dbStats.byATS.custom}`)
     
     // Step 1: Discover jobs from SimplifyJobs
-    const simplifyJobs = await discoverJobsFromSimplify()
+    let simplifyJobs: SimplifyJob[] = []
+    try {
+      simplifyJobs = await discoverJobsFromSimplify()
+    } catch (error: any) {
+      const errMsg = `GitHub fetch failed: ${error.message}`
+      errors.push(errMsg)
+      console.error('❌', errMsg)
+      return new Response(
+        JSON.stringify({ 
+          ok: false, 
+          success: false,
+          error: errMsg,
+          errors: [errMsg]
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
     
     console.log(`\n🔍 Processing ${simplifyJobs.length} jobs...`)
     
@@ -266,12 +348,10 @@ serve(async (req) => {
     const fallbackCompanies: Map<string, number> = new Map()
     const methodStats: Map<string, number> = new Map()
     
-    // Process in batches to avoid overwhelming servers
-    const batchSize = 10
-    for (let i = 0; i < Math.min(simplifyJobs.length, 200); i += batchSize) {
-      const batch = simplifyJobs.slice(i, i + batchSize)
-      
-      const batchPromises = batch.map(async (job) => {
+    // Process with concurrency limit
+    const jobsToProcess = simplifyJobs.slice(0, 200)
+    const results = await runWithConcurrencyLimit(jobsToProcess, async (job) => {
+      try {
         // Try to find direct link
         const result = await findDirectLink(job)
         let directLink = result.url
@@ -279,6 +359,11 @@ serve(async (req) => {
         
         // Track method
         methodStats.set(result.method, (methodStats.get(result.method) || 0) + 1)
+        
+        // If error occurred, log it
+        if (result.error && errors.length < 20) {
+          errors.push(`${job.company}: ${result.error}`)
+        }
         
         // If no direct link found, use fallback
         if (!directLink) {
@@ -313,22 +398,19 @@ serve(async (req) => {
           salary_max: null,
           is_active: true
         }
-      })
-      
-      const batchResults = await Promise.allSettled(batchPromises)
-      batchResults.forEach(result => {
-        if (result.status === 'fulfilled' && result.value) {
-          processedJobs.push(result.value)
+      } catch (error: any) {
+        if (errors.length < 20) {
+          errors.push(`${job.company}: ${error.message}`)
         }
-      })
-      
-      console.log(`Processed batch ${i/batchSize + 1}: ${processedJobs.length} total jobs`)
-      
-      // Rate limiting
-      await new Promise(resolve => setTimeout(resolve, 1000))
-      
-      // Stop if we have enough for launch
-      if (processedJobs.length >= 150) break
+        return null
+      }
+    }, 10) // Concurrency limit of 10
+    
+    // Collect successful results
+    for (const result of results) {
+      if (result.status === 'fulfilled' && result.value) {
+        processedJobs.push(result.value)
+      }
     }
     
     console.log(`\n✅ Successfully resolved ${successCount} direct links`)
@@ -351,28 +433,33 @@ serve(async (req) => {
       })
     }
     
-    // Upsert to database (idempotent)
+    // Insert to database (using upsert for safety)
     let duplicates = 0
     if (processedJobs.length > 0) {
-      const { error, count } = await supabase
-        .from('internships')
-        .upsert(processedJobs, { 
-          onConflict: 'internships_uniq',
-          ignoreDuplicates: false
-        })
-      
-      if (error) {
-        console.error('❌ Database upsert error:', error)
-        throw error
+      try {
+        const { error } = await supabase
+          .from('internships')
+          .upsert(processedJobs, { 
+            ignoreDuplicates: false
+          })
+        
+        if (error) {
+          const errMsg = `Database insert error: ${error.message}`
+          errors.push(errMsg)
+          console.error('❌', errMsg)
+        } else {
+          console.log(`✅ Inserted ${processedJobs.length} jobs`)
+        }
+      } catch (error: any) {
+        const errMsg = `Database exception: ${error.message}`
+        errors.push(errMsg)
+        console.error('❌', errMsg)
       }
-      
-      // Estimate duplicates (total processed - rows affected if available)
-      duplicates = count !== null ? processedJobs.length - count : 0
-      console.log(`📊 Upsert complete: ${processedJobs.length} total, ~${duplicates} duplicates`)
     }
     
     // Summary
     const summary = {
+      ok: true,
       success: true,
       totalProcessed: simplifyJobs.length,
       totalInserted: processedJobs.length,
@@ -381,7 +468,7 @@ serve(async (req) => {
       texasJobs: processedJobs.filter(j => j.is_texas).length,
       companies: [...new Set(processedJobs.map(j => j.company))],
       databaseStats: dbStats,
-      dbWarnings: duplicates > 0 ? { duplicates } : {},
+      errors: errors.slice(0, 20),
       topCompanies: Object.entries(
         processedJobs.reduce((acc: any, job) => {
           acc[job.company] = (acc[job.company] || 0) + 1
@@ -394,18 +481,21 @@ serve(async (req) => {
     }
     
     return new Response(
-      JSON.stringify({ ok: true, ...summary }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      JSON.stringify(summary),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
     
   } catch (error: any) {
-    console.error('❌ Discovery error:', error)
+    console.error('❌ Unexpected error:', error)
+    const errMsg = error.message || 'Unknown error'
     return new Response(
-      JSON.stringify({ ok: false, error: error.message }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
+      JSON.stringify({ 
+        ok: false, 
+        success: false,
+        error: errMsg,
+        errors: [...errors.slice(0, 19), errMsg]
+      }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
   }
 })
