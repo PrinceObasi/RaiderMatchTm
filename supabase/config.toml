@@ -3,6 +3,9 @@ project_id = "tjahvypvfrjulnqmnhsh"
 [functions.upload-resume]
 verify_jwt = true
 
+[functions.simplify-discovery]
+verify_jwt = false
+
 [functions.match]
 verify_jwt = true
 

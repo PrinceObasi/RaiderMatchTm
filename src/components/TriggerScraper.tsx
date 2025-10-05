@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { TriggerUniversalScraper } from './TriggerUniversalScraper';
+import { TriggerSimplifyDiscovery } from './TriggerSimplifyDiscovery';
 import { ArrowLeft } from 'lucide-react';
 
 interface TriggerScraperProps {
@@ -64,7 +65,11 @@ export const TriggerScraper = ({ onBack }: TriggerScraperProps) => {
       
       <h1 className="text-3xl font-bold mb-6">Data Scrapers</h1>
       
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+        <TriggerSimplifyDiscovery />
+        
+        <TriggerUniversalScraper />
+        
         <Card>
           <CardHeader>
             <CardTitle>SimplifyJobs GitHub Scraper</CardTitle>
@@ -91,8 +96,6 @@ export const TriggerScraper = ({ onBack }: TriggerScraperProps) => {
             )}
           </CardContent>
         </Card>
-
-        <TriggerUniversalScraper />
       </div>
     </div>
   );
