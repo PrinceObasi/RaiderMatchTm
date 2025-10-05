@@ -109,13 +109,17 @@ export default function EnrichAdminPage({ onBack }: EnrichAdminPageProps) {
     setScrapeResult(null);
     
     try {
-      const response = await supabase.functions.invoke('scrape-simplify', {});
+      const response = await supabase.functions.invoke('simplify-discovery', {});
       
       if (!response.error) {
-        setScrapeResult(response.data);
+        setScrapeResult({
+          parsed: response.data.totalProcessed,
+          inserted: response.data.totalInserted,
+          skipped: 0
+        });
         toast({
-          title: "SimplifyJobs Scrape Complete",
-          description: `Parsed ${response.data.parsed} jobs, inserted ${response.data.inserted} new ones.`,
+          title: "SimplifyJobs Discovery Complete",
+          description: `Found ${response.data.totalInserted} internships with direct links.`,
         });
         refetch();
       } else {
