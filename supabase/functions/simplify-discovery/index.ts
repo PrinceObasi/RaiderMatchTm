@@ -14,7 +14,7 @@ interface SimplifyJob {
 async function discoverJobsFromSimplify(): Promise<SimplifyJob[]> {
   console.log("📡 Fetching SimplifyJobs data...")
   
-  const response = await fetch('https://raw.githubusercontent.com/SimplifyJobs/Summer2025-Internships/dev/README.md')
+  const response = await fetch('https://raw.githubusercontent.com/SimplifyJobs/Summer2026-Internships/dev/README.md')
   if (!response.ok) {
     throw new Error('Failed to fetch SimplifyJobs data')
   }
