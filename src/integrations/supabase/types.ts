@@ -14,6 +14,69 @@ export type Database = {
   }
   public: {
     Tables: {
+      application_clicks: {
+        Row: {
+          apply_url: string
+          clicked_at: string
+          confirmation_date: string | null
+          confirmed: boolean | null
+          created_at: string
+          id: string
+          internship_id: string | null
+          job_id: string | null
+          user_id: string
+        }
+        Insert: {
+          apply_url: string
+          clicked_at?: string
+          confirmation_date?: string | null
+          confirmed?: boolean | null
+          created_at?: string
+          id?: string
+          internship_id?: string | null
+          job_id?: string | null
+          user_id: string
+        }
+        Update: {
+          apply_url?: string
+          clicked_at?: string
+          confirmation_date?: string | null
+          confirmed?: boolean | null
+          created_at?: string
+          id?: string
+          internship_id?: string | null
+          job_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      application_events: {
+        Row: {
+          application_url: string
+          created_at: string | null
+          id: string
+          internship_id: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          application_url: string
+          created_at?: string | null
+          id?: string
+          internship_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          application_url?: string
+          created_at?: string | null
+          id?: string
+          internship_id?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       applications: {
         Row: {
           applied_at: string | null
@@ -115,6 +178,51 @@ export type Database = {
         }
         Relationships: []
       }
+      internship_validation_history: {
+        Row: {
+          created_at: string | null
+          id: string
+          internship_id: string | null
+          message: string | null
+          status_code: number | null
+          validated_at: string | null
+          was_valid: boolean | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          internship_id?: string | null
+          message?: string | null
+          status_code?: number | null
+          validated_at?: string | null
+          was_valid?: boolean | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          internship_id?: string | null
+          message?: string | null
+          status_code?: number | null
+          validated_at?: string | null
+          was_valid?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "internship_validation_history_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "internships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internship_validation_history_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_for_app"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internships: {
         Row: {
           application_link: string
@@ -125,12 +233,10 @@ export type Database = {
           created_at: string | null
           date_posted: string | null
           deadline: string | null
-          direct_link: string | null
           duplicate_of: string | null
           employment_type: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
-          extraction_attempts: number | null
           id: string
           is_active: boolean | null
           is_texas: boolean | null
@@ -139,9 +245,6 @@ export type Database = {
           job_keywords: string[] | null
           last_checked_utc: string | null
           last_validated_at: string | null
-          link_extracted_at: string | null
-          link_resolved_at: string | null
-          link_type: string | null
           link_valid: boolean | null
           location: string | null
           notes: string | null
@@ -169,12 +272,10 @@ export type Database = {
           created_at?: string | null
           date_posted?: string | null
           deadline?: string | null
-          direct_link?: string | null
           duplicate_of?: string | null
           employment_type?: string | null
           enriched_at?: string | null
           enrichment_confidence?: number | null
-          extraction_attempts?: number | null
           id?: string
           is_active?: boolean | null
           is_texas?: boolean | null
@@ -183,9 +284,6 @@ export type Database = {
           job_keywords?: string[] | null
           last_checked_utc?: string | null
           last_validated_at?: string | null
-          link_extracted_at?: string | null
-          link_resolved_at?: string | null
-          link_type?: string | null
           link_valid?: boolean | null
           location?: string | null
           notes?: string | null
@@ -213,12 +311,10 @@ export type Database = {
           created_at?: string | null
           date_posted?: string | null
           deadline?: string | null
-          direct_link?: string | null
           duplicate_of?: string | null
           employment_type?: string | null
           enriched_at?: string | null
           enrichment_confidence?: number | null
-          extraction_attempts?: number | null
           id?: string
           is_active?: boolean | null
           is_texas?: boolean | null
@@ -227,9 +323,6 @@ export type Database = {
           job_keywords?: string[] | null
           last_checked_utc?: string | null
           last_validated_at?: string | null
-          link_extracted_at?: string | null
-          link_resolved_at?: string | null
-          link_type?: string | null
           link_valid?: boolean | null
           location?: string | null
           notes?: string | null
@@ -474,12 +567,10 @@ export type Database = {
           created_at: string | null
           date_posted: string | null
           deadline: string | null
-          direct_link: string | null
           duplicate_of: string | null
           employment_type: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
-          extraction_attempts: number | null
           id: string
           is_active: boolean | null
           is_texas: boolean | null
@@ -488,9 +579,6 @@ export type Database = {
           job_keywords: string[] | null
           last_checked_utc: string | null
           last_validated_at: string | null
-          link_extracted_at: string | null
-          link_resolved_at: string | null
-          link_type: string | null
           link_valid: boolean | null
           location: string | null
           notes: string | null
@@ -515,7 +603,6 @@ export type Database = {
         Returns: {
           application_id: string
           applied_at: string
-          email: string
           gpa: number
           graduation_year: number
           has_prev_intern: boolean
@@ -549,9 +636,7 @@ export type Database = {
           company: string
           date_posted: string
           deadline: string
-          direct_link: string
           id: string
-          link_type: string
           location: string
           role_title: string
           tech_stack: string[]
@@ -587,12 +672,10 @@ export type Database = {
           created_at: string | null
           date_posted: string | null
           deadline: string | null
-          direct_link: string | null
           duplicate_of: string | null
           employment_type: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
-          extraction_attempts: number | null
           id: string
           is_active: boolean | null
           is_texas: boolean | null
@@ -601,9 +684,6 @@ export type Database = {
           job_keywords: string[] | null
           last_checked_utc: string | null
           last_validated_at: string | null
-          link_extracted_at: string | null
-          link_resolved_at: string | null
-          link_type: string | null
           link_valid: boolean | null
           location: string | null
           notes: string | null
@@ -643,12 +723,10 @@ export type Database = {
           created_at: string | null
           date_posted: string | null
           deadline: string | null
-          direct_link: string | null
           duplicate_of: string | null
           employment_type: string | null
           enriched_at: string | null
           enrichment_confidence: number | null
-          extraction_attempts: number | null
           id: string
           is_active: boolean | null
           is_texas: boolean | null
@@ -657,9 +735,6 @@ export type Database = {
           job_keywords: string[] | null
           last_checked_utc: string | null
           last_validated_at: string | null
-          link_extracted_at: string | null
-          link_resolved_at: string | null
-          link_type: string | null
           link_valid: boolean | null
           location: string | null
           notes: string | null

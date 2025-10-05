@@ -96,10 +96,7 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
   const loadJobs = async () => {
     try {
       const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.user) {
-        setLoading(false);
-        return;
-      }
+      if (!session?.session?.user) return;
 
       const { data, error } = await supabase
         .from('jobs')
@@ -107,21 +104,15 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
         .eq('employer_id', session.session.user.id)
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error loading jobs:', error);
-        // Only show error toast if it's a real error, not just empty results
-        if (error.code !== 'PGRST116') {
-          toast({
-            title: "Error loading jobs",
-            description: "Could not load your job postings.",
-            variant: "destructive"
-          });
-        }
-      } else {
-        setJobs(data || []);
-      }
+      if (error) throw error;
+      setJobs(data || []);
     } catch (error) {
       console.error('Error loading jobs:', error);
+      toast({
+        title: "Error loading jobs",
+        description: "Could not load your job postings.",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }

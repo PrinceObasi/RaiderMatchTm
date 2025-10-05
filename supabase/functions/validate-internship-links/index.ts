@@ -151,6 +151,22 @@ serve(async (req) => {
       await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
+    // Store validation history
+    for (const result of validationResults) {
+      const { error: historyError } = await supabase
+        .from('internship_validation_history')
+        .insert({
+          internship_id: result.id,
+          was_valid: result.is_valid,
+          status_code: result.status_code,
+          message: result.validation_message
+        });
+
+      if (historyError) {
+        console.error(`Failed to store validation history for ${result.id}:`, historyError);
+      }
+    }
+
     // Clean up old, invalid postings (90+ days old and invalid)
     const { error: cleanupError } = await supabase
       .from('internships')

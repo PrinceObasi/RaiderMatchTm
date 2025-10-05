@@ -34,8 +34,6 @@ export default function EnrichAdminPage({ onBack }: EnrichAdminPageProps) {
   const [batchResult, setBatchResult] = useState<BatchResult | null>(null);
   const [isScraping, setIsScraping] = useState(false);
   const [scrapeResult, setScrapeResult] = useState<ScrapeResult | null>(null);
-  const [isExtractingLinks, setIsExtractingLinks] = useState(false);
-  const [linkExtractionResult, setLinkExtractionResult] = useState<any>(null);
   const { toast } = useToast();
 
   // Fetch internships for display
@@ -136,45 +134,8 @@ export default function EnrichAdminPage({ onBack }: EnrichAdminPageProps) {
     }
   };
 
-  const handleExtractDirectLinks = async (batchSize = 20) => {
-    setIsExtractingLinks(true);
-    setLinkExtractionResult(null);
-    
-    try {
-      const response = await supabase.functions.invoke('extract-direct-links', {
-        body: { batch_size: batchSize }
-      });
-      
-      if (!response.error) {
-        setLinkExtractionResult(response.data);
-        const { processed, extracted, failed, remaining } = response.data;
-        toast({
-          title: "Direct Link Extraction Complete",
-          description: `Processed: ${processed}, Extracted: ${extracted}, Failed: ${failed}, Remaining: ${remaining}`,
-        });
-        refetch();
-        console.log('Sample extractions:', response.data.samples);
-      } else {
-        toast({
-          title: "Link Extraction Failed",
-          description: response.error.message || "Failed to extract direct links",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to run direct link extraction",
-        variant: "destructive",
-      });
-    } finally {
-      setIsExtractingLinks(false);
-    }
-  };
-
   const handleApply = (internship: any) => {
-    const linkToUse = internship.direct_link || internship.application_link;
-    window.open(linkToUse, '_blank');
+    window.open(internship.application_link, '_blank');
   };
 
   return (
@@ -243,57 +204,6 @@ export default function EnrichAdminPage({ onBack }: EnrichAdminPageProps) {
               </Button>
             </CardContent>
           </Card>
-
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-lg">Direct Links</CardTitle>
-              <CardDescription>Extract direct company URLs from SimplifyJobs</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <div className="flex gap-2">
-                <Button
-                  onClick={() => handleExtractDirectLinks()}
-                  disabled={isExtractingLinks}
-                  className="flex-1"
-                >
-                  {isExtractingLinks ? (
-                    <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <RefreshCw className="h-4 w-4 mr-2" />
-                  )}
-                  Extract (20)
-                </Button>
-                <Button
-                  onClick={() => handleExtractDirectLinks(5)}
-                  disabled={isExtractingLinks}
-                  variant="outline"
-                  className="flex-1"
-                >
-                  Test (5)
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {linkExtractionResult && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-lg">Last Link Extraction</CardTitle>
-                <CardDescription>Results from the last direct link extraction</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-2">
-                <div className="flex gap-2">
-                  <Badge variant="default">{linkExtractionResult.updated} Updated</Badge>
-                  {linkExtractionResult.failed > 0 && (
-                    <Badge variant="destructive">{linkExtractionResult.failed} Failed</Badge>
-                  )}
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Processed {linkExtractionResult.total_processed} SimplifyJobs links
-                </p>
-              </CardContent>
-            </Card>
-          )}
 
           {scrapeResult && (
             <Card>

@@ -16,7 +16,6 @@ interface EnrichedInternshipCardProps {
     tech_stack: string[] | null;
     visa_sponsorship: 'Yes' | 'No' | 'Unspecified';
     application_link: string;
-    direct_link?: string | null;
     date_posted: string | null;
     deadline: string | null;
     jd_summary?: string | null;
@@ -181,10 +180,7 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
             )}
             
             <Button
-              onClick={() => {
-                const applyUrl = internship.direct_link || internship.application_link;
-                window.open(applyUrl, '_blank');
-              }}
+              onClick={() => onApply(internship)}
               className="gap-2"
             >
               Apply Now

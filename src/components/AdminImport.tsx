@@ -4,9 +4,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Loader2, Upload, FileSpreadsheet, ArrowLeft, Check, X, Link } from 'lucide-react'
+import { Loader2, Upload, FileSpreadsheet, ArrowLeft, Check, X } from 'lucide-react'
 import { useToast } from '@/hooks/use-toast'
-import { supabase } from '@/integrations/supabase/client'
 
 interface AdminImportProps {
   onBack: () => void
@@ -40,10 +39,6 @@ export function AdminImport({ onBack }: AdminImportProps) {
   const [error, setError] = useState<string | null>(null)
   const [dragActive, setDragActive] = useState(false)
   const [sampleData, setSampleData] = useState<NormalizedRow[]>([])
-  const [isExtractingLinks, setIsExtractingLinks] = useState(false)
-  const [extractionStats, setExtractionStats] = useState<any>(null)
-  const [isScrapingGreenhouse, setIsScrapingGreenhouse] = useState(false)
-  const [isScrapingLever, setIsScrapingLever] = useState(false)
   
   const fileInputRef = useRef<HTMLInputElement>(null)
   const { toast } = useToast()
@@ -179,88 +174,6 @@ export function AdminImport({ onBack }: AdminImportProps) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
   }
 
-  const handleExtractDirectLinks = async () => {
-    setIsExtractingLinks(true)
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('extract-direct-links', {
-        body: { batch_size: 20 }
-      })
-      
-      if (error) throw error
-      
-      setExtractionStats(data)
-      toast({
-        title: "Direct Link Extraction Complete",
-        description: `Extracted ${data.extracted} direct links from ${data.processed} internships. ${data.remaining} remaining.`,
-      })
-      
-    } catch (error: any) {
-      console.error('Extraction error:', error)
-      toast({
-        title: "Link extraction failed",
-        description: `Failed to extract links: ${error.message}`,
-        variant: "destructive"
-      })
-    } finally {
-      setIsExtractingLinks(false)
-    }
-  }
-
-  const handleScrapeGreenhouse = async () => {
-    setIsScrapingGreenhouse(true)
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('scrape-direct-internships', {
-        body: { source: 'greenhouse', limit: 10 }
-      })
-      
-      if (error) throw error
-      
-      toast({
-        title: "Greenhouse Scraping Complete",
-        description: `Added ${data.inserted} internships from Greenhouse! ${data.skipped} duplicates skipped.`,
-      })
-      
-    } catch (error: any) {
-      console.error('Greenhouse scraping error:', error)
-      toast({
-        title: "Greenhouse scraping failed",
-        description: `Failed to scrape Greenhouse: ${error.message}`,
-        variant: "destructive"
-      })
-    } finally {
-      setIsScrapingGreenhouse(false)
-    }
-  }
-
-  const handleScrapeLever = async () => {
-    setIsScrapingLever(true)
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('scrape-direct-internships', {
-        body: { source: 'lever', limit: 10 }
-      })
-      
-      if (error) throw error
-      
-      toast({
-        title: "Lever Scraping Complete",
-        description: `Added ${data.inserted} internships from Lever! ${data.skipped} duplicates skipped.`,
-      })
-      
-    } catch (error: any) {
-      console.error('Lever scraping error:', error)
-      toast({
-        title: "Lever scraping failed",
-        description: `Failed to scrape Lever: ${error.message}`,
-        variant: "destructive"
-      })
-    } finally {
-      setIsScrapingLever(false)
-    }
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-background to-muted/20 p-6">
       <div className="max-w-4xl mx-auto">
@@ -383,96 +296,6 @@ export function AdminImport({ onBack }: AdminImportProps) {
                     </div>
                   </div>
                 )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Direct Link Extraction */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Link className="h-5 w-5" />
-                Extract Direct Links
-              </CardTitle>
-              <CardDescription>
-                Convert SimplifyJobs redirects to direct company URLs
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="space-y-1">
-                  <h4 className="font-medium">Extract Direct Links</h4>
-                  <p className="text-sm text-muted-foreground">
-                    Convert SimplifyJobs redirects to direct company URLs
-                  </p>
-                  {extractionStats && (
-                    <p className="text-xs text-green-600">
-                      Last run: {extractionStats.extracted}/{extractionStats.processed} successful
-                    </p>
-                  )}
-                </div>
-                <Button 
-                  onClick={handleExtractDirectLinks}
-                  disabled={isExtractingLinks}
-                  variant="secondary"
-                >
-                  {isExtractingLinks ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Extracting...
-                    </>
-                  ) : (
-                    <>
-                      <Link className="mr-2 h-4 w-4" />
-                      Extract Links
-                    </>
-                  )}
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Direct Scraping */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileSpreadsheet className="h-5 w-5" />
-                Direct Scraping (Greenhouse & Lever)
-              </CardTitle>
-              <CardDescription>
-                Scrape internships directly from ATS platforms with no redirects
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 gap-4">
-                <Button 
-                  onClick={handleScrapeGreenhouse} 
-                  disabled={isScrapingGreenhouse}
-                  className="bg-green-600 hover:bg-green-700"
-                >
-                  {isScrapingGreenhouse ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Scraping...
-                    </>
-                  ) : (
-                    'Scrape Greenhouse (Direct Links)'
-                  )}
-                </Button>
-                <Button 
-                  onClick={handleScrapeLever} 
-                  disabled={isScrapingLever}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  {isScrapingLever ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Scraping...
-                    </>
-                  ) : (
-                    'Scrape Lever (Direct Links)'
-                  )}
-                </Button>
               </div>
             </CardContent>
           </Card>

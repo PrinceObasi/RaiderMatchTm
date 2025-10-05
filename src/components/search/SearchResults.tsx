@@ -31,12 +31,9 @@ export function SearchResults({
       return;
     }
 
-    // Use direct_link if available, fallback to application_link
-    const linkToUse = internship.direct_link || internship.application_link;
-
     // 1️⃣ OPEN IMMEDIATELY (synchronous) - prevents popup blocking
     const a = document.createElement('a');
-    a.href = linkToUse;
+    a.href = internship.application_link;
     a.target = '_blank';
     a.rel = 'noopener noreferrer';
     document.body.appendChild(a);
@@ -45,13 +42,13 @@ export function SearchResults({
 
     // 2️⃣ Call onApply callback if provided for additional tracking
     if (onApply) {
-      onApply(internship.id, linkToUse);
+      onApply(internship.id, internship.application_link);
     }
 
     // 3️⃣ BACKGROUND LOGGING (non-blocking) 
     const logPayload = JSON.stringify({
       internship_id: internship.id,
-      application_url: linkToUse,
+      application_url: internship.application_link,
       user_agent: navigator.userAgent,
     });
 

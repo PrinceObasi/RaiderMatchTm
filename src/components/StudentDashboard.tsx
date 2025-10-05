@@ -694,7 +694,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
 
                               <div className="mt-4 flex flex-col sm:flex-row gap-2">
                 <Button 
-                  onClick={() => handleApply(internship.id, internship.direct_link || internship.application_link || internship.application_url || '', true)}
+                  onClick={() => handleApply(internship.id, internship.application_link || internship.application_url || '', true)}
                   className="w-full sm:w-auto h-11"
                   size="lg"
                   disabled={!(internship.application_link || internship.application_url)}
@@ -796,7 +796,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                 
                                  <div className="mt-4 flex flex-col sm:flex-row gap-2">
                      <Button 
-                       onClick={() => handleApply(job.id, job.direct_link || job.application_link, true)}
+                       onClick={() => handleApply(job.id, job.application_link, true)}
                        className="w-full sm:w-auto h-11"
                        size="lg"
                        disabled={!job.application_link}
