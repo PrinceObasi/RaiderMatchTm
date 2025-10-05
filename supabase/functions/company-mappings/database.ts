@@ -250,7 +250,88 @@ export const COMPANY_DATABASE: CompanyMapping[] = [
     ats_identifier: "workday",
     career_url: "https://workday.wd5.myworkdayjobs.com/en-US/Workday",
     notes: "Meta: Workday uses Workday"
-  }
+  },
+  
+  // ================== ADDITIONAL TECH COMPANIES ==================
+  { company: "ByteDance", aliases: ["TikTok"], ats_type: "greenhouse", ats_identifier: "bytedance" },
+  { company: "Electronic Arts", aliases: ["EA", "EA Games"], ats_type: "greenhouse", ats_identifier: "ea" },
+  { company: "Epic Games", ats_type: "greenhouse", ats_identifier: "epicgames" },
+  { company: "Riot Games", ats_type: "greenhouse", ats_identifier: "riotgames" },
+  { company: "Unity", ats_type: "greenhouse", ats_identifier: "unity" },
+  { company: "Autodesk", ats_type: "greenhouse", ats_identifier: "autodesk" },
+  { company: "Box", ats_type: "greenhouse", ats_identifier: "boxinc" },
+  { company: "Dropbox", ats_type: "greenhouse", ats_identifier: "dropbox" },
+  { company: "Zoom", ats_type: "greenhouse", ats_identifier: "zoom" },
+  { company: "DocuSign", ats_type: "greenhouse", ats_identifier: "docusign" },
+  { company: "Splunk", ats_type: "greenhouse", ats_identifier: "splunk" },
+  { company: "Palo Alto Networks", ats_type: "greenhouse", ats_identifier: "paloaltonetworks" },
+  { company: "CrowdStrike", ats_type: "greenhouse", ats_identifier: "crowdstrike" },
+  { company: "Zscaler", ats_type: "greenhouse", ats_identifier: "zscaler" },
+  { company: "Netskope", ats_type: "greenhouse", ats_identifier: "netskope" },
+  { company: "Rubrik", ats_type: "greenhouse", ats_identifier: "rubrik" },
+  { company: "Cohesity", ats_type: "greenhouse", ats_identifier: "cohesity" },
+  { company: "Pure Storage", ats_type: "greenhouse", ats_identifier: "purestorage" },
+  { company: "Nutanix", ats_type: "greenhouse", ats_identifier: "nutanix" },
+  { company: "Arista Networks", ats_type: "greenhouse", ats_identifier: "arista" },
+  { company: "Juniper Networks", ats_type: "greenhouse", ats_identifier: "juniper" },
+  { company: "F5 Networks", ats_type: "greenhouse", ats_identifier: "f5" },
+  { company: "Fortinet", ats_type: "greenhouse", ats_identifier: "fortinet" },
+  { company: "Check Point", ats_type: "greenhouse", ats_identifier: "checkpoint" },
+  { company: "Palo Alto Software", ats_type: "greenhouse", ats_identifier: "paloaltosoftware" },
+  
+  // ================== FINANCE & FINTECH ==================
+  { company: "Fidelity", aliases: ["Fidelity Investments"], ats_type: "greenhouse", ats_identifier: "fidelity" },
+  { company: "Charles Schwab", ats_type: "greenhouse", ats_identifier: "schwab" },
+  { company: "Vanguard", ats_type: "greenhouse", ats_identifier: "vanguard" },
+  { company: "BlackRock", ats_type: "greenhouse", ats_identifier: "blackrock" },
+  { company: "State Street", ats_type: "greenhouse", ats_identifier: "statestreet" },
+  { company: "Northern Trust", ats_type: "greenhouse", ats_identifier: "northerntrust" },
+  { company: "BNY Mellon", aliases: ["Bank of New York Mellon"], ats_type: "greenhouse", ats_identifier: "bnymellon" },
+  { company: "Wells Fargo", ats_type: "greenhouse", ats_identifier: "wellsfargo" },
+  { company: "Bank of America", aliases: ["BofA", "BoA"], ats_type: "greenhouse", ats_identifier: "bankofamerica" },
+  { company: "Citi", aliases: ["Citigroup"], ats_type: "greenhouse", ats_identifier: "citi" },
+  { company: "HSBC", ats_type: "greenhouse", ats_identifier: "hsbc" },
+  { company: "Barclays", ats_type: "greenhouse", ats_identifier: "barclays" },
+  { company: "Deutsche Bank", ats_type: "greenhouse", ats_identifier: "deutschebank" },
+  { company: "Credit Suisse", ats_type: "greenhouse", ats_identifier: "creditsuisse" },
+  { company: "UBS", ats_type: "greenhouse", ats_identifier: "ubs" },
+  
+  // ================== CONSULTING & SERVICES ==================
+  { company: "Deloitte", ats_type: "greenhouse", ats_identifier: "deloitte" },
+  { company: "PwC", aliases: ["PricewaterhouseCoopers"], ats_type: "greenhouse", ats_identifier: "pwc" },
+  { company: "EY", aliases: ["Ernst & Young"], ats_type: "greenhouse", ats_identifier: "ey" },
+  { company: "KPMG", ats_type: "greenhouse", ats_identifier: "kpmg" },
+  { company: "Accenture", ats_type: "greenhouse", ats_identifier: "accenture" },
+  { company: "McKinsey", aliases: ["McKinsey & Company"], ats_type: "greenhouse", ats_identifier: "mckinsey" },
+  { company: "BCG", aliases: ["Boston Consulting Group"], ats_type: "greenhouse", ats_identifier: "bcg" },
+  { company: "Bain", aliases: ["Bain & Company"], ats_type: "greenhouse", ats_identifier: "bain" },
+  
+  // ================== HEALTHCARE & BIOTECH ==================
+  { company: "Johnson & Johnson", aliases: ["J&J"], ats_type: "greenhouse", ats_identifier: "jnj" },
+  { company: "Pfizer", ats_type: "greenhouse", ats_identifier: "pfizer" },
+  { company: "Moderna", ats_type: "greenhouse", ats_identifier: "moderna" },
+  { company: "Illumina", ats_type: "greenhouse", ats_identifier: "illumina" },
+  { company: "Genentech", ats_type: "greenhouse", ats_identifier: "genentech" },
+  { company: "Gilead", ats_type: "greenhouse", ats_identifier: "gilead" },
+  { company: "Amgen", ats_type: "greenhouse", ats_identifier: "amgen" },
+  { company: "Biogen", ats_type: "greenhouse", ats_identifier: "biogen" },
+  { company: "Regeneron", ats_type: "greenhouse", ats_identifier: "regeneron" },
+  { company: "AbbVie", ats_type: "greenhouse", ats_identifier: "abbvie" },
+  { company: "Bristol Myers Squibb", aliases: ["BMS"], ats_type: "greenhouse", ats_identifier: "bms" },
+  { company: "Eli Lilly", ats_type: "greenhouse", ats_identifier: "lilly" },
+  { company: "Merck", ats_type: "greenhouse", ats_identifier: "merck" },
+  
+  // ================== DEFENSE & AEROSPACE ==================
+  { company: "Lockheed Martin", ats_type: "greenhouse", ats_identifier: "lockheedmartin" },
+  { company: "Northrop Grumman", ats_type: "greenhouse", ats_identifier: "northropgrumman" },
+  { company: "Raytheon", aliases: ["RTX"], ats_type: "greenhouse", ats_identifier: "raytheon" },
+  { company: "Boeing", aliases: ["The Boeing Company"], ats_type: "greenhouse", ats_identifier: "boeing" },
+  { company: "General Dynamics", ats_type: "greenhouse", ats_identifier: "gd" },
+  { company: "L3Harris", ats_type: "greenhouse", ats_identifier: "l3harris" },
+  { company: "BAE Systems", ats_type: "greenhouse", ats_identifier: "baesystems" },
+  { company: "SpaceX", ats_type: "greenhouse", ats_identifier: "spacex" },
+  { company: "Blue Origin", ats_type: "greenhouse", ats_identifier: "blueorigin" },
+  { company: "Rocket Lab", aliases: ["Rocket Lab USA"], ats_type: "greenhouse", ats_identifier: "rocketlab" },
 ]
 
 // Helper function to find company mapping with fuzzy matching
@@ -331,4 +412,69 @@ export function quickLookup(simplifyName: string): string | null {
     return generateDirectUrl(mapping)
   }
   return null
+}
+
+// Detect ATS type from Simplify URL
+export function detectATSFromUrl(simplifyUrl: string): { ats_type: string; identifier?: string } | null {
+  try {
+    const url = new URL(simplifyUrl)
+    const hostname = url.hostname.toLowerCase()
+    const pathname = url.pathname.toLowerCase()
+    
+    // Greenhouse detection
+    if (hostname.includes('greenhouse.io') || hostname.includes('boards.greenhouse.io')) {
+      const match = pathname.match(/\/([^\/]+)(\/|$)/)
+      if (match) {
+        return { ats_type: 'greenhouse', identifier: match[1] }
+      }
+    }
+    
+    // Lever detection
+    if (hostname.includes('lever.co') || hostname.includes('jobs.lever.co')) {
+      const match = pathname.match(/\/([^\/]+)(\/|$)/)
+      if (match) {
+        return { ats_type: 'lever', identifier: match[1] }
+      }
+    }
+    
+    // Ashby detection
+    if (hostname.includes('ashbyhq.com') || hostname.includes('jobs.ashbyhq.com')) {
+      const match = pathname.match(/\/([^\/]+)(\/|$)/)
+      if (match) {
+        return { ats_type: 'ashby', identifier: match[1] }
+      }
+    }
+    
+    // Workday detection
+    if (hostname.includes('myworkdayjobs.com')) {
+      const match = hostname.match(/([^.]+)\.wd\d+\.myworkdayjobs/)
+      if (match) {
+        return { ats_type: 'workday', identifier: match[1] }
+      }
+    }
+    
+    // BambooHR detection
+    if (hostname.includes('bamboohr.com')) {
+      return { ats_type: 'bamboohr' }
+    }
+    
+    // iCIMS detection
+    if (hostname.includes('icims.com')) {
+      return { ats_type: 'icims' }
+    }
+    
+    // Jobvite detection
+    if (hostname.includes('jobvite.com')) {
+      return { ats_type: 'jobvite' }
+    }
+    
+    // SmartRecruiters detection
+    if (hostname.includes('smartrecruiters.com')) {
+      return { ats_type: 'smartrecruiters' }
+    }
+    
+    return null
+  } catch (error) {
+    return null
+  }
 }

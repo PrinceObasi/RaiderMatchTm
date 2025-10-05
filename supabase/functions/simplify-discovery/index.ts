@@ -1,6 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { findCompanyMapping, generateDirectUrl, getDatabaseStats } from '../company-mappings/database.ts'
+import { findCompanyMapping, generateDirectUrl, getDatabaseStats, detectATSFromUrl } from '../company-mappings/database.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -77,98 +77,130 @@ async function discoverJobsFromSimplify(): Promise<SimplifyJob[]> {
   return jobs
 }
 
-// Step 2: Try to find direct link using company database
-async function findDirectLink(job: SimplifyJob): Promise<string | null> {
+// Step 2: Try to find direct link using company database or URL detection
+async function findDirectLink(job: SimplifyJob): Promise<{ url: string | null; method: string }> {
+  // First, try company database mapping
   const mapping = findCompanyMapping(job.company)
   
-  if (!mapping) {
-    console.log(`❌ No mapping for ${job.company}`)
-    return null
+  if (mapping) {
+    try {
+      // Handle Greenhouse
+      if (mapping.ats_type === 'greenhouse') {
+        const url = `https://boards.greenhouse.io/${mapping.ats_identifier}`
+        const response = await fetch(url)
+        if (!response.ok) return { url: null, method: 'mapping_failed' }
+        
+        const html = await response.text()
+        
+        // Search for the role title in the HTML
+        const roleKeywords = job.role.toLowerCase()
+          .replace('software engineering', 'software engineer')
+          .replace('swe ', 'software engineer ')
+          .split(' ')
+          .filter(word => word.length > 3)
+        
+        // Find all job links
+        const jobLinkPattern = /<a[^>]*href="(\/[^"]+)"[^>]*>(.*?)<\/a>/gi
+        let bestMatch = null
+        let bestScore = 0
+        
+        let match
+        while ((match = jobLinkPattern.exec(html)) !== null) {
+          const link = match[1]
+          const title = match[2].toLowerCase()
+          
+          // Score based on keyword matches
+          let score = 0
+          roleKeywords.forEach(keyword => {
+            if (title.includes(keyword)) score++
+          })
+          
+          if (score > bestScore && title.includes('intern')) {
+            bestScore = score
+            bestMatch = `https://boards.greenhouse.io${link}`
+          }
+        }
+        
+        return { url: bestMatch, method: 'mapping_greenhouse' }
+      }
+      
+      // Handle Lever
+      if (mapping.ats_type === 'lever') {
+        const url = `https://jobs.lever.co/${mapping.ats_identifier}`
+        const response = await fetch(url)
+        if (!response.ok) return { url: null, method: 'mapping_failed' }
+        
+        const html = await response.text()
+        
+        // Similar matching logic for Lever
+        const roleKeywords = job.role.toLowerCase().split(' ').filter(word => word.length > 3)
+        const linkPattern = /<a[^>]*href="(https:\/\/jobs\.lever\.co\/[^"]+)"[^>]*>(.*?)<\/a>/gi
+        
+        let bestMatch = null
+        let bestScore = 0
+        
+        let match
+        while ((match = linkPattern.exec(html)) !== null) {
+          const link = match[1]
+          const title = match[2].toLowerCase()
+          
+          let score = 0
+          roleKeywords.forEach(keyword => {
+            if (title.includes(keyword)) score++
+          })
+          
+          if (score > bestScore && title.includes('intern')) {
+            bestScore = score
+            bestMatch = link
+          }
+        }
+        
+        return { url: bestMatch, method: 'mapping_lever' }
+      }
+      
+      // For other ATS types, use the helper function
+      const directUrl = generateDirectUrl(mapping, job.role)
+      return { url: directUrl || null, method: 'mapping_generic' }
+      
+    } catch (error: any) {
+      console.log(`⚠️ Error with mapping for ${job.company}: ${error.message}`)
+      return { url: null, method: 'mapping_error' }
+    }
   }
   
+  // If no mapping, try to detect ATS from Simplify redirect
   try {
-    // Handle Greenhouse
-    if (mapping.ats_type === 'greenhouse') {
-      const url = `https://boards.greenhouse.io/${mapping.ats_identifier}`
-      const response = await fetch(url)
-      if (!response.ok) return null
-      
-      const html = await response.text()
-      
-      // Search for the role title in the HTML
-      const roleKeywords = job.role.toLowerCase()
-        .replace('software engineering', 'software engineer')
-        .replace('swe ', 'software engineer ')
-        .split(' ')
-        .filter(word => word.length > 3)
-      
-      // Find all job links
-      const jobLinkPattern = /<a[^>]*href="(\/[^"]+)"[^>]*>(.*?)<\/a>/gi
-      let bestMatch = null
-      let bestScore = 0
-      
-      let match
-      while ((match = jobLinkPattern.exec(html)) !== null) {
-        const link = match[1]
-        const title = match[2].toLowerCase()
+    const response = await fetch(job.simplifyLink, { 
+      redirect: 'manual',
+      headers: { 'User-Agent': 'Mozilla/5.0' }
+    })
+    
+    const redirectUrl = response.headers.get('location')
+    if (redirectUrl) {
+      const atsInfo = detectATSFromUrl(redirectUrl)
+      if (atsInfo) {
+        console.log(`🔍 Detected ${atsInfo.ats_type} for ${job.company} from URL`)
         
-        // Score based on keyword matches
-        let score = 0
-        roleKeywords.forEach(keyword => {
-          if (title.includes(keyword)) score++
-        })
-        
-        if (score > bestScore && title.includes('intern')) {
-          bestScore = score
-          bestMatch = `https://boards.greenhouse.io${link}`
+        // Build URL based on detected ATS
+        if (atsInfo.ats_type === 'greenhouse' && atsInfo.identifier) {
+          return { url: `https://boards.greenhouse.io/${atsInfo.identifier}`, method: 'url_detection' }
+        } else if (atsInfo.ats_type === 'lever' && atsInfo.identifier) {
+          return { url: `https://jobs.lever.co/${atsInfo.identifier}`, method: 'url_detection' }
+        } else if (atsInfo.ats_type === 'ashby' && atsInfo.identifier) {
+          return { url: `https://jobs.ashbyhq.com/${atsInfo.identifier}`, method: 'url_detection' }
+        } else if (atsInfo.ats_type === 'workday' && atsInfo.identifier) {
+          return { url: redirectUrl, method: 'url_detection' }
+        } else {
+          // Use the redirect URL directly
+          return { url: redirectUrl, method: 'url_detection' }
         }
       }
-      
-      return bestMatch
     }
-    
-    // Handle Lever
-    if (mapping.ats_type === 'lever') {
-      const url = `https://jobs.lever.co/${mapping.ats_identifier}`
-      const response = await fetch(url)
-      if (!response.ok) return null
-      
-      const html = await response.text()
-      
-      // Similar matching logic for Lever
-      const roleKeywords = job.role.toLowerCase().split(' ').filter(word => word.length > 3)
-      const linkPattern = /<a[^>]*href="(https:\/\/jobs\.lever\.co\/[^"]+)"[^>]*>(.*?)<\/a>/gi
-      
-      let bestMatch = null
-      let bestScore = 0
-      
-      let match
-      while ((match = linkPattern.exec(html)) !== null) {
-        const link = match[1]
-        const title = match[2].toLowerCase()
-        
-        let score = 0
-        roleKeywords.forEach(keyword => {
-          if (title.includes(keyword)) score++
-        })
-        
-        if (score > bestScore && title.includes('intern')) {
-          bestScore = score
-          bestMatch = link
-        }
-      }
-      
-      return bestMatch
-    }
-    
-    // For other ATS types, use the helper function
-    return generateDirectUrl(mapping, job.role)
-    
   } catch (error: any) {
-    console.log(`⚠️ Error finding link for ${job.company}: ${error.message}`)
+    // Silently fail URL detection attempts
   }
   
-  return null
+  return { url: null, method: 'no_mapping' }
 }
 
 // Step 3: Quick fallback - Google search for career page
@@ -231,6 +263,8 @@ serve(async (req) => {
     const processedJobs = []
     let successCount = 0
     let fallbackCount = 0
+    const fallbackCompanies: Map<string, number> = new Map()
+    const methodStats: Map<string, number> = new Map()
     
     // Process in batches to avoid overwhelming servers
     const batchSize = 10
@@ -239,14 +273,19 @@ serve(async (req) => {
       
       const batchPromises = batch.map(async (job) => {
         // Try to find direct link
-        let directLink = await findDirectLink(job)
+        const result = await findDirectLink(job)
+        let directLink = result.url
         let linkType = 'direct'
+        
+        // Track method
+        methodStats.set(result.method, (methodStats.get(result.method) || 0) + 1)
         
         // If no direct link found, use fallback
         if (!directLink) {
           directLink = await googleSearchCareerPage(job.company, job.role)
           linkType = 'search'
           fallbackCount++
+          fallbackCompanies.set(job.company, (fallbackCompanies.get(job.company) || 0) + 1)
         } else {
           successCount++
         }
@@ -294,6 +333,23 @@ serve(async (req) => {
     
     console.log(`\n✅ Successfully resolved ${successCount} direct links`)
     console.log(`⚠️ Used fallback search for ${fallbackCount} jobs`)
+    
+    // Log method breakdown
+    console.log(`\n📊 Resolution methods:`)
+    for (const [method, count] of methodStats.entries()) {
+      console.log(`   ${method}: ${count}`)
+    }
+    
+    // Log top 10 fallback companies
+    if (fallbackCompanies.size > 0) {
+      const topFallbacks = Array.from(fallbackCompanies.entries())
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10)
+      console.log(`\n🔝 Top 10 companies using fallback:`)
+      topFallbacks.forEach(([company, count]) => {
+        console.log(`   ${company}: ${count} jobs`)
+      })
+    }
     
     // Upsert to database (idempotent)
     let duplicates = 0
