@@ -22,42 +22,46 @@ async function discoverJobsFromSimplify(): Promise<SimplifyJob[]> {
   const markdown = await response.text()
   const jobs: SimplifyJob[] = []
   
-  // Parse the markdown table
-  const lines = markdown.split('\n')
-  let inTable = false
-  
-  for (const line of lines) {
-    if (line.includes('| Company |') || line.includes('| --- |')) {
-      inTable = true
-      continue
-    }
-    
-    if (inTable && line.startsWith('|')) {
-      const columns = line.split('|').map(col => col.trim())
-      if (columns.length >= 4) {
-        // Extract company name (remove emoji and markdown)
-        let company = columns[1].replace(/[^\w\s&.-]/g, '').trim()
-        company = company.replace(/\*\*/g, '').replace(/`/g, '').trim()
-        
-        // Extract role
-        const role = columns[2].replace(/[^\w\s&.,-]/g, '').trim()
-        
-        // Extract location
-        const location = columns[3]
-        
-        // Extract SimplifyJobs link
-        const linkMatch = columns[4]?.match(/https:\/\/simplify\.jobs\/[^\)"\s]+/)
-        const simplifyLink = linkMatch ? linkMatch[0] : ''
-        
-        if (company && role && simplifyLink) {
-          jobs.push({
-            company: company.trim(),
-            role: role.trim(),
-            location: location?.trim() || 'Not specified',
-            simplifyLink
-          })
-        }
-      }
+  // Parse HTML tables (new format in 2026 README)
+  // We scan all <tr> rows and extract: Company, Role, Location, Simplify link
+  const rows = [...markdown.matchAll(/<tr>([\s\S]*?)<\/tr>/gim)]
+
+  for (const m of rows) {
+    const rowHtml = m[1]
+
+    // Extract all <td> contents for the row
+    const tds = [...rowHtml.matchAll(/<td[\s\S]*?>([\s\S]*?)<\/td>/gim)].map(x => (x[1] || ''))
+    if (tds.length < 4) continue
+
+    // Company: prefer anchor text in first cell
+    let companyRaw = tds[0]
+    const companyAnchor = companyRaw.match(/<a[^>]*>([\s\S]*?)<\/a>/i)
+    const company = (companyAnchor ? companyAnchor[1] : companyRaw)
+      .replace(/<[^>]+>/g, '')
+      .replace(/[^\w\s&.-]/g, '')
+      .trim()
+
+    if (!company || company === '↳') continue // skip continuation rows
+
+    // Role from second cell
+    const role = tds[1]
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim()
+
+    // Location from third cell (strip tags, handle <details>)
+    const location = tds[2]
+      .replace(/<br\s*\/?>(?=\S)/gi, ', ')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim() || 'Not specified'
+
+    // Simplify link from fourth cell
+    const simplifyMatch = tds[3].match(/https:\/\/simplify\.jobs\/p\/[^"'\s<>]+/i)
+    const simplifyLink = simplifyMatch ? simplifyMatch[0] : ''
+
+    if (company && role && simplifyLink) {
+      jobs.push({ company, role, location, simplifyLink })
     }
   }
   
