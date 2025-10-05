@@ -267,6 +267,31 @@ serve(async (req) => {
         .map(([company, count]) => ({ company, count }))
     }
     
+    // Automatically trigger link resolution in background after scraping
+    if (processedJobs.length > 0) {
+      console.log(`🔗 Triggering automatic link resolution for ${processedJobs.length} new jobs...`)
+      
+      // Don't await - let it run in background
+      supabase.functions
+        .invoke('resolve-direct-links', {
+          body: { 
+            limit: Math.min(processedJobs.length, 200), 
+            sinceHours: 1,
+            dryRun: false 
+          }
+        })
+        .then(({ data, error }) => {
+          if (error) {
+            console.error('❌ Auto-resolve failed:', error)
+          } else {
+            console.log('✅ Auto-resolve completed:', data)
+          }
+        })
+        .catch((err) => {
+          console.error('❌ Auto-resolve error:', err)
+        })
+    }
+    
     return new Response(
       JSON.stringify(summary),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

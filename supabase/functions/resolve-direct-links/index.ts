@@ -25,20 +25,44 @@ interface ResolveResult {
   error?: string
 }
 
+// Retry utility with exponential backoff
+async function fetchWithRetry(url: string, maxRetries = 3): Promise<Response | null> {
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 12000) // Extended to 12s
+    
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        redirect: 'follow',
+        signal: controller.signal,
+        headers: { 'User-Agent': 'RaiderMatchBot/1.0' }
+      })
+      clearTimeout(timeout)
+      return response
+    } catch (error: any) {
+      clearTimeout(timeout)
+      if (attempt < maxRetries - 1) {
+        const delay = Math.min(1000 * Math.pow(2, attempt), 5000) // Exponential backoff: 1s, 2s, 4s
+        await new Promise(resolve => setTimeout(resolve, delay))
+        console.log(`Retry ${attempt + 1}/${maxRetries} for ${url} after ${delay}ms`)
+      } else {
+        console.error(`All retries failed for ${url}:`, error.message)
+        return null
+      }
+    }
+  }
+  return null
+}
+
 // Resolve from Simplify URL by following redirects and parsing HTML
 async function resolveFromSimplify(simplifyUrl: string): Promise<{ url: string | null; method: string; error?: string }> {
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), 9000)
-  
   try {
-    // Follow redirects and get final URL
-    const response = await fetch(simplifyUrl, {
-      method: 'GET',
-      redirect: 'follow',
-      signal: controller.signal,
-      headers: { 'User-Agent': 'RaiderMatchBot/1.0' }
-    })
-    clearTimeout(timeout)
+    const response = await fetchWithRetry(simplifyUrl)
+    
+    if (!response) {
+      return { url: null, method: 'simplify_fetch_failed', error: 'All retries exhausted' }
+    }
     
     if (!response.ok) {
       return { url: null, method: 'simplify_fetch_failed', error: `HTTP ${response.status}` }
@@ -96,7 +120,6 @@ async function resolveFromSimplify(simplifyUrl: string): Promise<{ url: string |
     
     return { url: null, method: 'no_ats_found' }
   } catch (error: any) {
-    clearTimeout(timeout)
     return { url: null, method: 'fetch_error', error: error.message }
   }
 }
@@ -108,19 +131,10 @@ async function resolveViaCompanyATS(company: string, title: string, location: st
   if (mapping) {
     // For known companies, try to construct or search their careers page
     try {
-      const controller = new AbortController()
-      const timeout = setTimeout(() => controller.abort(), 9000)
+      const response = await fetchWithRetry(mapping.baseUrl)
       
-      const response = await fetch(mapping.baseUrl, {
-        method: 'GET',
-        redirect: 'follow',
-        signal: controller.signal,
-        headers: { 'User-Agent': 'RaiderMatchBot/1.0' }
-      })
-      clearTimeout(timeout)
-      
-      if (!response.ok) {
-        return { url: null, method: 'ats_mapping_failed', error: `HTTP ${response.status}` }
+      if (!response || !response.ok) {
+        return { url: null, method: 'ats_mapping_failed', error: response ? `HTTP ${response.status}` : 'Failed to fetch' }
       }
       
       const html = await response.text()
@@ -156,23 +170,15 @@ async function resolveViaCompanyATS(company: string, title: string, location: st
     }
   }
   
-  // Fallback: DuckDuckGo HTML search
+  // Fallback: DuckDuckGo HTML search with expanded ATS sites
   try {
-    const searchQuery = `${company} ${title} internship careers site:greenhouse.io OR site:lever.co OR site:myworkdayjobs.com`
+    const searchQuery = `${company} ${title} internship careers site:greenhouse.io OR site:lever.co OR site:myworkdayjobs.com OR site:workdayjobs.com OR site:icims.com OR site:smartrecruiters.com OR site:ashbyhq.com`
     const encodedQuery = encodeURIComponent(searchQuery)
     
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 9000)
+    const response = await fetchWithRetry(`https://html.duckduckgo.com/html/?q=${encodedQuery}`)
     
-    const response = await fetch(`https://html.duckduckgo.com/html/?q=${encodedQuery}`, {
-      method: 'GET',
-      signal: controller.signal,
-      headers: { 'User-Agent': 'RaiderMatchBot/1.0' }
-    })
-    clearTimeout(timeout)
-    
-    if (!response.ok) {
-      return { url: null, method: 'search_failed', error: `HTTP ${response.status}` }
+    if (!response || !response.ok) {
+      return { url: null, method: 'search_failed', error: response ? `HTTP ${response.status}` : 'Failed to fetch' }
     }
     
     const html = await response.text()
