@@ -32,28 +32,60 @@ serve(async (req) => {
     
     const lines = markdown.split('\n');
     const internships = [];
+    
+    // Track if we're inside a table
+    let inTable = false;
+    let headerPassed = false;
 
     for (const line of lines) {
-      // Look for table rows with company data
-      if (line.includes('<td>') && line.includes('<strong>') && line.includes('href=')) {
-        // Extract company from: <strong><a href="...">COMPANY</a></strong>
-        const companyMatch = line.match(/<strong><a[^>]*>([^<]+)<\/a><\/strong>/);
+      // Detect markdown table rows (start and end with |)
+      if (/^\|.+\|$/.test(line.trim())) {
+        inTable = true;
         
-        // Extract role from the next <td>
-        const roleMatch = line.match(/<\/td>\s*<td>([^<]+)<\/td>/);
-        
-        // Extract ALL href links from the line
-        const allLinks = [...line.matchAll(/href="([^"]+)"/g)].map(m => m[1]);
-        
-        // Get ONLY the first link that's NOT simplify.jobs (the direct company link)
-        const directLink = allLinks.find(link => !link.includes('simplify.jobs'));
-        
-        // Skip if no direct link found
-        if (!directLink) {
+        // Skip header row (contains "Company" or "Location")
+        if (line.includes('Company') || line.includes('Location') || line.includes('Application')) {
           continue;
         }
         
-        // Determine ATS type from direct link
+        // Skip separator row (contains ---)
+        if (line.includes('---')) {
+          headerPassed = true;
+          continue;
+        }
+        
+        if (!headerPassed) continue;
+        
+        // Split by | and clean up
+        const columns = line.split('|').map(col => col.trim()).filter(col => col.length > 0);
+        
+        if (columns.length < 4) continue;
+        
+        // Extract company name from markdown link [Company](url) or just text
+        const companyCol = columns[0];
+        const companyMatch = companyCol.match(/\[([^\]]+)\]/) || companyCol.match(/\*\*([^*]+)\*\*/) || [null, companyCol];
+        const company = companyMatch[1]?.trim();
+        
+        if (!company) continue;
+        
+        // Extract role (plain text, may have links)
+        const roleCol = columns[1];
+        const roleMatch = roleCol.match(/\[([^\]]+)\]/) || [null, roleCol];
+        const role = roleMatch[1]?.trim() || roleCol.trim();
+        
+        // Extract location
+        const location = columns[2].replace(/[*_]/g, '').trim() || 'United States';
+        
+        // Extract direct link from application column
+        // Format: [🔗 Apply](direct_link) or multiple links
+        const appCol = columns[3];
+        const allLinks = [...appCol.matchAll(/\(([^)]+)\)/g)].map(m => m[1]);
+        
+        // Get first link that's NOT simplify.jobs
+        const directLink = allLinks.find(link => !link.includes('simplify.jobs'));
+        
+        if (!directLink) continue;
+        
+        // Determine ATS type
         let atsType = 'unknown';
         if (directLink.includes('greenhouse.io')) atsType = 'greenhouse';
         else if (directLink.includes('lever.co')) atsType = 'lever';
@@ -66,31 +98,41 @@ serve(async (req) => {
         else if (directLink.includes('recruitee.com')) atsType = 'recruitee';
         else if (directLink.includes('workable.com')) atsType = 'workable';
         
-        if (companyMatch) {
-          internships.push({
-            company: companyMatch[1].trim(),
-            role_title: roleMatch ? roleMatch[1].trim() : 'Software Engineering Intern',
-            location: 'United States', // Will need to parse this better
-            application_link: directLink,
-            direct_link: directLink,
-            is_direct: true,
-            link_type: 'direct',
-            final_domain: atsType !== 'unknown' ? atsType : null,
-            date_posted: new Date().toISOString().split('T')[0],
-            is_sponsorship_available: line.includes('🛂')
-          });
-        }
+        internships.push({
+          company: company.substring(0, 255),
+          role_title: role.substring(0, 255),
+          location: location.substring(0, 255),
+          application_link: directLink,
+          direct_link: directLink,
+          is_direct: true,
+          link_type: 'direct',
+          final_domain: atsType !== 'unknown' ? atsType : null,
+          date_posted: new Date().toISOString().split('T')[0],
+          is_sponsorship_available: line.includes('🛂')
+        });
       }
     }
 
     console.log(`Parsed ${internships.length} internships`)
+    
+    if (internships.length === 0) {
+      console.warn('No internships parsed - table format may have changed')
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: 'No internships found - README format may have changed',
+          total_parsed: 0
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
+      )
+    }
 
     // Insert into database
     let inserted = 0
     let skipped = 0
     const errors = []
 
-    for (const internship of internships.slice(0, 200)) { // Limit to 200 for first run
+    for (const internship of internships) {
       try {
         // Check for duplicates
         const { data: existing } = await supabase
@@ -151,7 +193,7 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        source: 'SimplifyJobs GitHub (HTML format)',
+        source: 'SimplifyJobs GitHub (Markdown format)',
         total_parsed: internships.length,
         inserted,
         skipped,
