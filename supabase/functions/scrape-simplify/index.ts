@@ -45,37 +45,36 @@ serve(async (req) => {
         // Extract ALL href links from the line
         const allLinks = [...line.matchAll(/href="([^"]+)"/g)].map(m => m[1]);
         
-        // First link that's NOT simplify.jobs = direct ATS link
+        // Get ONLY the first link that's NOT simplify.jobs (the direct company link)
         const directLink = allLinks.find(link => !link.includes('simplify.jobs'));
         
-        // Link that IS simplify.jobs = tracking link
-        const simplifyLink = allLinks.find(link => link.includes('simplify.jobs'));
+        // Skip if no direct link found
+        if (!directLink) {
+          continue;
+        }
         
         // Determine ATS type from direct link
         let atsType = 'unknown';
-        if (directLink) {
-          if (directLink.includes('greenhouse.io')) atsType = 'greenhouse';
-          else if (directLink.includes('lever.co')) atsType = 'lever';
-          else if (directLink.includes('myworkdayjobs.com')) atsType = 'workday';
-          else if (directLink.includes('jobvite.com')) atsType = 'jobvite';
-          else if (directLink.includes('icims.com')) atsType = 'icims';
-          else if (directLink.includes('smartrecruiters.com')) atsType = 'smartrecruiters';
-          else if (directLink.includes('ashbyhq.com')) atsType = 'ashby';
-          else if (directLink.includes('breezy.hr')) atsType = 'breezy';
-          else if (directLink.includes('recruitee.com')) atsType = 'recruitee';
-          else if (directLink.includes('workable.com')) atsType = 'workable';
-        }
+        if (directLink.includes('greenhouse.io')) atsType = 'greenhouse';
+        else if (directLink.includes('lever.co')) atsType = 'lever';
+        else if (directLink.includes('myworkdayjobs.com')) atsType = 'workday';
+        else if (directLink.includes('jobvite.com')) atsType = 'jobvite';
+        else if (directLink.includes('icims.com')) atsType = 'icims';
+        else if (directLink.includes('smartrecruiters.com')) atsType = 'smartrecruiters';
+        else if (directLink.includes('ashbyhq.com')) atsType = 'ashby';
+        else if (directLink.includes('breezy.hr')) atsType = 'breezy';
+        else if (directLink.includes('recruitee.com')) atsType = 'recruitee';
+        else if (directLink.includes('workable.com')) atsType = 'workable';
         
-        if (companyMatch && (directLink || simplifyLink)) {
+        if (companyMatch) {
           internships.push({
             company: companyMatch[1].trim(),
             role_title: roleMatch ? roleMatch[1].trim() : 'Software Engineering Intern',
             location: 'United States', // Will need to parse this better
-            application_link: simplifyLink || directLink || '',
-            direct_link: directLink || null,
-            simplify_url: simplifyLink || null,
-            is_direct: !!directLink,
-            link_type: directLink ? 'direct' : 'redirect',
+            application_link: directLink,
+            direct_link: directLink,
+            is_direct: true,
+            link_type: 'direct',
             final_domain: atsType !== 'unknown' ? atsType : null,
             date_posted: new Date().toISOString().split('T')[0],
             is_sponsorship_available: line.includes('🛂')
@@ -120,11 +119,10 @@ serve(async (req) => {
             company: internship.company.substring(0, 255),
             role_title: internship.role_title.substring(0, 255),
             location: internship.location.substring(0, 255),
-            application_link: internship.application_link,
+            application_link: internship.direct_link,
             direct_link: internship.direct_link,
-            simplify_url: internship.simplify_url,
-            is_direct: internship.is_direct,
-            link_type: internship.link_type,
+            is_direct: true,
+            link_type: 'direct',
             final_domain: internship.final_domain,
             is_texas: isTexas,
             remote_flag: internship.location.toLowerCase().includes('remote'),
