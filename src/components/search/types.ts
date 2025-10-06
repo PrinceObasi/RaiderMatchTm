@@ -26,6 +26,9 @@ export interface InternshipSearchResult {
   tech_stack: string[] | null;
   visa_sponsorship: 'Yes' | 'No' | 'Unspecified';
   application_link: string;
+  direct_link: string;
+  is_direct?: boolean | null;
+  final_domain?: string | null;
   date_posted: string | null;
   deadline: string | null;
   jd_summary: string | null;

@@ -12,7 +12,8 @@ interface Internship {
   description: string;
   skills: string[];
   visa_sponsorship: string;
-  application_url: string;
+  direct_link: string;
+  application_url?: string;
 }
 
 interface InternshipResultsProps {
@@ -111,13 +112,13 @@ export function InternshipResults({ internships, isLoading, onApply }: Internshi
 
                 <div className="mt-4">
                   <Button 
-                    onClick={() => onApply(internship.id, internship.application_url || '')}
+                    onClick={() => onApply(internship.id, internship.direct_link)}
                     className="w-full sm:w-auto h-11"
                     size="lg"
-                    disabled={!internship.application_url}
+                    disabled={!internship.direct_link}
                   >
                     <ExternalLink className="h-4 w-4" />
-                    Apply Now
+                    Apply Directly
                   </Button>
                 </div>
               </CardContent>
