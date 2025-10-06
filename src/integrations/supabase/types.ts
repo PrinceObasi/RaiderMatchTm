@@ -156,7 +156,7 @@ export type Database = {
           date_posted: string | null
           deadline: string | null
           description_html: string | null
-          direct_link: string | null
+          direct_link: string
           direct_url: string | null
           duplicate_of: string | null
           employment_type: string | null
@@ -191,7 +191,6 @@ export type Database = {
           salary_period: string | null
           scrape_source: string | null
           search_tsv: unknown | null
-          simplify_url: string | null
           source: string | null
           source_url: string | null
           sponsorship_flag: string | null
@@ -211,7 +210,7 @@ export type Database = {
           date_posted?: string | null
           deadline?: string | null
           description_html?: string | null
-          direct_link?: string | null
+          direct_link: string
           direct_url?: string | null
           duplicate_of?: string | null
           employment_type?: string | null
@@ -246,7 +245,6 @@ export type Database = {
           salary_period?: string | null
           scrape_source?: string | null
           search_tsv?: unknown | null
-          simplify_url?: string | null
           source?: string | null
           source_url?: string | null
           sponsorship_flag?: string | null
@@ -266,7 +264,7 @@ export type Database = {
           date_posted?: string | null
           deadline?: string | null
           description_html?: string | null
-          direct_link?: string | null
+          direct_link?: string
           direct_url?: string | null
           duplicate_of?: string | null
           employment_type?: string | null
@@ -301,7 +299,6 @@ export type Database = {
           salary_period?: string | null
           scrape_source?: string | null
           search_tsv?: unknown | null
-          simplify_url?: string | null
           source?: string | null
           source_url?: string | null
           sponsorship_flag?: string | null
@@ -538,7 +535,7 @@ export type Database = {
           date_posted: string | null
           deadline: string | null
           description_html: string | null
-          direct_link: string | null
+          direct_link: string
           direct_url: string | null
           duplicate_of: string | null
           employment_type: string | null
@@ -573,7 +570,6 @@ export type Database = {
           salary_period: string | null
           scrape_source: string | null
           search_tsv: unknown | null
-          simplify_url: string | null
           source: string | null
           source_url: string | null
           sponsorship_flag: string | null
@@ -662,7 +658,7 @@ export type Database = {
           date_posted: string | null
           deadline: string | null
           description_html: string | null
-          direct_link: string | null
+          direct_link: string
           direct_url: string | null
           duplicate_of: string | null
           employment_type: string | null
@@ -697,7 +693,6 @@ export type Database = {
           salary_period: string | null
           scrape_source: string | null
           search_tsv: unknown | null
-          simplify_url: string | null
           source: string | null
           source_url: string | null
           sponsorship_flag: string | null
@@ -729,7 +724,7 @@ export type Database = {
           date_posted: string | null
           deadline: string | null
           description_html: string | null
-          direct_link: string | null
+          direct_link: string
           direct_url: string | null
           duplicate_of: string | null
           employment_type: string | null
@@ -764,7 +759,6 @@ export type Database = {
           salary_period: string | null
           scrape_source: string | null
           search_tsv: unknown | null
-          simplify_url: string | null
           source: string | null
           source_url: string | null
           sponsorship_flag: string | null
