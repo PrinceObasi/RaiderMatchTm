@@ -128,22 +128,22 @@ serve(async (req) => {
   }
 
   try {
-    const { simplify_url, internship_id } = await req.json()
+    const { direct_link, internship_id } = await req.json()
     
-    if (!simplify_url) {
-      throw new Error('simplify_url is required')
+    if (!direct_link) {
+      throw new Error('direct_link is required')
     }
 
-    console.log(`Enriching from Simplify: ${simplify_url}`)
+    console.log(`Enriching from direct link: ${direct_link}`)
     
-    const html = await fetchWithRetry(simplify_url)
+    const html = await fetchWithRetry(direct_link)
     const doc = new DOMParser().parseFromString(html, 'text/html')
     
     if (!doc) {
       throw new Error('Failed to parse HTML')
     }
 
-    // Extract structured data
+    // Extract structured data from company ATS page
     const title = doc.querySelector('h1')?.textContent?.trim() ||
                   doc.querySelector('meta[property="og:title"]')?.getAttribute('content') || ''
     
@@ -181,7 +181,14 @@ serve(async (req) => {
     const requirements = extractArrayData(doc, ['Requirements', 'Qualifications', 'Required', 'Must have'])
     const responsibilities = extractArrayData(doc, ['Responsibilities', 'What you\'ll do', 'Role', 'Duties'])
     
-    const direct_link = extractDirectAtsLink(html, doc)
+    // Determine ATS type from URL
+    let ats_type = 'unknown'
+    if (direct_link.includes('greenhouse.io')) ats_type = 'greenhouse'
+    else if (direct_link.includes('lever.co')) ats_type = 'lever'
+    else if (direct_link.includes('myworkdayjobs.com')) ats_type = 'workday'
+    else if (direct_link.includes('jobvite.com')) ats_type = 'jobvite'
+    else if (direct_link.includes('icims.com')) ats_type = 'icims'
+    else if (direct_link.includes('smartrecruiters.com')) ats_type = 'smartrecruiters'
     
     // Update database
     const supabase = createClient(
@@ -200,9 +207,11 @@ serve(async (req) => {
       description_html: description_html || undefined,
       requirements: requirements.length > 0 ? requirements : undefined,
       responsibilities: responsibilities.length > 0 ? responsibilities : undefined,
-      direct_link: direct_link || undefined,
-      source: 'simplify',
-      source_url: simplify_url,
+      application_link: direct_link,
+      direct_link: direct_link,
+      is_direct: true,
+      link_type: 'direct',
+      final_domain: ats_type !== 'unknown' ? ats_type : undefined,
       enriched_at: new Date().toISOString(),
       updated_at: new Date().toISOString()
     }
@@ -219,11 +228,11 @@ serve(async (req) => {
         .select()
         .single()
     } else {
-      // Try to find by simplify_url
+      // Try to find by direct_link
       result = await supabase
         .from('internships')
         .update(updateData)
-        .eq('application_link', simplify_url)
+        .eq('direct_link', direct_link)
         .select()
         .maybeSingle()
     }

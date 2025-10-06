@@ -281,6 +281,8 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     const logPayload = JSON.stringify({
       internship_id: isInternship ? id : null,
       application_url: applyUrl,
+      direct_link: applyUrl,
+      used_direct_link: true,
       user_agent: navigator.userAgent,
     });
 

@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     );
 
     // Parse request body
-    const { internship_id, application_url, user_agent } = await req.json();
+    const { internship_id, application_url, direct_link, used_direct_link, user_agent } = await req.json();
 
     if (!internship_id || !application_url) {
       return new Response(
@@ -63,7 +63,7 @@ Deno.serve(async (req) => {
       .insert({
         internship_id,
         user_id,
-        application_url,
+        application_url: direct_link || application_url,
         user_agent,
       });
 

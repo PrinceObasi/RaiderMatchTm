@@ -45,7 +45,7 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
     try {
       const response = await supabase.functions.invoke('enrich-from-simplify', {
         body: { 
-          simplify_url: internship.application_link,
+          direct_link: internship.direct_link || internship.application_link,
           internship_id: internship.id 
         }
       });
@@ -53,7 +53,7 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
       if (!response.error) {
         toast({
           title: "Enrichment Complete",
-          description: "Job details loaded successfully from Simplify.",
+          description: "Job details loaded successfully.",
         });
         window.location.reload();
       } else {

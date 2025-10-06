@@ -30,6 +30,7 @@ export function useInternshipSearch(params: NormalizedParams | null, enabled = t
             application_link,
             direct_link,
             is_direct,
+            link_type,
             final_domain,
             date_posted,
             deadline,
