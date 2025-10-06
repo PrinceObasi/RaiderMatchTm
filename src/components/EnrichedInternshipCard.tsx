@@ -19,6 +19,8 @@ interface EnrichedInternshipCardProps {
     visa_sponsorship: 'Yes' | 'No' | 'Unspecified';
     application_link: string;
     direct_link?: string | null;
+    is_direct?: boolean | null;
+    final_domain?: string | null;
     date_posted: string | null;
     deadline: string | null;
     jd_summary?: string | null;
@@ -104,7 +106,14 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
             <CardTitle className="text-lg font-semibold text-foreground mb-1">
               {internship.role_title || 'Software Engineering Intern'}
             </CardTitle>
-            <p className="text-muted-foreground font-medium">{internship.company}</p>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-muted-foreground font-medium">{internship.company}</p>
+              {internship.is_direct && internship.final_domain && (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  🟢 Direct to {internship.final_domain}
+                </Badge>
+              )}
+            </div>
           </div>
           {salaryBadge && (
             <Badge variant="secondary" className="ml-2 font-medium shrink-0">
@@ -142,13 +151,9 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
           )}
         </div>
 
-        {internship.jd_summary ? (
+        {internship.jd_summary && (
           <div className="text-sm text-foreground leading-relaxed">
             {internship.jd_summary}
-          </div>
-        ) : (
-          <div className="text-sm text-muted-foreground italic">
-            No description available - click "Get Details" to load full job details from Simplify
           </div>
         )}
 
@@ -200,27 +205,15 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
           </div>
           
           <div className="flex gap-2 shrink-0">
-            {!internship.enriched_at && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleEnrich}
-                disabled={isEnriching}
-              >
-                {isEnriching ? (
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                ) : (
-                  <RefreshCw className="h-4 w-4" />
-                )}
-                Get Details
-              </Button>
-            )}
-            
             <Button
-              onClick={() => onApply(internship)}
+              onClick={() => {
+                const applyUrl = internship.direct_link || internship.application_link;
+                window.open(applyUrl, '_blank');
+                onApply(internship);
+              }}
               className="gap-2"
             >
-              Apply Now
+              {internship.is_direct ? 'Apply Directly' : 'Apply via Simplify'}
               <ExternalLink className="h-4 w-4" />
             </Button>
           </div>
