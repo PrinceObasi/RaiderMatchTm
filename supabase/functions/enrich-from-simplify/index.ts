@@ -122,6 +122,44 @@ function extractArrayData(doc: any, keywords: string[]): string[] {
   return items
 }
 
+function extractTechStack(text: string): string[] {
+  const techKeywords = [
+    'JavaScript', 'TypeScript', 'Python', 'Java', 'C++', 'C#', 'Go', 'Rust', 'Swift', 'Kotlin',
+    'React', 'Vue', 'Angular', 'Node.js', 'Express', 'Django', 'Flask', 'Spring', 'ASP.NET',
+    'SQL', 'PostgreSQL', 'MySQL', 'MongoDB', 'Redis', 'DynamoDB', 'Cassandra',
+    'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Jenkins', 'Git', 'GitHub', 'GitLab',
+    'REST API', 'GraphQL', 'gRPC', 'Microservices', 'Machine Learning', 'AI', 'Data Science',
+    'TensorFlow', 'PyTorch', 'Pandas', 'NumPy', 'Linux', 'Bash', 'CI/CD', 'Agile', 'Scrum'
+  ]
+  
+  const found = new Set<string>()
+  const lowerText = text.toLowerCase()
+  
+  for (const tech of techKeywords) {
+    const lowerTech = tech.toLowerCase()
+    if (lowerText.includes(lowerTech)) {
+      found.add(tech)
+    }
+  }
+  
+  return Array.from(found)
+}
+
+function createRoleSummary(title: string, description: string, requirements: string[]): string {
+  const sentences = description.split(/[.!?]+/).filter(s => s.trim().length > 20)
+  const keyPhrases = sentences.slice(0, 2).join('. ').trim()
+  
+  if (keyPhrases.length > 200) {
+    return keyPhrases.slice(0, 200) + '...'
+  }
+  
+  if (requirements.length > 0) {
+    return `${keyPhrases}. Key requirements include: ${requirements.slice(0, 2).map(r => r.slice(0, 50)).join(', ')}.`
+  }
+  
+  return keyPhrases || description.slice(0, 200) + '...'
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -181,6 +219,13 @@ serve(async (req) => {
     const requirements = extractArrayData(doc, ['Requirements', 'Qualifications', 'Required', 'Must have'])
     const responsibilities = extractArrayData(doc, ['Responsibilities', 'What you\'ll do', 'Role', 'Duties'])
     
+    // Extract tech stack from entire page text
+    const pageText = doc.body?.textContent || ''
+    const tech_stack = extractTechStack(pageText)
+    
+    // Create focused role summary
+    const role_summary = createRoleSummary(title, description, requirements)
+    
     // Determine ATS type from URL
     let ats_type = 'unknown'
     if (direct_link.includes('greenhouse.io')) ats_type = 'greenhouse'
@@ -203,8 +248,9 @@ serve(async (req) => {
       work_mode: work_mode || undefined,
       visa_sponsorship: visa_policy,
       deadline: deadline || undefined,
-      jd_summary: description.slice(0, 500) || undefined,
+      jd_summary: role_summary || undefined,
       description_html: description_html || undefined,
+      tech_stack: tech_stack.length > 0 ? tech_stack : undefined,
       requirements: requirements.length > 0 ? requirements : undefined,
       responsibilities: responsibilities.length > 0 ? responsibilities : undefined,
       application_link: direct_link,
