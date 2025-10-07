@@ -6,6 +6,12 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+type Payload = {
+  limit?: number;
+  force?: boolean;
+  ids?: string[];
+};
+
 const ALLOWED_ATS_HOSTS = [
   'greenhouse.io', 'boards.greenhouse.io', 'lever.co', 'myworkdayjobs.com',
   'icims.com', 'smartrecruiters.com', 'jobvite.com', 'oraclecloud.com',
@@ -29,34 +35,60 @@ serve(async (req) => {
   }
 
   try {
-    const { limit = 300, force = false } = await req.json();
+    const startTime = Date.now();
+    const { limit = 50, force = false, ids = [] } = (await req.json().catch(() => ({}))) as Payload;
+    
+    console.log('ENRICH_START', { limit, force, ids_len: ids.length, timestamp: new Date().toISOString() });
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey);
+    const supabase = createClient(supabaseUrl, supabaseKey, {
+      global: { headers: { Authorization: `Bearer ${supabaseKey}` } },
+      db: { schema: 'public' }
+    });
 
-    // Build query
+    // Build query - REMOVED brittle tech_stack.eq.{} filter
     let query = supabase
       .from('internships')
-      .select('*')
+      .select('*', { count: 'exact' })
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (!force) {
-      query = query.or('summary_text.is.null,tech_stack.eq.{},work_mode.is.null');
+    if (ids.length > 0) {
+      query = query.in('id', ids);
+    } else if (!force) {
+      // Only filter by nullable fields - removed tech_stack check
+      query = query.or('summary_text.is.null,work_mode.is.null');
     }
 
-    const { data: internships, error } = await query;
+    const { data: internships, error, count } = await query;
 
-    if (error) throw error;
+    if (error) {
+      console.error('ENRICH_SELECT_ERROR', { message: error.message, details: error });
+      throw error;
+    }
 
-    console.log(`Processing ${internships.length} internships`);
+    console.log('ENRICH_SELECT', { 
+      count, 
+      retrieved: internships?.length || 0, 
+      force, 
+      sample_ids: internships?.slice(0, 3).map(i => i.id) 
+    });
+
+    if (!internships || internships.length === 0) {
+      console.log('ENRICH_NO_TARGETS', { reason: 'no matching internships' });
+      return new Response(
+        JSON.stringify({ success: true, scanned: 0, updated: 0, skipped: 0, reason: 'no-targets' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     let updated = 0;
     let skipped = 0;
     const sample = [];
 
     for (const internship of internships) {
+      console.log('ENRICH_PROCESSING', { id: internship.id, company: internship.company });
       try {
         // Skip if all fields are populated and not forcing
         if (!force && internship.summary_text && internship.tech_stack?.length > 0 && internship.work_mode) {
@@ -111,19 +143,39 @@ serve(async (req) => {
           : internship.work_mode;
 
         // Update database
-        const { error: updateError } = await supabase
+        console.log('ENRICH_UPDATE_ATTEMPT', { 
+          id: internship.id, 
+          company: internship.company,
+          summary_len: summaryText?.length || 0,
+          tech_count: techStack?.length || 0,
+          work_mode: workMode
+        });
+
+        const { data: updateData, error: updateError } = await supabase
           .from('internships')
           .update({
             summary_text: summaryText,
             tech_stack: techStack,
             work_mode: workMode
           })
-          .eq('id', internship.id);
+          .eq('id', internship.id)
+          .select('id, company, summary_text, tech_stack, work_mode');
 
         if (updateError) {
-          console.error(`Update error for ${internship.company}:`, updateError.message);
+          console.error('ENRICH_UPDATE_ERROR', { 
+            id: internship.id, 
+            company: internship.company, 
+            message: updateError.message,
+            code: updateError.code,
+            details: updateError.details 
+          });
           skipped++;
         } else {
+          console.log('ENRICH_UPDATE_SUCCESS', { 
+            id: internship.id, 
+            company: internship.company,
+            updated_data: updateData?.[0]
+          });
           updated++;
           if (sample.length < 5) {
             sample.push({
@@ -136,11 +188,24 @@ serve(async (req) => {
             });
           }
         }
-      } catch (rowError) {
-        console.error(`Error processing ${internship.company}:`, rowError.message);
+      } catch (rowError: any) {
+        console.error('ENRICH_ROW_ERROR', { 
+          id: internship.id, 
+          company: internship.company, 
+          message: rowError.message,
+          stack: rowError.stack 
+        });
         skipped++;
       }
     }
+
+    const duration = Date.now() - startTime;
+    console.log('ENRICH_COMPLETE', { 
+      scanned: internships.length, 
+      updated, 
+      skipped, 
+      duration_ms: duration 
+    });
 
     return new Response(
       JSON.stringify({
@@ -148,15 +213,20 @@ serve(async (req) => {
         scanned: internships.length,
         updated,
         skipped,
-        sample
+        sample,
+        duration_ms: duration
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error) {
-    console.error('Enrich display error:', error);
+  } catch (error: any) {
+    console.error('ENRICH_FATAL_ERROR', { 
+      message: error.message, 
+      stack: error.stack,
+      name: error.name 
+    });
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error.message, details: error.stack }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
