@@ -35,3 +35,6 @@ verify_jwt = false
 
 [functions.scrape-simplify]
 verify_jwt = false
+
+[functions.enrich-display]
+verify_jwt = false
