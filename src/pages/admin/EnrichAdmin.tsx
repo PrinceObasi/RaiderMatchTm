@@ -24,12 +24,39 @@ interface EnrichmentResult {
   }>;
 }
 
+interface DisplayEnrichResult {
+  success: boolean;
+  scanned: number;
+  updated: number;
+  skipped: number;
+  sample: Array<{
+    id: string;
+    company: string;
+    role: string;
+    summary_text: string;
+    tech_stack: string[];
+    work_mode: string | null;
+  }>;
+}
+
+const getWorkModeBadgeColor = (mode: string | null) => {
+  if (!mode) return 'secondary';
+  if (mode === 'remote') return 'default';
+  if (mode === 'hybrid') return 'outline';
+  return 'secondary';
+};
+
 export default function EnrichAdmin({ onBack }: { onBack: () => void }) {
   const [limit, setLimit] = useState(200);
   const [useLlm, setUseLlm] = useState(false);
   const [isEnriching, setIsEnriching] = useState(false);
   const [result, setResult] = useState<EnrichmentResult | null>(null);
   const { toast } = useToast();
+
+  // Display enrichment states
+  const [force, setForce] = useState(false);
+  const [isDisplayEnriching, setIsDisplayEnriching] = useState(false);
+  const [displayResult, setDisplayResult] = useState<DisplayEnrichResult | null>(null);
 
   const handleEnrich = async () => {
     setIsEnriching(true);
@@ -56,6 +83,24 @@ export default function EnrichAdmin({ onBack }: { onBack: () => void }) {
       });
     } finally {
       setIsEnriching(false);
+    }
+  };
+
+  const handleDisplayEnrich = async () => {
+    setIsDisplayEnriching(true);
+    setDisplayResult(null);
+    try {
+      const { data, error } = await supabase.functions.invoke('enrich-display', {
+        body: { limit, force }
+      });
+      if (error) throw error;
+      setDisplayResult(data as DisplayEnrichResult);
+      toast({ title: 'Display Enrichment Complete', description: `Updated ${data.updated} of ${data.scanned} internships` });
+    } catch (error: any) {
+      console.error('Display enrichment error:', error);
+      toast({ title: 'Display Enrichment Failed', description: error.message, variant: 'destructive' });
+    } finally {
+      setIsDisplayEnriching(false);
     }
   };
 
@@ -126,6 +171,99 @@ export default function EnrichAdmin({ onBack }: { onBack: () => void }) {
                 </>
               )}
             </Button>
+          </CardContent>
+        </Card>
+
+        {/* Display Enrichment Tool */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Display Enrichment</CardTitle>
+            <CardDescription>
+              Fill summary_text, tech_stack, and work_mode for display. Uses the same batch limit as above.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center space-x-2">
+              <Checkbox
+                id="force_display"
+                checked={force}
+                onCheckedChange={(checked) => setForce(checked as boolean)}
+              />
+              <Label htmlFor="force_display" className="cursor-pointer">
+                Force re-enrichment (overwrite existing data)
+              </Label>
+            </div>
+            <Button onClick={handleDisplayEnrich} disabled={isDisplayEnriching} className="w-full">
+              {isDisplayEnriching ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing...
+                </>
+              ) : (
+                'Run Display Enrichment'
+              )}
+            </Button>
+
+            {displayResult && (
+              <div className="space-y-4 pt-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+                    <div className="text-3xl font-bold text-green-600 dark:text-green-400">{displayResult.updated}</div>
+                    <div className="text-sm text-muted-foreground">Updated</div>
+                  </div>
+                  <div className="text-center p-4 bg-yellow-50 dark:bg-yellow-950 rounded-lg">
+                    <div className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">{displayResult.skipped}</div>
+                    <div className="text-sm text-muted-foreground">Skipped</div>
+                  </div>
+                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{displayResult.scanned}</div>
+                    <div className="text-sm text-muted-foreground">Scanned</div>
+                  </div>
+                </div>
+
+                {displayResult.sample.length > 0 && (
+                  <div className="space-y-3 mt-4">
+                    <h3 className="font-semibold text-sm">Sample Results (first 5)</h3>
+                    {displayResult.sample.map((item) => (
+                      <Card key={item.id} className="p-4">
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <h4 className="font-semibold">{item.role}</h4>
+                              <p className="text-sm text-muted-foreground">{item.company}</p>
+                            </div>
+                            {item.work_mode && (
+                              <Badge variant={getWorkModeBadgeColor(item.work_mode)}>
+                                {item.work_mode === 'in-person' ? 'In Person' : 
+                                 item.work_mode === 'remote' ? 'Remote' : 'Hybrid'}
+                              </Badge>
+                            )}
+                          </div>
+                          <p className="text-sm">
+                            {item.summary_text.slice(0, 220)}
+                            {item.summary_text.length > 220 ? '...' : ''}
+                          </p>
+                          {item.tech_stack.length > 0 && (
+                            <div className="flex flex-wrap gap-1">
+                              {item.tech_stack.slice(0, 3).map((tech) => (
+                                <Badge key={tech} variant="secondary" className="text-xs">
+                                  {tech}
+                                </Badge>
+                              ))}
+                              {item.tech_stack.length > 3 && (
+                                <Badge variant="secondary" className="text-xs">
+                                  +{item.tech_stack.length - 3}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
           </CardContent>
         </Card>
 
