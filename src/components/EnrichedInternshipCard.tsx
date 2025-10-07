@@ -24,6 +24,8 @@ interface EnrichedInternshipCardProps {
     date_posted: string | null;
     deadline: string | null;
     jd_summary?: string | null;
+    summary_text?: string | null;
+    core_requirements?: string[] | null;
     description_html?: string | null;
     requirements?: string[] | null;
     responsibilities?: string[] | null;
@@ -151,21 +153,25 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
           )}
         </div>
 
-        {internship.jd_summary && (
+        {(internship.summary_text || internship.jd_summary) && (
           <div className="text-sm text-foreground leading-relaxed">
-            {internship.jd_summary}
+            {(internship.summary_text || internship.jd_summary)?.slice(0, 160)}
+            {(internship.summary_text || internship.jd_summary || '').length > 160 && '...'}
           </div>
         )}
 
-        {internship.requirements && internship.requirements.length > 0 && (
+        {(internship.core_requirements || internship.requirements) && 
+         (internship.core_requirements || internship.requirements || []).length > 0 && (
           <div className="space-y-2">
             <p className="text-sm font-semibold text-foreground">Requirements:</p>
             <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-              {internship.requirements.slice(0, 3).map((req, idx) => (
+              {(internship.core_requirements || internship.requirements)!.slice(0, 4).map((req, idx) => (
                 <li key={idx} className="line-clamp-1">{req}</li>
               ))}
-              {internship.requirements.length > 3 && (
-                <li className="text-xs italic">+{internship.requirements.length - 3} more requirements</li>
+              {(internship.core_requirements || internship.requirements || []).length > 4 && (
+                <li className="text-xs italic">
+                  +{(internship.core_requirements || internship.requirements || []).length - 4} more requirements
+                </li>
               )}
             </ul>
           </div>
@@ -179,14 +185,14 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
 
         {internship.tech_stack && internship.tech_stack.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {internship.tech_stack.slice(0, 4).map((tech) => (
+            {internship.tech_stack.slice(0, 6).map((tech) => (
               <Badge key={tech} variant="outline" className="text-xs">
                 {tech}
               </Badge>
             ))}
-            {internship.tech_stack.length > 4 && (
+            {internship.tech_stack.length > 6 && (
               <Badge variant="outline" className="text-xs">
-                +{internship.tech_stack.length - 4} more
+                +{internship.tech_stack.length - 6} more
               </Badge>
             )}
           </div>

@@ -34,7 +34,9 @@ export function useInternshipSearch(params: NormalizedParams | null, enabled = t
             final_domain,
             date_posted,
             deadline,
-            jd_summary
+            jd_summary,
+            summary_text,
+            core_requirements
           `);
 
         // Apply filters

@@ -152,6 +152,7 @@ export type Database = {
           archived_at: string | null
           category: string | null
           company: string
+          core_requirements: string[] | null
           created_at: string | null
           date_posted: string | null
           deadline: string | null
@@ -194,6 +195,7 @@ export type Database = {
           source: string | null
           source_url: string | null
           sponsorship_flag: string | null
+          summary_text: string | null
           tech_stack: string[] | null
           updated_at: string | null
           validation_message: string | null
@@ -206,6 +208,7 @@ export type Database = {
           archived_at?: string | null
           category?: string | null
           company: string
+          core_requirements?: string[] | null
           created_at?: string | null
           date_posted?: string | null
           deadline?: string | null
@@ -248,6 +251,7 @@ export type Database = {
           source?: string | null
           source_url?: string | null
           sponsorship_flag?: string | null
+          summary_text?: string | null
           tech_stack?: string[] | null
           updated_at?: string | null
           validation_message?: string | null
@@ -260,6 +264,7 @@ export type Database = {
           archived_at?: string | null
           category?: string | null
           company?: string
+          core_requirements?: string[] | null
           created_at?: string | null
           date_posted?: string | null
           deadline?: string | null
@@ -302,6 +307,7 @@ export type Database = {
           source?: string | null
           source_url?: string | null
           sponsorship_flag?: string | null
+          summary_text?: string | null
           tech_stack?: string[] | null
           updated_at?: string | null
           validation_message?: string | null
@@ -531,6 +537,7 @@ export type Database = {
           archived_at: string | null
           category: string | null
           company: string
+          core_requirements: string[] | null
           created_at: string | null
           date_posted: string | null
           deadline: string | null
@@ -573,6 +580,7 @@ export type Database = {
           source: string | null
           source_url: string | null
           sponsorship_flag: string | null
+          summary_text: string | null
           tech_stack: string[] | null
           updated_at: string | null
           validation_message: string | null
@@ -654,6 +662,7 @@ export type Database = {
           archived_at: string | null
           category: string | null
           company: string
+          core_requirements: string[] | null
           created_at: string | null
           date_posted: string | null
           deadline: string | null
@@ -696,6 +705,7 @@ export type Database = {
           source: string | null
           source_url: string | null
           sponsorship_flag: string | null
+          summary_text: string | null
           tech_stack: string[] | null
           updated_at: string | null
           validation_message: string | null
@@ -720,6 +730,7 @@ export type Database = {
           archived_at: string | null
           category: string | null
           company: string
+          core_requirements: string[] | null
           created_at: string | null
           date_posted: string | null
           deadline: string | null
@@ -762,6 +773,7 @@ export type Database = {
           source: string | null
           source_url: string | null
           sponsorship_flag: string | null
+          summary_text: string | null
           tech_stack: string[] | null
           updated_at: string | null
           validation_message: string | null

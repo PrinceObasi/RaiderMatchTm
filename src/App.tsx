@@ -11,7 +11,7 @@ import { AuthModal } from "./components/AuthModal";
 import { Settings } from "./components/Settings";
 import { AuthBootstrapper } from "./components/AuthBootstrapper";
 import { AdminImport } from "./components/AdminImport";
-import EnrichAdminPage from "./pages/admin/enrich";
+import EnrichAdmin from "./pages/admin/EnrichAdmin";
 import { ResetPassword } from "./components/auth/ResetPassword";
 import { TriggerScraper } from "./components/TriggerScraper";
 import { supabase } from "@/integrations/supabase/client";
@@ -127,7 +127,7 @@ const App = () => {
 
     if (currentView === 'enrich') {
       return (
-        <EnrichAdminPage 
+        <EnrichAdmin 
           onBack={() => setCurrentView('main')}
         />
       );

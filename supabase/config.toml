@@ -21,6 +21,12 @@ verify_jwt = false
 [functions.enrich-missing]
 verify_jwt = false
 
+[functions.enrich-internships]
+verify_jwt = false
+
+[functions.enrich-from-simplify]
+verify_jwt = false
+
 [functions.validate-internship-links]
 verify_jwt = false
 

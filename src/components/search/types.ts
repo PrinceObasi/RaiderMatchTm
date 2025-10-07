@@ -33,4 +33,6 @@ export interface InternshipSearchResult {
   date_posted: string | null;
   deadline: string | null;
   jd_summary: string | null;
+  summary_text: string | null;
+  core_requirements: string[] | null;
 }
