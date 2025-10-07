@@ -25,6 +25,7 @@ interface EnrichedInternshipCardProps {
     deadline: string | null;
     jd_summary?: string | null;
     summary_text?: string | null;
+    description_text?: string | null;
     core_requirements?: string[] | null;
     description_html?: string | null;
     requirements?: string[] | null;
@@ -153,10 +154,10 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
           )}
         </div>
 
-        {(internship.summary_text || internship.jd_summary) && (
+        {(internship.description_text || internship.summary_text || internship.jd_summary) && (
           <div className="text-sm text-foreground leading-relaxed">
-            {(internship.summary_text || internship.jd_summary)?.slice(0, 160)}
-            {(internship.summary_text || internship.jd_summary || '').length > 160 && '...'}
+            {(internship.description_text || internship.summary_text || internship.jd_summary)?.slice(0, 160)}
+            {(internship.description_text || internship.summary_text || internship.jd_summary || '').length > 160 && '...'}
           </div>
         )}
 

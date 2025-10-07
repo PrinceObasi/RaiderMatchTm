@@ -36,6 +36,8 @@ export function useInternshipSearch(params: NormalizedParams | null, enabled = t
             deadline,
             jd_summary,
             summary_text,
+            description_text,
+            work_mode,
             core_requirements
           `);
 

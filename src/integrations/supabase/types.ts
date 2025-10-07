@@ -157,6 +157,7 @@ export type Database = {
           date_posted: string | null
           deadline: string | null
           description_html: string | null
+          description_text: string | null
           direct_link: string
           direct_url: string | null
           duplicate_of: string | null
@@ -213,6 +214,7 @@ export type Database = {
           date_posted?: string | null
           deadline?: string | null
           description_html?: string | null
+          description_text?: string | null
           direct_link: string
           direct_url?: string | null
           duplicate_of?: string | null
@@ -269,6 +271,7 @@ export type Database = {
           date_posted?: string | null
           deadline?: string | null
           description_html?: string | null
+          description_text?: string | null
           direct_link?: string
           direct_url?: string | null
           duplicate_of?: string | null
@@ -542,6 +545,7 @@ export type Database = {
           date_posted: string | null
           deadline: string | null
           description_html: string | null
+          description_text: string | null
           direct_link: string
           direct_url: string | null
           duplicate_of: string | null
@@ -667,6 +671,7 @@ export type Database = {
           date_posted: string | null
           deadline: string | null
           description_html: string | null
+          description_text: string | null
           direct_link: string
           direct_url: string | null
           duplicate_of: string | null
@@ -735,6 +740,7 @@ export type Database = {
           date_posted: string | null
           deadline: string | null
           description_html: string | null
+          description_text: string | null
           direct_link: string
           direct_url: string | null
           duplicate_of: string | null

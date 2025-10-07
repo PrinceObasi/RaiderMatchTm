@@ -34,5 +34,7 @@ export interface InternshipSearchResult {
   deadline: string | null;
   jd_summary: string | null;
   summary_text: string | null;
+  description_text: string | null;
+  work_mode: string | null;
   core_requirements: string[] | null;
 }
