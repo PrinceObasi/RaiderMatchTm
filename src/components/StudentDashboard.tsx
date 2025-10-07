@@ -661,6 +661,11 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                   </div>
                                 </div>
                                 <div className="flex items-center gap-2">
+                                  {internship.work_mode && (
+                                    <Badge variant="outline" className="text-xs">
+                                      {internship.work_mode === 'in-person' ? 'In Person' : internship.work_mode.charAt(0).toUpperCase() + internship.work_mode.slice(1)}
+                                    </Badge>
+                                  )}
                                   {internship.visa_sponsorship && internship.visa_sponsorship !== 'Unspecified' && (
                                     <Badge variant={internship.visa_sponsorship === 'Yes' ? 'default' : 'secondary'}>
                                       {internship.visa_sponsorship === 'Yes' ? 'Sponsors Visa' : 'No Visa Sponsorship'}
@@ -688,9 +693,9 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                               )}
 
                               {/* Description */}
-                              {internship.description && (
+                              {(internship.description_text || internship.summary_text || internship.jd_summary) && (
                                 <p className="mt-2 text-sm sm:text-base text-muted-foreground line-clamp-3 sm:line-clamp-none mb-4">
-                                  {internship.description}
+                                  {(internship.description_text || internship.summary_text || internship.jd_summary)}
                                 </p>
                               )}
 
