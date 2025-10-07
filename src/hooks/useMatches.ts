@@ -11,6 +11,9 @@ interface MatchedInternship {
   application_link: string;
   date_posted: string | null;
   deadline: string | null;
+  work_mode: string | null;
+  summary_text: string | null;
+  description_text: string | null;
 }
 
 export function useMatches(limit = 20, offset = 0) {
