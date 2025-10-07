@@ -43,7 +43,7 @@ serve(async (req) => {
       .limit(limit);
 
     if (!force) {
-      query = query.or('description_text.is.null,tech_stack.eq.{},work_mode.is.null');
+      query = query.or('summary_text.is.null,tech_stack.eq.{},work_mode.is.null');
     }
 
     const { data: internships, error } = await query;
@@ -59,7 +59,7 @@ serve(async (req) => {
     for (const internship of internships) {
       try {
         // Skip if all fields are populated and not forcing
-        if (!force && internship.description_text && internship.tech_stack?.length > 0 && internship.work_mode) {
+        if (!force && internship.summary_text && internship.tech_stack?.length > 0 && internship.work_mode) {
           skipped++;
           continue;
         }
@@ -95,10 +95,10 @@ serve(async (req) => {
         // Extract plain text
         const plainText = stripHtml(htmlContent);
 
-        // Generate description_text
-        const descriptionText = force || !internship.description_text
+        // Generate summary_text
+        const summaryText = force || !internship.summary_text
           ? generateDescription(plainText, internship)
-          : internship.description_text;
+          : internship.summary_text;
 
         // Extract tech_stack
         const techStack = force || !internship.tech_stack?.length
@@ -114,7 +114,7 @@ serve(async (req) => {
         const { error: updateError } = await supabase
           .from('internships')
           .update({
-            description_text: descriptionText,
+            summary_text: summaryText,
             tech_stack: techStack,
             work_mode: workMode
           })
@@ -130,7 +130,7 @@ serve(async (req) => {
               id: internship.id,
               company: internship.company,
               role: internship.role_title,
-              description_text: descriptionText,
+              summary_text: summaryText,
               tech_stack: techStack,
               work_mode: workMode
             });

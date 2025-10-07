@@ -18,7 +18,7 @@ interface EnrichResult {
     id: string;
     company: string;
     role: string;
-    description_text: string;
+    summary_text: string;
     tech_stack: string[];
     work_mode: string | null;
   }>;
@@ -171,8 +171,8 @@ export default function EnrichDisplay() {
                         </div>
                         
                         <p className="text-sm">
-                          {item.description_text.slice(0, 220)}
-                          {item.description_text.length > 220 ? '...' : ''}
+                          {item.summary_text.slice(0, 220)}
+                          {item.summary_text.length > 220 ? '...' : ''}
                         </p>
                         
                         {item.tech_stack.length > 0 && (
