@@ -4,6 +4,8 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Analytics } from "@vercel/analytics/react";
+import { Button } from "@/components/ui/button";
+import { Loader2 } from "lucide-react";
 import { LandingPage } from "./components/LandingPage";
 import { StudentDashboard } from "./components/StudentDashboard";
 import { EmployerDashboard } from "./components/EmployerDashboard";
@@ -34,6 +36,39 @@ const App = () => {
     defaultTab: 'login'
   });
   const { toast } = useToast();
+  const [isEnriching, setIsEnriching] = useState(false);
+
+  const runEnrichment = async () => {
+    setIsEnriching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('enrich-display', {
+        body: { limit: 25, force: true }
+      });
+      if (error) {
+        console.error('ENRICH_CALL_ERROR', error);
+        toast({
+          title: 'Enrichment failed',
+          description: error.message,
+          variant: 'destructive',
+        });
+      } else {
+        console.log('ENRICH_CALL_SUCCESS', data);
+        toast({
+          title: 'Enrichment complete',
+          description: `Updated ${data?.updated} of ${data?.scanned ?? data?.selected ?? 'N/A'} in ${data?.duration_ms ?? data?.ms}ms`,
+        });
+      }
+    } catch (err: any) {
+      console.error('ENRICH_CALL_EXCEPTION', err);
+      toast({
+        title: 'Failed',
+        description: err.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setIsEnriching(false);
+    }
+  };
 
   const handleStudentSignup = () => {
     setAuthModal({ isOpen: true, defaultTab: 'student' });
@@ -192,6 +227,17 @@ const App = () => {
             defaultTab={authModal.defaultTab}
           />
           <Analytics />
+          <div className="fixed bottom-4 right-4 z-50">
+            <Button
+              onClick={runEnrichment}
+              disabled={isEnriching}
+              variant="secondary"
+              size="sm"
+            >
+              {isEnriching && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              Run Display Enrichment (25 / force)
+            </Button>
+          </div>
         </div>
       </TooltipProvider>
     </QueryClientProvider>
