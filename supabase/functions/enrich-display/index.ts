@@ -6,12 +6,6 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-type Payload = {
-  limit?: number;
-  force?: boolean;
-  ids?: string[];
-};
-
 const ALLOWED_ATS_HOSTS = [
   'greenhouse.io', 'boards.greenhouse.io', 'lever.co', 'myworkdayjobs.com',
   'icims.com', 'smartrecruiters.com', 'jobvite.com', 'oraclecloud.com',
@@ -35,68 +29,34 @@ serve(async (req) => {
   }
 
   try {
-    const startTime = Date.now();
-    const { limit = 50, force = false, ids = [] } = (await req.json().catch(() => ({}))) as Payload;
-    
-    console.log('ENRICH_START', { limit, force, ids_len: ids.length, timestamp: new Date().toISOString() });
+    const { limit = 300, force = false } = await req.json();
     
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseKey, {
-      global: { headers: { Authorization: `Bearer ${supabaseKey}` } },
-      db: { schema: 'public' }
-    });
+    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Build query - align with RLS-visible rows
+    // Build query
     let query = supabase
       .from('internships')
-      .select('*', { count: 'exact' })
+      .select('*')
       .order('created_at', { ascending: false })
       .limit(limit);
 
-    if (ids.length > 0) {
-      // Explicit targeting: allow enriching any specific IDs
-      query = query.in('id', ids);
-    } else {
-      // Always target the *visible* set (RLS-aligned)
-      query = query
-        .eq('is_active', true)
-        .or('is_texas.is.null,is_texas.eq.true');
-      
-      // Only skip "missing fields" checks when force=true
-      if (!force) {
-        query = query.or('summary_text.is.null,work_mode.is.null');
-      }
+    if (!force) {
+      query = query.or('summary_text.is.null,tech_stack.eq.{},work_mode.is.null');
     }
 
-    const { data: internships, error, count } = await query;
+    const { data: internships, error } = await query;
 
-    if (error) {
-      console.error('ENRICH_SELECT_ERROR', { message: error.message, details: error });
-      throw error;
-    }
+    if (error) throw error;
 
-    console.log('ENRICH_SELECT', { 
-      count, 
-      retrieved: internships?.length || 0, 
-      force, 
-      sample_ids: internships?.slice(0, 3).map(i => i.id) 
-    });
-
-    if (!internships || internships.length === 0) {
-      console.log('ENRICH_NO_TARGETS', { reason: 'no matching internships' });
-      return new Response(
-        JSON.stringify({ success: true, scanned: 0, updated: 0, skipped: 0, reason: 'no-targets' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    console.log(`Processing ${internships.length} internships`);
 
     let updated = 0;
     let skipped = 0;
     const sample = [];
 
     for (const internship of internships) {
-      console.log('ENRICH_PROCESSING', { id: internship.id, company: internship.company });
       try {
         // Skip if all fields are populated and not forcing
         if (!force && internship.summary_text && internship.tech_stack?.length > 0 && internship.work_mode) {
@@ -150,47 +110,20 @@ serve(async (req) => {
           ? detectWorkMode(plainText)
           : internship.work_mode;
 
-        // Ensure description_text is populated (UI fallback)
-        const descriptionText = (internship.description_text && internship.description_text.trim().length > 0)
-          ? internship.description_text
-          : summaryText;
-
         // Update database
-        console.log('ENRICH_UPDATE_ATTEMPT', { 
-          id: internship.id, 
-          company: internship.company,
-          summary_len: summaryText?.length || 0,
-          desc_len: descriptionText?.length || 0,
-          tech_count: techStack?.length || 0,
-          work_mode: workMode
-        });
-
-        const { data: updateData, error: updateError } = await supabase
+        const { error: updateError } = await supabase
           .from('internships')
           .update({
             summary_text: summaryText,
-            description_text: descriptionText,
             tech_stack: techStack,
             work_mode: workMode
           })
-          .eq('id', internship.id)
-          .select('id, company, summary_text, description_text, tech_stack, work_mode');
+          .eq('id', internship.id);
 
         if (updateError) {
-          console.error('ENRICH_UPDATE_ERROR', { 
-            id: internship.id, 
-            company: internship.company, 
-            message: updateError.message,
-            code: updateError.code,
-            details: updateError.details 
-          });
+          console.error(`Update error for ${internship.company}:`, updateError.message);
           skipped++;
         } else {
-          console.log('ENRICH_UPDATE_SUCCESS', { 
-            id: internship.id, 
-            company: internship.company,
-            updated_data: updateData?.[0]
-          });
           updated++;
           if (sample.length < 5) {
             sample.push({
@@ -203,24 +136,11 @@ serve(async (req) => {
             });
           }
         }
-      } catch (rowError: any) {
-        console.error('ENRICH_ROW_ERROR', { 
-          id: internship.id, 
-          company: internship.company, 
-          message: rowError.message,
-          stack: rowError.stack 
-        });
+      } catch (rowError) {
+        console.error(`Error processing ${internship.company}:`, rowError.message);
         skipped++;
       }
     }
-
-    const duration = Date.now() - startTime;
-    console.log('ENRICH_COMPLETE', { 
-      scanned: internships.length, 
-      updated, 
-      skipped, 
-      duration_ms: duration 
-    });
 
     return new Response(
       JSON.stringify({
@@ -228,20 +148,15 @@ serve(async (req) => {
         scanned: internships.length,
         updated,
         skipped,
-        sample,
-        duration_ms: duration
+        sample
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
-  } catch (error: any) {
-    console.error('ENRICH_FATAL_ERROR', { 
-      message: error.message, 
-      stack: error.stack,
-      name: error.name 
-    });
+  } catch (error) {
+    console.error('Enrich display error:', error);
     return new Response(
-      JSON.stringify({ error: error.message, details: error.stack }),
+      JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
