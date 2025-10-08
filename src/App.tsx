@@ -42,7 +42,7 @@ const App = () => {
     setIsEnriching(true);
     try {
       const { data, error } = await supabase.functions.invoke('enrich-display', {
-        body: { limit: 25, force: true }
+        body: { limit: 50, force: true }
       });
       if (error) {
         console.error('ENRICH_CALL_ERROR', error);
@@ -235,7 +235,7 @@ const App = () => {
               size="sm"
             >
               {isEnriching && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-              Run Display Enrichment (25 / force)
+              Run Display Enrichment (50 / force)
             </Button>
           </div>
         </div>
