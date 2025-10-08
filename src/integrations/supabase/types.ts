@@ -631,13 +631,16 @@ export type Database = {
           company: string
           date_posted: string
           deadline: string
+          description_text: string
           direct_link: string
           id: string
           link_type: string
           location: string
           role_title: string
+          summary_text: string
           tech_stack: string[]
           visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
+          work_mode: string
         }[]
       }
       match_jobs: {
