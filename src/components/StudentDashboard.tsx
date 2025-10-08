@@ -157,7 +157,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     getUserClassification();
   }, []);
 
-  const studentGPA = student?.graduation_year ? `Class of ${student.graduation_year}` : `TTU ${userClassification}`;
+  const studentClassification = student?.graduation_year ? `Class of ${student.graduation_year}` : userClassification;
 
   const handleResumeUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -474,7 +474,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
           
           <div className="flex items-center gap-2 sm:gap-4">
             <Badge variant="secondary" className="hidden sm:inline-flex text-xs sm:text-sm">
-              GPA: {studentGPA}
+              {studentClassification}
             </Badge>
             <Button variant="ghost" onClick={onOpenSettings} size="sm" className="text-xs sm:text-sm">
               <Settings2 className="h-4 w-4 sm:mr-2" />
