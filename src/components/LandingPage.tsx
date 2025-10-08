@@ -83,7 +83,7 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
                 </div>
                 <h3 className="text-xl font-semibold mb-3">Get Curated Matches</h3>
                 <p className="text-muted-foreground">
-                  We'll find relevant internships across Texas matched to your skills and interests.
+                  We'll find relevant internships in Texas and nationwide matched to your skills and interests.
                 </p>
               </CardContent>
             </Card>
