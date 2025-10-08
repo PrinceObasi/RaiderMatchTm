@@ -479,7 +479,7 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
           </TabsContent>
 
           <TabsContent value="analytics" className="mt-6">
-            <Analytics />
+            <Analytics employerView={true} />
           </TabsContent>
         </Tabs>
       </div>

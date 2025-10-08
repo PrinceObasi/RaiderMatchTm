@@ -42,7 +42,11 @@ interface LocationStat {
   unique_applicants: number;
 }
 
-export function Analytics() {
+interface AnalyticsProps {
+  employerView?: boolean;
+}
+
+export function Analytics({ employerView = false }: AnalyticsProps) {
   const [jobStats, setJobStats] = useState<ApplicationStat[]>([]);
   const [internshipStats, setInternshipStats] = useState<ApplicationStat[]>([]);
   const [companyStats, setCompanyStats] = useState<CompanyStat[]>([]);
@@ -53,39 +57,60 @@ export function Analytics() {
   const loadAnalytics = async () => {
     setIsLoading(true);
     try {
+      // Get current user session for employer filtering
+      const { data: session } = await supabase.auth.getSession();
+      const currentUserId = session?.session?.user?.id;
+
       // Load job application analytics
-      const { data: jobData, error: jobError } = await supabase
+      let jobQuery = supabase
         .from('applications')
         .select(`
           job_id,
           user_id,
           applied_at,
           jobs:job_id (
+            id,
             title,
             company,
-            city
+            city,
+            employer_id
           )
         `)
         .not('job_id', 'is', null);
 
-      if (jobError) throw jobError;
+      const { data: jobData, error: jobError } = await jobQuery;
 
-      // Load internship application analytics  
-      const { data: internshipData, error: internshipError } = await supabase
-        .from('applications')
-        .select(`
-          internship_id,
-          user_id,
-          applied_at,
-          internships:internship_id (
-            role_title,
-            company,
-            location
-          )
-        `)
-        .not('internship_id', 'is', null);
+      if (jobError) {
+        console.error('Error loading job analytics:', jobError);
+      }
 
-      if (internshipError) throw internshipError;
+      // Filter to only employer's jobs if in employer view
+      const filteredJobData = employerView && currentUserId
+        ? jobData?.filter((app: any) => app.jobs?.employer_id === currentUserId)
+        : jobData;
+
+      // Load internship application analytics (skip for employer view)
+      let internshipData: any[] = [];
+      if (!employerView) {
+        const { data: intData, error: internshipError } = await supabase
+          .from('applications')
+          .select(`
+            internship_id,
+            user_id,
+            applied_at,
+            internships:internship_id (
+              role_title,
+              company,
+              location
+            )
+          `)
+          .not('internship_id', 'is', null);
+
+        if (internshipError) {
+          console.error('Error loading internship analytics:', internshipError);
+        }
+        internshipData = intData || [];
+      }
 
       // Process job stats
       const jobStatsMap = new Map<string, {
@@ -95,7 +120,7 @@ export function Analytics() {
         lastApplied: string;
       }>();
 
-      jobData?.forEach((app: any) => {
+      filteredJobData?.forEach((app: any) => {
         const jobId = app.job_id;
         if (!jobStatsMap.has(jobId)) {
           jobStatsMap.set(jobId, {
@@ -170,7 +195,7 @@ export function Analytics() {
         applicants: Set<string>;
       }>();
 
-      [...(jobData || []), ...(internshipData || [])].forEach((app: any) => {
+      [...(filteredJobData || []), ...(internshipData || [])].forEach((app: any) => {
         const company = app.jobs?.company || app.internships?.company;
         if (!company) return;
         
@@ -209,7 +234,7 @@ export function Analytics() {
         applicants: Set<string>;
       }>();
 
-      [...(jobData || []), ...(internshipData || [])].forEach((app: any) => {
+      [...(filteredJobData || []), ...(internshipData || [])].forEach((app: any) => {
         const location = app.jobs?.city || app.internships?.location;
         if (!location) return;
         
@@ -247,11 +272,7 @@ export function Analytics() {
 
     } catch (error) {
       console.error('Error loading analytics:', error);
-      toast({
-        title: "Error loading analytics",
-        description: "Failed to load application analytics data.",
-        variant: "destructive"
-      });
+      // Don't show error toast - just handle gracefully with empty states
     } finally {
       setIsLoading(false);
     }
@@ -274,9 +295,11 @@ export function Analytics() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-2xl font-bold">Application Analytics</h2>
+          <h2 className="text-2xl font-bold">{employerView ? 'Job Applicants' : 'Application Analytics'}</h2>
           <p className="text-muted-foreground">
-            Track which roles and companies are most popular with students
+            {employerView 
+              ? 'View who applied to your job postings and when' 
+              : 'Track which roles and companies are most popular with students'}
           </p>
         </div>
         <Button onClick={loadAnalytics} disabled={isLoading}>
@@ -285,13 +308,68 @@ export function Analytics() {
         </Button>
       </div>
 
-      <Tabs defaultValue="roles" className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="roles">Top Roles</TabsTrigger>
-          <TabsTrigger value="internships">Top Internships</TabsTrigger>
-          <TabsTrigger value="companies">Companies</TabsTrigger>
-          <TabsTrigger value="locations">Locations</TabsTrigger>
-        </TabsList>
+      {employerView ? (
+        // Simplified view for employers - only show their job applicants
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Your Job Postings & Applicants
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {jobStats.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                No applications yet. Students will appear here when they apply to your jobs.
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {jobStats.map((job, index) => (
+                  <div key={job.id} className="flex items-center justify-between p-4 border rounded-lg">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-bold text-lg text-primary">#{index + 1}</span>
+                        <h3 className="font-semibold">{job.title}</h3>
+                      </div>
+                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                        <div className="flex items-center gap-1">
+                          <Building className="h-4 w-4" />
+                          {job.company}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <MapPin className="h-4 w-4" />
+                          {job.city}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Calendar className="h-4 w-4" />
+                          Last applied: {formatDate(job.last_applied)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex flex-col items-end gap-2">
+                      <Badge variant="secondary" className="font-semibold">
+                        {job.application_count} applications
+                      </Badge>
+                      <Badge variant="outline">
+                        <Users className="h-3 w-3 mr-1" />
+                        {job.unique_applicants} applicants
+                      </Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      ) : (
+        // Full analytics view for admins/students
+        <Tabs defaultValue="roles" className="w-full">
+          <TabsList className="grid w-full grid-cols-4">
+            <TabsTrigger value="roles">Top Roles</TabsTrigger>
+            <TabsTrigger value="internships">Top Internships</TabsTrigger>
+            <TabsTrigger value="companies">Companies</TabsTrigger>
+            <TabsTrigger value="locations">Locations</TabsTrigger>
+          </TabsList>
 
         <TabsContent value="roles" className="space-y-4">
           <Card>
@@ -486,7 +564,8 @@ export function Analytics() {
             </CardContent>
           </Card>
         </TabsContent>
-      </Tabs>
+        </Tabs>
+      )}
     </div>
   );
 }
