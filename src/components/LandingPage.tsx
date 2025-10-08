@@ -69,9 +69,9 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Upload className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3">1. Upload Your Résumé</h3>
+                <h3 className="text-xl font-semibold mb-3">Upload Your Résumé</h3>
                 <p className="text-muted-foreground">
-                  Simply upload your PDF résumé and we'll analyze your skills, experience, and qualifications.
+                  Upload your PDF résumé and we'll analyze your skills, experience, and background.
                 </p>
               </CardContent>
             </Card>
@@ -81,9 +81,9 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Target className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3">2. Get Perfect Matches</h3>
+                <h3 className="text-xl font-semibold mb-3">Get Curated Matches</h3>
                 <p className="text-muted-foreground">
-                  Our algorithm finds exactly 10 internships ranked by HireScore (0-100) based on your profile.
+                  We'll find relevant internships across Texas matched to your skills and interests.
                 </p>
               </CardContent>
             </Card>
@@ -93,9 +93,9 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                   <CheckCircle className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3">3. One-Click Apply</h3>
+                <h3 className="text-xl font-semibold mb-3">Apply Directly</h3>
                 <p className="text-muted-foreground">
-                  Apply instantly with one click. Employers see your HireScore and can invite you to interview.
+                  Click apply to go straight to the company website. Employers posting on RaiderMatch can also view your profile and invite you to interview.
                 </p>
               </CardContent>
             </Card>
