@@ -47,7 +47,7 @@ serve(async (req) => {
       db: { schema: 'public' }
     });
 
-    // Build query - REMOVED brittle tech_stack.eq.{} filter
+    // Build query - align with RLS-visible rows
     let query = supabase
       .from('internships')
       .select('*', { count: 'exact' })
@@ -55,10 +55,18 @@ serve(async (req) => {
       .limit(limit);
 
     if (ids.length > 0) {
+      // Explicit targeting: allow enriching any specific IDs
       query = query.in('id', ids);
-    } else if (!force) {
-      // Only filter by nullable fields - removed tech_stack check
-      query = query.or('summary_text.is.null,work_mode.is.null');
+    } else {
+      // Always target the *visible* set (RLS-aligned)
+      query = query
+        .eq('is_active', true)
+        .or('is_texas.is.null,is_texas.eq.true');
+      
+      // Only skip "missing fields" checks when force=true
+      if (!force) {
+        query = query.or('summary_text.is.null,work_mode.is.null');
+      }
     }
 
     const { data: internships, error, count } = await query;
@@ -142,11 +150,17 @@ serve(async (req) => {
           ? detectWorkMode(plainText)
           : internship.work_mode;
 
+        // Ensure description_text is populated (UI fallback)
+        const descriptionText = (internship.description_text && internship.description_text.trim().length > 0)
+          ? internship.description_text
+          : summaryText;
+
         // Update database
         console.log('ENRICH_UPDATE_ATTEMPT', { 
           id: internship.id, 
           company: internship.company,
           summary_len: summaryText?.length || 0,
+          desc_len: descriptionText?.length || 0,
           tech_count: techStack?.length || 0,
           work_mode: workMode
         });
@@ -155,11 +169,12 @@ serve(async (req) => {
           .from('internships')
           .update({
             summary_text: summaryText,
+            description_text: descriptionText,
             tech_stack: techStack,
             work_mode: workMode
           })
           .eq('id', internship.id)
-          .select('id, company, summary_text, tech_stack, work_mode');
+          .select('id, company, summary_text, description_text, tech_stack, work_mode');
 
         if (updateError) {
           console.error('ENRICH_UPDATE_ERROR', { 
