@@ -776,33 +776,32 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                        </PopoverContent>
                                      </Popover>
                                    </div>
-                                 </div>
-                                   {/* Tech Stack from matched internship */}
-                                   {job.tech_stack && job.tech_stack.length > 0 && (
-                                     <div className="mt-3 mb-4">
-                                       <div className="flex flex-wrap gap-2">
-                                         {job.tech_stack.slice(0, 8).map((tech) => (
-                                           <Badge key={tech} variant="outline" className="text-xs">
-                                             {tech}
-                                           </Badge>
-                                         ))}
-                                         {job.tech_stack.length > 8 && (
-                                           <Badge variant="outline" className="text-xs">
-                                             +{job.tech_stack.length - 8} more
-                                           </Badge>
-                                         )}
-                                       </div>
-                                     </div>
-                                   )}
-                                 
-                                   {/* Description text from enrichment */}
-                                   {(job.description_text || job.summary_text) && (
-                                     <p className="mt-2 text-sm sm:text-base text-muted-foreground line-clamp-3 mb-4">
-                                       {job.description_text || job.summary_text}
-                                     </p>
-                                   )}
-                                 
-                                  <div className="mt-4 flex flex-col sm:flex-row gap-2">
+                                </div>
+                                  {/* Tech Stack from matched internship */}
+                                  {job.tech_stack && job.tech_stack.length > 0 && (
+                                    <div className="mt-3 mb-4">
+                                      <div className="flex flex-wrap gap-2">
+                                        {job.tech_stack.slice(0, 8).map((tech) => (
+                                          <Badge key={tech} variant="outline" className="text-xs">
+                                            {tech}
+                                          </Badge>
+                                        ))}
+                                        {job.tech_stack.length > 8 && (
+                                          <Badge variant="outline" className="text-xs">
+                                            +{job.tech_stack.length - 8} more
+                                          </Badge>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )}
+                                
+                                  {/* Simple description for matched internship */}
+                                  <p className="mt-2 text-sm sm:text-base text-muted-foreground line-clamp-3 sm:line-clamp-none mb-4">
+                                    {job.role_title || 'Software Engineering Intern'} position at {job.company}
+                                    {job.location && ` in ${job.location}`}
+                                  </p>
+                                
+                                 <div className="mt-4 flex flex-col sm:flex-row gap-2">
                      <Button 
                        onClick={() => handleApply(job.id, job.application_link, true)}
                        className="w-full sm:w-auto h-11"
