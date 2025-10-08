@@ -108,11 +108,6 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
       setJobs(data || []);
     } catch (error) {
       console.error('Error loading jobs:', error);
-      toast({
-        title: "Error loading jobs",
-        description: "Could not load your job postings.",
-        variant: "destructive"
-      });
     } finally {
       setLoading(false);
     }
