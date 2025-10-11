@@ -9,9 +9,75 @@ interface ResumeParseResult {
   skills: string[]
   name?: string
   email?: string
+  gpa?: number
+  graduation_year?: number
+  major?: string
+  work_experience?: WorkExperience[]
+  projects?: Project[]
 }
 
-// Simple resume parser that extracts skills from text content
+interface WorkExperience {
+  company: string
+  position: string
+  start_date: string
+  end_date: string | null
+  description: string
+  current: boolean
+}
+
+interface Project {
+  title: string
+  description: string
+  tech_stack: string[]
+  url: string | null
+  start_date: string
+  end_date: string | null
+}
+
+// Enhanced resume parser that extracts comprehensive profile information
+async function parseResume(text: string): Promise<ResumeParseResult> {
+  const result: ResumeParseResult = {
+    skills: [],
+    work_experience: [],
+    projects: []
+  }
+
+  // Extract skills
+  result.skills = await parseResumeSkills(text)
+
+  // Extract GPA (patterns like "GPA: 3.5", "GPA 3.75", "3.8 GPA")
+  const gpaMatch = text.match(/\b(?:gpa|g\.p\.a\.|grade point average)[\s:]*(\d+\.\d+|\d+)/i)
+  if (gpaMatch) {
+    const gpa = parseFloat(gpaMatch[1])
+    if (gpa >= 0 && gpa <= 4) {
+      result.gpa = gpa
+    }
+  }
+
+  // Extract graduation year (looking for years between 2020-2030)
+  const gradYearMatch = text.match(/(?:graduation|expected|graduating|graduate)[\s:]*(?:in|year)?[\s]*(\d{4})/i) ||
+                        text.match(/\b(202[0-9]|203[0])\b/)
+  if (gradYearMatch) {
+    const year = parseInt(gradYearMatch[1])
+    if (year >= 2020 && year <= 2030) {
+      result.graduation_year = year
+    }
+  }
+
+  // Extract major (common patterns)
+  const majorPatterns = [
+    /major(?:ing)?[\s:]+([^,\n]+)/i,
+    /\b(computer science|software engineering|electrical engineering|mechanical engineering|business|marketing|finance|accounting|data science|information systems)\b/i
+  ]
+  for (const pattern of majorPatterns) {
+    const match = text.match(pattern)
+    if (match) {
+      result.major = match[1].trim()
+      break
+    }
+  }
+
+// Extract skills from text
 async function parseResumeSkills(text: string): Promise<string[]> {
   const skillsSet = new Set<string>()
   
@@ -152,10 +218,10 @@ Deno.serve(async (req) => {
     // Extract text from PDF
     const extractedText = await extractTextFromPDF(arrayBuffer)
     
-    // Parse skills from the extracted text
-    const skills = await parseResumeSkills(extractedText)
+    // Parse comprehensive resume information
+    const parsedData = await parseResume(extractedText)
 
-    console.log('Extracted skills:', skills)
+    console.log('Extracted data:', parsedData)
 
     // Upload file to Supabase Storage with standardized path
     const fileName = `${user.id}/resume.pdf`
@@ -179,13 +245,25 @@ Deno.serve(async (req) => {
       .from('resumes')
       .getPublicUrl(fileName)
 
-    // Update student record with skills and resume URL
+    // Update student record with all parsed information
+    const updateData: any = {
+      skills: parsedData.skills,
+      resume_url: urlData.publicUrl
+    }
+    
+    if (parsedData.gpa !== undefined) updateData.gpa = parsedData.gpa
+    if (parsedData.graduation_year !== undefined) updateData.graduation_year = parsedData.graduation_year
+    if (parsedData.major !== undefined) updateData.major = parsedData.major
+    if (parsedData.work_experience && parsedData.work_experience.length > 0) {
+      updateData.work_experience = parsedData.work_experience
+    }
+    if (parsedData.projects && parsedData.projects.length > 0) {
+      updateData.projects = parsedData.projects
+    }
+
     const { error: updateError } = await supabase
       .from('students')
-      .update({
-        skills: skills,
-        resume_url: urlData.publicUrl
-      })
+      .update(updateData)
       .eq('user_id', user.id)
 
     if (updateError) {
@@ -199,7 +277,7 @@ Deno.serve(async (req) => {
     return new Response(
       JSON.stringify({ 
         success: true, 
-        skills: skills,
+        ...parsedData,
         resumeUrl: urlData.publicUrl,
         message: 'Resume uploaded and parsed successfully'
       }),

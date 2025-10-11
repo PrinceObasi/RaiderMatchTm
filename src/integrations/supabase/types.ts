@@ -447,11 +447,13 @@ export type Database = {
           name: string
           phone: string | null
           project_depth: number | null
+          projects: Json | null
           resume_url: string | null
           skills: string[] | null
           sms_opt_in: boolean | null
           updated_at: string
           user_id: string
+          work_experience: Json | null
         }
         Insert: {
           created_at?: string
@@ -466,11 +468,13 @@ export type Database = {
           name: string
           phone?: string | null
           project_depth?: number | null
+          projects?: Json | null
           resume_url?: string | null
           skills?: string[] | null
           sms_opt_in?: boolean | null
           updated_at?: string
           user_id: string
+          work_experience?: Json | null
         }
         Update: {
           created_at?: string
@@ -485,11 +489,13 @@ export type Database = {
           name?: string
           phone?: string | null
           project_depth?: number | null
+          projects?: Json | null
           resume_url?: string | null
           skills?: string[] | null
           sms_opt_in?: boolean | null
           updated_at?: string
           user_id?: string
+          work_experience?: Json | null
         }
         Relationships: []
       }

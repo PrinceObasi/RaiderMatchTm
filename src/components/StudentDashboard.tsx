@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { ApplicationList } from "./ApplicationList";
 import { ProfileWizard } from "./ProfileWizard";
+import { ProfileTab } from "./profile/ProfileTab";
 import { InternshipSearchContainer } from "./search/InternshipSearchContainer";
 import { ExampleResumes } from "./ExampleResumes";
 import { MyApplications } from "./MyApplications";
@@ -234,7 +235,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
 
       toast({
         title: "Resume uploaded successfully!",
-        description: `Found ${data.skills?.length || 0} skills. Your resume has been analyzed and stored.`,
+        description: `Found ${data.skills?.length || 0} skills${data.gpa ? `, GPA: ${data.gpa}` : ''}${data.graduation_year ? `, Graduation: ${data.graduation_year}` : ''}. Your profile has been updated!`,
       });
     } catch (error) {
       console.error('Upload error:', error);
@@ -595,6 +596,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                     <Search className="h-4 w-4" />
                     Search ({tabSearchResults.length})
                   </TabsTrigger>
+                  <TabsTrigger value="profile" className="shrink-0 flex items-center gap-2">
+                    <User className="h-4 w-4" />
+                    Profile
+                  </TabsTrigger>
                   <TabsTrigger value="matches" className="shrink-0 flex items-center gap-2">
                     <Target className="h-4 w-4" />
                     Matches
@@ -718,6 +723,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                     )}
                   </CardContent>
                 </Card>
+              </TabsContent>
+              
+              <TabsContent value="profile" className="mt-6">
+                <ProfileTab />
               </TabsContent>
               
               <TabsContent value="matches" className="mt-6">
