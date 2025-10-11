@@ -77,6 +77,9 @@ async function parseResume(text: string): Promise<ResumeParseResult> {
     }
   }
 
+  return result
+}
+
 // Extract skills from text
 async function parseResumeSkills(text: string): Promise<string[]> {
   const skillsSet = new Set<string>()
