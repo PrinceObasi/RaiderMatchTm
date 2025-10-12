@@ -491,7 +491,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
 
       <div className="container mx-auto px-4 sm:px-6 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-[400px,1fr] gap-4 sm:gap-6">
-          {/* Left Column: Resume Upload + Search */}
+          {/* Left Column: Resume Upload + Profile + Search */}
           <div className="space-y-6">
             {/* Resume Upload Section */}
             <Card className="card-shadow">
@@ -567,6 +567,19 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
               </CardContent>
             </Card>
 
+            {/* Profile Section */}
+            <Card className="card-shadow">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Profile
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <ProfileTab />
+              </CardContent>
+            </Card>
+
             {/* Internship Search Filter Form Only */}
             <Card className="card-shadow">
               <CardHeader>
@@ -595,10 +608,6 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                   <TabsTrigger value="search" className="shrink-0 flex items-center gap-2">
                     <Search className="h-4 w-4" />
                     Search ({tabSearchResults.length})
-                  </TabsTrigger>
-                  <TabsTrigger value="profile" className="shrink-0 flex items-center gap-2">
-                    <User className="h-4 w-4" />
-                    Profile
                   </TabsTrigger>
                   <TabsTrigger value="matches" className="shrink-0 flex items-center gap-2">
                     <Target className="h-4 w-4" />
@@ -723,10 +732,6 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                     )}
                   </CardContent>
                 </Card>
-              </TabsContent>
-              
-              <TabsContent value="profile" className="mt-6">
-                <ProfileTab />
               </TabsContent>
               
               <TabsContent value="matches" className="mt-6">
