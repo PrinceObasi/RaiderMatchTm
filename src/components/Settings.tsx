@@ -4,9 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings2, Trash2, AlertTriangle, User, Shield, ArrowLeft } from "lucide-react";
+import { Settings2, Trash2, AlertTriangle, User, Shield, ArrowLeft, Key } from "lucide-react";
+import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
 
 interface SettingsProps {
   userType: 'student' | 'employer';
@@ -17,6 +19,7 @@ interface SettingsProps {
 export function Settings({ userType, onAccountDeleted, onBack }: SettingsProps) {
   const [isDeleting, setIsDeleting] = useState(false);
   const [confirmText, setConfirmText] = useState('');
+  const [showChangePassword, setShowChangePassword] = useState(false);
   const { toast } = useToast();
 
 
@@ -100,13 +103,32 @@ export function Settings({ userType, onAccountDeleted, onBack }: SettingsProps) 
                   To change it, please contact support.
                 </p>
               </div>
-              <div className="space-y-2">
-                <Label>Password</Label>
-                <p className="text-sm text-muted-foreground">
-                  Password changes are handled through the authentication system.
-                  Use the "Forgot Password" option on the login page.
-                </p>
-              </div>
+              
+              <Collapsible open={showChangePassword} onOpenChange={setShowChangePassword}>
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <Label>Password</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Update your password to keep your account secure
+                      </p>
+                    </div>
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" size="sm">
+                        <Key className="h-4 w-4 mr-2" />
+                        {showChangePassword ? 'Cancel' : 'Change Password'}
+                      </Button>
+                    </CollapsibleTrigger>
+                  </div>
+                  
+                  <CollapsibleContent className="pt-4 border-t">
+                    <ChangePasswordForm
+                      onSuccess={() => setShowChangePassword(false)}
+                      onCancel={() => setShowChangePassword(false)}
+                    />
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
             </CardContent>
           </Card>
 
