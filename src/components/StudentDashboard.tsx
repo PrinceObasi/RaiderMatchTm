@@ -39,6 +39,7 @@ import {
 import { renderSafeHTML } from "@/lib/sanitize";
 import { toExplanation } from "@/lib/jobCoaching";
 import { useDropzone } from "react-dropzone";
+import { OnboardingSurvey } from "./OnboardingSurvey";
 
 interface Job {
   id: string;
@@ -90,6 +91,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [tabSearchResults, setTabSearchResults] = useState<any[]>([]);
   const [tabIsSearching, setTabIsSearching] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
+  const [showOnboarding, setShowOnboarding] = useState(false);
   const { toast } = useToast();
   
   const handleSearchResults = useCallback((results: any[], isLoading: boolean) => {
@@ -127,6 +129,11 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       setStudent(s);
       const hasResumeData = !!(s?.resume_url || (s?.skills?.length ?? 0) > 0);
       setResumeAnalyzed(hasResumeData);
+      
+      // Show onboarding survey if not completed
+      if (s && !s.onboarding_completed) {
+        setShowOnboarding(true);
+      }
       
       // Initialize profile only - matches load automatically via hook
     };
@@ -870,6 +877,18 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
           };
           loadProfile();
         }}
+      />
+
+      <OnboardingSurvey
+        open={showOnboarding}
+        onComplete={() => {
+          setShowOnboarding(false);
+          // Update local state to reflect onboarding completion
+          if (student) {
+            setStudent({ ...student, onboarding_completed: true });
+          }
+        }}
+        userId={student?.user_id || ''}
       />
     </div>
   );

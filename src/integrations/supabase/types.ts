@@ -516,6 +516,7 @@ export type Database = {
       }
       students: {
         Row: {
+          biggest_challenge: string | null
           class_year: Database["public"]["Enums"]["class_year"] | null
           created_at: string
           email: string
@@ -527,6 +528,7 @@ export type Database = {
           is_international: boolean | null
           major: string | null
           name: string
+          onboarding_completed: boolean | null
           phone: string | null
           project_depth: number | null
           projects: Json | null
@@ -539,6 +541,7 @@ export type Database = {
           work_experience: Json | null
         }
         Insert: {
+          biggest_challenge?: string | null
           class_year?: Database["public"]["Enums"]["class_year"] | null
           created_at?: string
           email: string
@@ -550,6 +553,7 @@ export type Database = {
           is_international?: boolean | null
           major?: string | null
           name: string
+          onboarding_completed?: boolean | null
           phone?: string | null
           project_depth?: number | null
           projects?: Json | null
@@ -562,6 +566,7 @@ export type Database = {
           work_experience?: Json | null
         }
         Update: {
+          biggest_challenge?: string | null
           class_year?: Database["public"]["Enums"]["class_year"] | null
           created_at?: string
           email?: string
@@ -573,6 +578,7 @@ export type Database = {
           is_international?: boolean | null
           major?: string | null
           name?: string
+          onboarding_completed?: boolean | null
           phone?: string | null
           project_depth?: number | null
           projects?: Json | null
