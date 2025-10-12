@@ -82,7 +82,7 @@ export function OnboardingSurvey({ open, onComplete, userId }: OnboardingSurveyP
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && !isSubmitting && onComplete()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>Welcome to RaiderMatch! 🎯</DialogTitle>
+          <DialogTitle>Welcome to RaiderMatch!</DialogTitle>
           <DialogDescription>
             Help us personalize your experience. What's your biggest challenge when searching for internships?
           </DialogDescription>
