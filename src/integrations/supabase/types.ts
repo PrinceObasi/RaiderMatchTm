@@ -145,6 +145,48 @@ export type Database = {
         }
         Relationships: []
       }
+      feedback: {
+        Row: {
+          created_at: string
+          feedback_type: string
+          id: number
+          internship_id: string | null
+          text: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          feedback_type: string
+          id?: number
+          internship_id?: string | null
+          text?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          feedback_type?: string
+          id?: number
+          internship_id?: string | null
+          text?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "feedback_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "internships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_for_app"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       internships: {
         Row: {
           application_link: string
@@ -334,6 +376,45 @@ export type Database = {
           },
         ]
       }
+      job_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          id: number
+          internship_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          id?: number
+          internship_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          id?: number
+          internship_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "job_events_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "internships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_events_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "jobs_for_app"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       jobs: {
         Row: {
           apply_url: string | null
@@ -435,6 +516,7 @@ export type Database = {
       }
       students: {
         Row: {
+          class_year: Database["public"]["Enums"]["class_year"] | null
           created_at: string
           email: string
           github: string | null
@@ -448,6 +530,7 @@ export type Database = {
           phone: string | null
           project_depth: number | null
           projects: Json | null
+          resume_uploaded: boolean | null
           resume_url: string | null
           skills: string[] | null
           sms_opt_in: boolean | null
@@ -456,6 +539,7 @@ export type Database = {
           work_experience: Json | null
         }
         Insert: {
+          class_year?: Database["public"]["Enums"]["class_year"] | null
           created_at?: string
           email: string
           github?: string | null
@@ -469,6 +553,7 @@ export type Database = {
           phone?: string | null
           project_depth?: number | null
           projects?: Json | null
+          resume_uploaded?: boolean | null
           resume_url?: string | null
           skills?: string[] | null
           sms_opt_in?: boolean | null
@@ -477,6 +562,7 @@ export type Database = {
           work_experience?: Json | null
         }
         Update: {
+          class_year?: Database["public"]["Enums"]["class_year"] | null
           created_at?: string
           email?: string
           github?: string | null
@@ -490,6 +576,7 @@ export type Database = {
           phone?: string | null
           project_depth?: number | null
           projects?: Json | null
+          resume_uploaded?: boolean | null
           resume_url?: string | null
           skills?: string[] | null
           sms_opt_in?: boolean | null
@@ -806,6 +893,7 @@ export type Database = {
       }
     }
     Enums: {
+      class_year: "freshman" | "sophomore" | "junior" | "senior" | "grad"
       visa_sponsorship_status: "Yes" | "No" | "Unspecified"
     }
     CompositeTypes: {
@@ -934,6 +1022,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      class_year: ["freshman", "sophomore", "junior", "senior", "grad"],
       visa_sponsorship_status: ["Yes", "No", "Unspecified"],
     },
   },
