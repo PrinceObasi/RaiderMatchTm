@@ -1,6 +1,13 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { DOMParser } from 'https://deno.land/x/deno_dom@v0.1.38/deno-dom-wasm.ts'
+import { 
+  stripHtml, 
+  cleanHtml, 
+  removeNonContent, 
+  findMainContent, 
+  extractLists,
+  extractRequirementsFromText 
+} from './html-utils.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -21,10 +28,7 @@ const ATS_HOSTS = [
   'smartrecruiters.com', 'successfactors.com', 'oraclecloud.com'
 ]
 
-function stripHtml(html: string): string {
-  const doc = new DOMParser().parseFromString(html, 'text/html')
-  return doc?.body?.textContent || ''
-}
+// HTML utilities moved to html-utils.ts
 
 function extractTechStack(text: string): string[] {
   const found = new Set<string>()
@@ -39,36 +43,7 @@ function extractTechStack(text: string): string[] {
   return Array.from(found)
 }
 
-function extractRequirements(text: string): string[] {
-  const requirements: string[] = []
-  const lines = text.split('\n')
-  
-  let inRequirements = false
-  const reqHeaders = /requirements|qualifications|what you'll do|responsibilities|must have|required/i
-  
-  for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim()
-    
-    if (reqHeaders.test(line)) {
-      inRequirements = true
-      continue
-    }
-    
-    if (inRequirements && line.length > 10) {
-      if (line.match(/^[•\-\*\d\.]/)) {
-        const cleaned = line.replace(/^[•\-\*\d\.\)]+\s*/, '').trim()
-        if (cleaned.length > 15 && cleaned.length < 200) {
-          requirements.push(cleaned)
-          if (requirements.length >= 6) break
-        }
-      } else if (requirements.length > 0) {
-        break
-      }
-    }
-  }
-  
-  return requirements.slice(0, 6)
-}
+// Requirements extraction moved to html-utils.ts
 
 function createSummary(role: string, company: string, location: string, text: string, tech: string[]): string {
   const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20)
@@ -157,28 +132,62 @@ serve(async (req) => {
       processed++
       
       try {
+        let html = ''
         let sourceText = ''
         
         if (job.description_html) {
-          sourceText = stripHtml(job.description_html)
+          html = job.description_html
         } else if (job.direct_link) {
           await new Promise(resolve => setTimeout(resolve, 200))
-          const html = await fetchPageContent(job.direct_link)
-          if (html) {
-            sourceText = stripHtml(html)
+          const fetchedHtml = await fetchPageContent(job.direct_link)
+          if (fetchedHtml) {
+            html = fetchedHtml
           }
         }
         
-        if (!sourceText || sourceText.length < 50) {
+        if (!html || html.length < 100) {
           skipped.push(job.id)
           console.log(`Skipped ${job.company} - insufficient content`)
           continue
         }
         
+        // Clean and process HTML
+        const cleaned = cleanHtml(html)
+        const withoutNav = removeNonContent(cleaned)
+        const mainContent = findMainContent(withoutNav)
+        sourceText = stripHtml(mainContent || withoutNav)
+        
+        if (sourceText.length < 50) {
+          skipped.push(job.id)
+          console.log(`Skipped ${job.company} - insufficient text after cleaning`)
+          continue
+        }
+        
         const limitedText = sourceText.slice(0, 6000)
         
+        // Extract structured data
         const tech_stack = extractTechStack(limitedText)
-        const core_requirements = extractRequirements(limitedText)
+        
+        // Try to extract requirements from lists first
+        const lists = extractLists(mainContent || withoutNav)
+        let core_requirements: string[] = []
+        
+        for (const list of lists) {
+          const firstItem = list[0]?.toLowerCase() || ''
+          if (firstItem.includes('experience') || 
+              firstItem.includes('skill') || 
+              firstItem.includes('knowledge') ||
+              firstItem.includes('proficien')) {
+            core_requirements = list.slice(0, 8)
+            break
+          }
+        }
+        
+        // Fallback to text extraction
+        if (core_requirements.length === 0) {
+          core_requirements = extractRequirementsFromText(limitedText)
+        }
+        
         const summary_text = createSummary(
           job.role_title || 'Software Engineering Intern',
           job.company,
