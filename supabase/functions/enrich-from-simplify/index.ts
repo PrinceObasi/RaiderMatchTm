@@ -145,7 +145,63 @@ function extractTechStack(text: string): string[] {
   return Array.from(found)
 }
 
+function generateShortDescription(text: string): string {
+  if (!text || text.length < 50) return ""
+  
+  // Clean up the text
+  text = text.replace(/\s+/g, ' ').trim()
+  
+  // Look for key sections with better patterns
+  const patterns = [
+    /(?:job description|overview|summary|about the role|position summary|role overview)[:\s]+(.*?)(?:responsibilities|requirements|qualifications|what you|who you|skills|experience|education|your role|what we're looking for)/is,
+    /(?:what you'll do|your responsibilities|key responsibilities)[:\s]+(.*?)(?:what we're looking for|requirements|qualifications|skills|experience|education|who you are)/is,
+    /(?:the role|the position|the opportunity|about this role)[:\s]+(.*?)(?:responsibilities|requirements|qualifications|what you|who you|skills|about you)/is,
+    /(?:description)[:\s]+(.*?)(?:responsibilities|requirements|qualifications|desired|preferred)/is
+  ]
+  
+  for (const pattern of patterns) {
+    const match = text.match(pattern)
+    if (match && match[1] && match[1].trim().length > 50) {
+      let description = match[1].trim()
+      
+      // Remove bullet points and extra formatting
+      description = description.replace(/[•·▪□◦‣⁃\*\-]/g, '').replace(/\n+/g, ' ')
+      
+      // Get first 200 characters
+      if (description.length > 200) {
+        description = description.substring(0, 197) + "..."
+      }
+      
+      return description
+    }
+  }
+  
+  // Fallback: Look for first substantive paragraph after common headers
+  const sections = text.split(/\n\n+/)
+  for (const section of sections) {
+    const cleaned = section.trim()
+    if (cleaned.length > 100 && cleaned.length < 600 && !cleaned.match(/^(copyright|privacy|terms|©)/i)) {
+      return cleaned.length > 200 ? cleaned.substring(0, 197) + "..." : cleaned
+    }
+  }
+  
+  // Last fallback: first 200 characters if they look substantive
+  const firstChunk = text.substring(0, 300).trim()
+  if (firstChunk.length > 100) {
+    return firstChunk.substring(0, 197) + "..."
+  }
+  
+  return ""
+}
+
 function createRoleSummary(title: string, description: string, requirements: string[]): string {
+  // First try to extract a good description
+  const extracted = generateShortDescription(description)
+  if (extracted && extracted.length > 50) {
+    return extracted
+  }
+  
+  // Fallback to sentence extraction
   const sentences = description.split(/[.!?]+/).filter(s => s.trim().length > 20)
   const keyPhrases = sentences.slice(0, 2).join('. ').trim()
   
@@ -153,7 +209,7 @@ function createRoleSummary(title: string, description: string, requirements: str
     return keyPhrases.slice(0, 200) + '...'
   }
   
-  if (requirements.length > 0) {
+  if (requirements.length > 0 && keyPhrases.length > 20) {
     return `${keyPhrases}. Key requirements include: ${requirements.slice(0, 2).map(r => r.slice(0, 50)).join(', ')}.`
   }
   
@@ -211,10 +267,36 @@ serve(async (req) => {
       }
     }
     
-    const description = doc.querySelector('[class*="description"]')?.textContent?.trim() ||
-                       doc.querySelector('meta[property="og:description"]')?.getAttribute('content') || ''
+    // Extract description with better selectors
+    let description = ''
+    let description_html = ''
     
-    const description_html = doc.querySelector('[class*="description"]')?.innerHTML || ''
+    const descSelectors = [
+      '[class*="description"]',
+      '[class*="job-description"]',
+      '[id*="job-description"]',
+      '[class*="jobDescription"]',
+      '[class*="content"]',
+      '[class*="posting-content"]',
+      'main',
+      'article',
+      '.content',
+      '#content'
+    ]
+    
+    for (const selector of descSelectors) {
+      const element = doc.querySelector(selector)
+      if (element && element.textContent && element.textContent.length > 100) {
+        description = element.textContent.trim()
+        description_html = element.innerHTML
+        break
+      }
+    }
+    
+    // Fallback to meta description
+    if (!description || description.length < 100) {
+      description = doc.querySelector('meta[property="og:description"]')?.getAttribute('content') || ''
+    }
     
     const requirements = extractArrayData(doc, ['Requirements', 'Qualifications', 'Required', 'Must have'])
     const responsibilities = extractArrayData(doc, ['Responsibilities', 'What you\'ll do', 'Role', 'Duties'])

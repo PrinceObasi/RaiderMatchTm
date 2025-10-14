@@ -23,7 +23,13 @@ const ATS_HOSTS = [
 
 function stripHtml(html: string): string {
   const doc = new DOMParser().parseFromString(html, 'text/html')
-  return doc?.body?.textContent || ''
+  if (!doc || !doc.body) return ''
+  
+  // Remove script, style, and nav elements
+  const toRemove = doc.querySelectorAll('script, style, nav, header, footer')
+  toRemove.forEach(el => el.remove())
+  
+  return doc.body.textContent || ''
 }
 
 function extractTechStack(text: string): string[] {
@@ -71,17 +77,59 @@ function extractRequirements(text: string): string[] {
 }
 
 function createSummary(role: string, company: string, location: string, text: string, tech: string[]): string {
-  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 20)
+  // Try to extract meaningful content from the job description
+  const patterns = [
+    /(?:job description|overview|summary|about the role|position summary)[:\s]+(.*?)(?:responsibilities|requirements|qualifications)/is,
+    /(?:the role|the position|the opportunity)[:\s]+(.*?)(?:responsibilities|requirements|what you)/is,
+    /(?:description)[:\s]+(.*?)(?:responsibilities|requirements|desired)/is
+  ]
   
-  if (sentences.length > 0) {
-    const firstTwo = sentences.slice(0, 2).join('. ').trim()
-    if (firstTwo.length > 30) {
-      return firstTwo.length > 200 ? firstTwo.slice(0, 197) + '...' : firstTwo + '.'
+  for (const pattern of patterns) {
+    const match = text.match(pattern)
+    if (match && match[1] && match[1].trim().length > 50) {
+      let desc = match[1].trim().replace(/\s+/g, ' ')
+      if (desc.length > 200) {
+        return desc.substring(0, 197) + '...'
+      }
+      return desc
     }
   }
   
-  const topTech = tech.slice(0, 2).join(', ')
-  return `Work as a ${role} at ${company} in ${location}${topTech ? ` on ${topTech}` : ''}.`
+  // Try extracting first substantive sentences
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 30 && s.trim().length < 200)
+  if (sentences.length > 0) {
+    const firstTwo = sentences.slice(0, 2).join('. ').trim()
+    if (firstTwo.length > 50 && firstTwo.length <= 200) {
+      return firstTwo + '.'
+    }
+    if (firstTwo.length > 200) {
+      return firstTwo.substring(0, 197) + '...'
+    }
+  }
+  
+  // Look for paragraphs
+  const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 50 && p.trim().length < 400)
+  if (paragraphs.length > 0) {
+    const para = paragraphs[0].trim().replace(/\s+/g, ' ')
+    if (para.length > 200) {
+      return para.substring(0, 197) + '...'
+    }
+    return para
+  }
+  
+  // Only use generic fallback if we have tech to make it interesting
+  const topTech = tech.slice(0, 3).join(', ')
+  if (topTech && text.length > 100) {
+    return `${role} position at ${company} in ${location} working with ${topTech}.`
+  }
+  
+  // Last resort: first chunk of text if it looks substantive
+  const firstChunk = text.substring(0, 250).trim().replace(/\s+/g, ' ')
+  if (firstChunk.length > 100) {
+    return firstChunk.substring(0, 197) + '...'
+  }
+  
+  return `${role} at ${company} in ${location}.`
 }
 
 async function fetchPageContent(url: string): Promise<string | null> {
@@ -95,18 +143,25 @@ async function fetchPageContent(url: string): Promise<string | null> {
     }
     
     const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), 10000)
+    const timeout = setTimeout(() => controller.abort(), 15000) // Increased timeout
     
     const response = await fetch(url, {
-      headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' },
+      headers: { 
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9'
+      },
       signal: controller.signal
     })
     clearTimeout(timeout)
     
-    if (!response.ok) return null
+    if (!response.ok) {
+      console.log(`HTTP ${response.status} for ${url}`)
+      return null
+    }
     
     const html = await response.text()
-    return html.slice(0, 60000)
+    return html.slice(0, 100000) // Increased limit
   } catch (error) {
     console.error(`Fetch error for ${url}:`, error)
     return null
