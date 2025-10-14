@@ -23,15 +23,45 @@ const ATS_HOSTS = [
   'taleo.net', 'recruitee.com', 'breezy.hr', 'eightfold.ai'
 ]
 
+function extractATSChunk(html: string): string | null {
+  // Light, fast DOM-ish extraction via regex for common ATS
+  const candidates = [
+    // Workday
+    /data-automation-id=["']jobPostingDescription["'][^>]*>([\s\S]*?)<\/div>/i,
+    // Greenhouse
+    /<div[^>]*id=["']content["'][^>]*>([\s\S]*?)<\/div>/i,
+    /<div[^>]*class=["'][^"']*(opening|content|job)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+    // Lever
+    /<div[^>]*class=["'][^"']*(section|content|posting-categories)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+    // SmartRecruiters
+    /<div[^>]*class=["'][^"']*job-section[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+    // iCIMS
+    /<div[^>]*id=["']iCIMS_JobContent["'][^>]*>([\s\S]*?)<\/div>/i,
+    // Ashby
+    /<div[^>]*data-cy=["']job-description["'][^>]*>([\s\S]*?)<\/div>/i,
+    // Generic main/article
+    /<main[^>]*>([\s\S]*?)<\/main>/i,
+    /<article[^>]*>([\s\S]*?)<\/article>/i,
+  ]
+
+  for (const re of candidates) {
+    const m = html.match(re)
+    if (m) return m[1] || m[2]
+  }
+  return null
+}
+
 function stripHtml(html: string): string {
-  const doc = new DOMParser().parseFromString(html, 'text/html')
-  if (!doc || !doc.body) return ''
-  
-  // Remove script, style, and nav elements
-  const toRemove = doc.querySelectorAll('script, style, nav, header, footer')
-  toRemove.forEach(el => el.remove())
-  
-  return doc.body.textContent || ''
+  return html
+    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
+    .replace(/<style\b[^<]*(?:(?!<\/style>)<[^<]*)*<\/style>/gi, '')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/\s+/g, ' ')
+    .trim()
 }
 
 function extractTechStack(text: string): string[] {
@@ -78,60 +108,50 @@ function extractRequirements(text: string): string[] {
   return requirements.slice(0, 6)
 }
 
-function createSummary(role: string, company: string, location: string, text: string, tech: string[]): string {
-  // Try to extract meaningful content from the job description
-  const patterns = [
-    /(?:job description|overview|summary|about the role|position summary)[:\s]+(.*?)(?:responsibilities|requirements|qualifications)/is,
-    /(?:the role|the position|the opportunity)[:\s]+(.*?)(?:responsibilities|requirements|what you)/is,
-    /(?:description)[:\s]+(.*?)(?:responsibilities|requirements|desired)/is
-  ]
+function extractFromMeta(html: string): string | null {
+  const metaDesc = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([^"']+)["']/i)
+  if (metaDesc && metaDesc[1]) return metaDesc[1]
   
-  for (const pattern of patterns) {
-    const match = text.match(pattern)
-    if (match && match[1] && match[1].trim().length > 50) {
-      let desc = match[1].trim().replace(/\s+/g, ' ')
-      if (desc.length > 200) {
-        return desc.substring(0, 197) + '...'
-      }
-      return desc
-    }
-  }
+  const ogDesc = html.match(/<meta[^>]*property=["']og:description["'][^>]*content=["']([^"']+)["']/i)
+  if (ogDesc && ogDesc[1]) return ogDesc[1]
   
-  // Try extracting first substantive sentences
-  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 30 && s.trim().length < 200)
+  return null
+}
+
+function pickBestParagraphs(text: string): string | null {
+  const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 30 && s.trim().length < 300)
   if (sentences.length > 0) {
     const firstTwo = sentences.slice(0, 2).join('. ').trim()
-    if (firstTwo.length > 50 && firstTwo.length <= 200) {
-      return firstTwo + '.'
-    }
-    if (firstTwo.length > 200) {
-      return firstTwo.substring(0, 197) + '...'
-    }
+    if (firstTwo.length > 50) return firstTwo + '.'
   }
   
-  // Look for paragraphs
-  const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 50 && p.trim().length < 400)
+  const paragraphs = text.split(/\n\n+/).filter(p => p.trim().length > 50 && p.trim().length < 500)
   if (paragraphs.length > 0) {
-    const para = paragraphs[0].trim().replace(/\s+/g, ' ')
-    if (para.length > 200) {
-      return para.substring(0, 197) + '...'
-    }
-    return para
+    return paragraphs[0].trim().replace(/\s+/g, ' ')
   }
   
-  // Only use generic fallback if we have tech to make it interesting
-  const topTech = tech.slice(0, 3).join(', ')
-  if (topTech && text.length > 100) {
-    return `${role} position at ${company} in ${location} working with ${topTech}.`
-  }
+  return null
+}
+
+function clampShort(text: string, max: number): string {
+  if (text.length <= max) return text
+  return text.substring(0, max - 3) + '...'
+}
+
+function pickSummary(html: string | null, role: string, company: string, location: string): string | null {
+  if (!html) return `${role} at ${company} in ${location}.`
   
-  // Last resort: first chunk of text if it looks substantive
-  const firstChunk = text.substring(0, 250).trim().replace(/\s+/g, ' ')
-  if (firstChunk.length > 100) {
-    return firstChunk.substring(0, 197) + '...'
-  }
+  // Try meta tags first
+  const meta = extractFromMeta(html)
+  if (meta && meta.length > 80) return clampShort(meta, 450)
+
+  // Try ATS-specific chunk, then best paragraphs
+  const atsChunk = extractATSChunk(html)
+  const source = atsChunk || html
+  const plainText = stripHtml(source)
+  const para = pickBestParagraphs(plainText)
   
-  return `${role} at ${company} in ${location}.`
+  return para ? clampShort(para, 450) : `${role} at ${company} in ${location}.`
 }
 
 async function fetchPageContent(url: string): Promise<string | null> {
@@ -176,7 +196,7 @@ serve(async (req) => {
   }
 
   try {
-    const { limit = 200, force = false, use_llm = false } = await req.json()
+    const { id, limit = 200, force = false } = await req.json().catch(() => ({}))
     
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
@@ -184,16 +204,34 @@ serve(async (req) => {
     )
     
     // Fetch internships needing enrichment
-    let query = supabase
-      .from('internships')
-      .select('id, company, role_title, location, direct_link, description_html, tech_stack')
-      .limit(limit)
+    let internships: any[] = []
     
-    if (!force) {
-      query = query.or('summary_text.is.null,tech_stack.eq.{}')
+    if (id) {
+      const { data, error: fetchError } = await supabase
+        .from('internships')
+        .select('id, company, role_title, location, direct_link, description_html, tech_stack, summary_text, description_text')
+        .eq('id', id)
+        .limit(1)
+      
+      if (fetchError) throw fetchError
+      internships = data ?? []
+    } else {
+      const batchSize = typeof limit === 'number' ? Math.min(Math.max(limit, 1), 100) : 20
+      let query = supabase
+        .from('internships')
+        .select('id, company, role_title, location, direct_link, description_html, tech_stack, summary_text, description_text')
+        .limit(batchSize)
+      
+      if (!force) {
+        query = query.or('summary_text.is.null,tech_stack.is.null')
+      }
+      
+      const { data, error: fetchError } = await query
+      if (fetchError) throw fetchError
+      internships = data ?? []
     }
     
-    const { data: internships, error: fetchError } = await query
+    const { error: fetchError } = { error: null }
     
     if (fetchError) {
       throw fetchError
@@ -232,30 +270,37 @@ serve(async (req) => {
           continue
         }
         
-        const limitedText = sourceText.slice(0, 6000)
-        
-        const tech_stack = extractTechStack(limitedText)
-        const core_requirements = extractRequirements(limitedText)
-        const summary_text = createSummary(
+        const tech_stack = extractTechStack(sourceText)
+        const core_requirements = extractRequirements(sourceText)
+        const summary_text = pickSummary(
+          sourceText,
           job.role_title || 'Software Engineering Intern',
           job.company,
-          job.location || 'Various',
-          limitedText,
-          tech_stack
+          job.location || 'Various'
         )
         
-        const updateData: any = {
-          summary_text,
-          tech_stack: tech_stack.length > 0 ? tech_stack : (job.tech_stack || []),
-          core_requirements,
-          enriched_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+        const updateData: any = {}
+        
+        if (summary_text) {
+          updateData.summary_text = summary_text
+          // Write both fields strategically
+          if (force || !job.description_text) {
+            updateData.description_text = summary_text
+          }
         }
-
-        // Also update description_text if force or empty
-        if (force || !job.description_text) {
-          updateData.description_text = summary_text;
+        
+        if (tech_stack?.length) {
+          updateData.tech_stack = tech_stack
+        } else if (job.tech_stack?.length) {
+          updateData.tech_stack = job.tech_stack
         }
+        
+        if (core_requirements?.length) {
+          updateData.core_requirements = core_requirements
+        }
+        
+        updateData.enriched_at = new Date().toISOString()
+        updateData.updated_at = new Date().toISOString()
         
         const { error: updateError } = await supabase
           .from('internships')
