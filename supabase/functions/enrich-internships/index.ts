@@ -24,27 +24,17 @@ const ATS_HOSTS = [
 ]
 
 function extractATSChunk(html: string): string | null {
-  // Light, fast DOM-ish extraction via regex for common ATS
-  const candidates = [
-    // Workday
-    /data-automation-id=["']jobPostingDescription["'][^>]*>([\s\S]*?)<\/div>/i,
-    // Greenhouse
-    /<div[^>]*id=["']content["'][^>]*>([\s\S]*?)<\/div>/i,
+  const patterns = [
+    /data-automation-id=["']jobPostingDescription["'][^>]*>([\s\S]*?)<\/div>/i,  // Workday
+    /<div[^>]*id=["']content["'][^>]*>([\s\S]*?)<\/div>/i,                       // Greenhouse
     /<div[^>]*class=["'][^"']*(opening|content|job)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
-    // Lever
-    /<div[^>]*class=["'][^"']*(section|content|posting-categories)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
-    // SmartRecruiters
-    /<div[^>]*class=["'][^"']*job-section[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
-    // iCIMS
-    /<div[^>]*id=["']iCIMS_JobContent["'][^>]*>([\s\S]*?)<\/div>/i,
-    // Ashby
-    /<div[^>]*data-cy=["']job-description["'][^>]*>([\s\S]*?)<\/div>/i,
-    // Generic main/article
+    /<div[^>]*class=["'][^"']*job-section[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,   // SmartRecruiters
+    /<div[^>]*id=["']iCIMS_JobContent["'][^>]*>([\s\S]*?)<\/div>/i,              // iCIMS
+    /<div[^>]*data-cy=["']job-description["'][^>]*>([\s\S]*?)<\/div>/i,          // Ashby
     /<main[^>]*>([\s\S]*?)<\/main>/i,
     /<article[^>]*>([\s\S]*?)<\/article>/i,
   ]
-
-  for (const re of candidates) {
+  for (const re of patterns) {
     const m = html.match(re)
     if (m) return m[1] || m[2]
   }
@@ -138,20 +128,14 @@ function clampShort(text: string, max: number): string {
   return text.substring(0, max - 3) + '...'
 }
 
-function pickSummary(html: string | null, role: string, company: string, location: string): string | null {
-  if (!html) return `${role} at ${company} in ${location}.`
-  
-  // Try meta tags first
+function pickSummary(html: string | null): string | null {
+  if (!html) return null
   const meta = extractFromMeta(html)
   if (meta && meta.length > 80) return clampShort(meta, 450)
-
-  // Try ATS-specific chunk, then best paragraphs
-  const atsChunk = extractATSChunk(html)
-  const source = atsChunk || html
-  const plainText = stripHtml(source)
-  const para = pickBestParagraphs(plainText)
-  
-  return para ? clampShort(para, 450) : `${role} at ${company} in ${location}.`
+  const ats = extractATSChunk(html)
+  const source = ats || html
+  const para = pickBestParagraphs(source)
+  return para ? clampShort(para, 450) : null
 }
 
 async function fetchPageContent(url: string): Promise<string | null> {
@@ -269,27 +253,19 @@ serve(async (req) => {
         
         const tech_stack = extractTechStack(sourceText)
         const core_requirements = extractRequirements(sourceText)
-        const summary_text = pickSummary(
-          sourceText,
-          job.role_title || 'Software Engineering Intern',
-          job.company,
-          job.location || 'Various'
-        )
+        const summary_text = pickSummary(sourceText)
         
         const updateData: any = {}
         
         if (summary_text) {
           updateData.summary_text = summary_text
-          // Write both fields strategically
           if (force || !job.description_text) {
-            updateData.description_text = summary_text
+            updateData.description_text = summary_text // keep UI in sync
           }
         }
         
         if (tech_stack?.length) {
           updateData.tech_stack = tech_stack
-        } else if (job.tech_stack?.length) {
-          updateData.tech_stack = job.tech_stack
         }
         
         if (core_requirements?.length) {
