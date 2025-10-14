@@ -27,6 +27,9 @@ verify_jwt = false
 [functions.enrich-from-simplify]
 verify_jwt = false
 
+[functions.extract-job-data]
+verify_jwt = false
+
 [functions.validate-internship-links]
 verify_jwt = false
 
