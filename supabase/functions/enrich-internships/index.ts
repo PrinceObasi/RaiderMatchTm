@@ -17,8 +17,10 @@ const TECH_DICTIONARY = [
 ]
 
 const ATS_HOSTS = [
-  'greenhouse.io', 'lever.co', 'myworkdayjobs.com', 'jobvite.com', 'icims.com',
-  'smartrecruiters.com', 'successfactors.com', 'oraclecloud.com'
+  'greenhouse.io', 'boards.greenhouse.io', 'lever.co', 'myworkdayjobs.com', 
+  'jobvite.com', 'icims.com', 'smartrecruiters.com', 'successfactors.com', 
+  'oraclecloud.com', 'ashbyhq.com', 'workable.com', 'bamboohr.com', 
+  'taleo.net', 'recruitee.com', 'breezy.hr', 'eightfold.ai'
 ]
 
 function stripHtml(html: string): string {
@@ -246,7 +248,13 @@ serve(async (req) => {
           summary_text,
           tech_stack: tech_stack.length > 0 ? tech_stack : (job.tech_stack || []),
           core_requirements,
+          enriched_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
+        }
+
+        // Also update description_text if force or empty
+        if (force || !job.description_text) {
+          updateData.description_text = summary_text;
         }
         
         const { error: updateError } = await supabase

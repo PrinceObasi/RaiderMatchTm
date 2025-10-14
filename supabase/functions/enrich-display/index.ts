@@ -9,7 +9,8 @@ const corsHeaders = {
 const ALLOWED_ATS_HOSTS = [
   'greenhouse.io', 'boards.greenhouse.io', 'lever.co', 'myworkdayjobs.com',
   'icims.com', 'smartrecruiters.com', 'jobvite.com', 'oraclecloud.com',
-  'successfactors.com', 'eightfold.ai'
+  'successfactors.com', 'eightfold.ai', 'ashbyhq.com', 'workable.com',
+  'bamboohr.com', 'taleo.net', 'recruitee.com', 'breezy.hr'
 ];
 
 const TECH_DICTIONARY = [
@@ -110,14 +111,22 @@ serve(async (req) => {
           ? detectWorkMode(plainText)
           : internship.work_mode;
 
-        // Update database
+        // Update database (trigger will sync description_text)
+        const updatePayload: any = {
+          summary_text: summaryText,
+          tech_stack: techStack,
+          work_mode: workMode,
+          enriched_at: new Date().toISOString()
+        };
+
+        // Also set description_text if force or empty
+        if (force || !internship.description_text) {
+          updatePayload.description_text = summaryText;
+        }
+
         const { error: updateError } = await supabase
           .from('internships')
-          .update({
-            summary_text: summaryText,
-            tech_stack: techStack,
-            work_mode: workMode
-          })
+          .update(updatePayload)
           .eq('id', internship.id);
 
         if (updateError) {

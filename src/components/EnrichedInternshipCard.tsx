@@ -154,12 +154,15 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
           )}
         </div>
 
-        {(internship.description_text || internship.summary_text || internship.jd_summary) && (
-          <div className="text-sm text-foreground leading-relaxed">
-            {(internship.description_text || internship.summary_text || internship.jd_summary)?.slice(0, 160)}
-            {(internship.description_text || internship.summary_text || internship.jd_summary || '').length > 160 && '...'}
-          </div>
-        )}
+        {(() => {
+          const displayDescription = internship.summary_text ?? internship.description_text ?? internship.jd_summary ?? '';
+          return displayDescription && (
+            <div className="text-sm text-foreground leading-relaxed">
+              {displayDescription.slice(0, 160)}
+              {displayDescription.length > 160 && '...'}
+            </div>
+          );
+        })()}
 
         {(internship.core_requirements || internship.requirements) && 
          (internship.core_requirements || internship.requirements || []).length > 0 && (
