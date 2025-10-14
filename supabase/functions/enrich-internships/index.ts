@@ -200,8 +200,8 @@ serve(async (req) => {
       if (fetchError) throw fetchError
       internships = data ?? []
     } else {
-    const batchSize = typeof limit === 'number' ? Math.min(Math.max(limit, 1), 100) : 20
-      const { data: targets } = await supabase
+      const batchSize = typeof limit === 'number' ? Math.min(Math.max(limit, 1), 100) : 20
+      const { data, error: fetchError } = await supabase
         .from('internships')
         .select('id, company, role_title, location, job_url, description_html, tech_stack, summary_text, description_text')
         .not('job_url', 'is', null)
@@ -210,8 +210,6 @@ serve(async (req) => {
       
       if (fetchError) throw fetchError
       internships = data ?? []
-    } else {
-      internships = targets ?? []
     }
     
     if (!internships || internships.length === 0) {
