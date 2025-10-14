@@ -42,6 +42,7 @@ interface EnrichedInternshipCardProps {
 export function EnrichedInternshipCard({ internship, onApply, showEnrichButton = false }: EnrichedInternshipCardProps) {
   const [isEnriching, setIsEnriching] = useState(false);
   const { toast } = useToast();
+  const displayDescription = internship.summary_text ?? internship.description_text ?? internship.jd_summary ?? '';
 
   const handleEnrich = async () => {
     setIsEnriching(true);
@@ -154,15 +155,14 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
           )}
         </div>
 
-        {(() => {
-          const displayDescription = internship.summary_text ?? internship.description_text ?? internship.jd_summary ?? '';
-          return displayDescription && (
-            <div className="text-sm text-foreground leading-relaxed">
-              {displayDescription.slice(0, 160)}
-              {displayDescription.length > 160 && '...'}
-            </div>
-          );
-        })()}
+
+        {displayDescription && (
+          <div className="text-sm text-foreground leading-relaxed">
+            {displayDescription.slice(0, 160)}
+            {displayDescription.length > 160 && '...'}
+          </div>
+        )}
+
 
         {(internship.core_requirements || internship.requirements) && 
          (internship.core_requirements || internship.requirements || []).length > 0 && (

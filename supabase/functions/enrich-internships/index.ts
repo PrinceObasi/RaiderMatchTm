@@ -209,7 +209,7 @@ serve(async (req) => {
     if (id) {
       const { data, error: fetchError } = await supabase
         .from('internships')
-        .select('id, company, role_title, location, direct_link, description_html, tech_stack, summary_text, description_text')
+        .select('id, company, role_title, location, job_url, description_html, tech_stack, summary_text, description_text')
         .eq('id', id)
         .limit(1)
       
@@ -217,16 +217,13 @@ serve(async (req) => {
       internships = data ?? []
     } else {
       const batchSize = typeof limit === 'number' ? Math.min(Math.max(limit, 1), 100) : 20
-      let query = supabase
+      const { data, error: fetchError } = await supabase
         .from('internships')
-        .select('id, company, role_title, location, direct_link, description_html, tech_stack, summary_text, description_text')
+        .select('id, company, role_title, location, job_url, description_html, tech_stack, summary_text, description_text')
+        .not('job_url', 'is', null)
+        .or('summary_text.is.null,tech_stack.is.null')
         .limit(batchSize)
       
-      if (!force) {
-        query = query.or('summary_text.is.null,tech_stack.is.null')
-      }
-      
-      const { data, error: fetchError } = await query
       if (fetchError) throw fetchError
       internships = data ?? []
     }
@@ -256,9 +253,9 @@ serve(async (req) => {
         
         if (job.description_html) {
           sourceText = stripHtml(job.description_html)
-        } else if (job.direct_link) {
+        } else if (job.job_url) {
           await new Promise(resolve => setTimeout(resolve, 200))
-          const html = await fetchPageContent(job.direct_link)
+          const html = await fetchPageContent(job.job_url)
           if (html) {
             sourceText = stripHtml(html)
           }
