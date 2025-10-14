@@ -200,8 +200,8 @@ serve(async (req) => {
       if (fetchError) throw fetchError
       internships = data ?? []
     } else {
-      const batchSize = typeof limit === 'number' ? Math.min(Math.max(limit, 1), 100) : 20
-      const { data, error: fetchError } = await supabase
+    const batchSize = typeof limit === 'number' ? Math.min(Math.max(limit, 1), 100) : 20
+      const { data: targets } = await supabase
         .from('internships')
         .select('id, company, role_title, location, job_url, description_html, tech_stack, summary_text, description_text')
         .not('job_url', 'is', null)
@@ -210,12 +210,8 @@ serve(async (req) => {
       
       if (fetchError) throw fetchError
       internships = data ?? []
-    }
-    
-    const { error: fetchError } = { error: null }
-    
-    if (fetchError) {
-      throw fetchError
+    } else {
+      internships = targets ?? []
     }
     
     if (!internships || internships.length === 0) {
@@ -233,43 +229,40 @@ serve(async (req) => {
       processed++
       
       try {
-        let sourceText = ''
-        
-        if (job.description_html) {
-          sourceText = stripHtml(job.description_html)
-        } else if (job.job_url) {
-          await new Promise(resolve => setTimeout(resolve, 200))
-          const html = await fetchPageContent(job.job_url)
-          if (html) {
-            sourceText = stripHtml(html)
-          }
-        }
-        
-        if (!sourceText || sourceText.length < 50) {
+        if (!job.job_url) {
           skipped.push(job.id)
-          console.log(`Skipped ${job.company} - insufficient content`)
           continue
         }
         
-        const tech_stack = extractTechStack(sourceText)
-        const core_requirements = extractRequirements(sourceText)
-        const summary_text = pickSummary(sourceText)
+        // Call external Node.js extraction service
+        await new Promise(resolve => setTimeout(resolve, 200))
+        
+        const extractorUrl = Deno.env.get('EXTRACTOR_SERVICE_URL') || 'http://localhost:3001'
+        const res = await fetch(`${extractorUrl}/api/extract-job`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: job.job_url })
+        })
+        
+        if (!res.ok) {
+          console.log(`Extraction failed for ${job.company}: ${res.status}`)
+          skipped.push(job.id)
+          continue
+        }
+        
+        const { shortDescription, techStack } = await res.json()
         
         const updateData: any = {}
         
-        if (summary_text) {
-          updateData.summary_text = summary_text
+        if (shortDescription) {
+          updateData.summary_text = shortDescription
           if (force || !job.description_text) {
-            updateData.description_text = summary_text // keep UI in sync
+            updateData.description_text = shortDescription // keep UI in sync
           }
         }
         
-        if (tech_stack?.length) {
-          updateData.tech_stack = tech_stack
-        }
-        
-        if (core_requirements?.length) {
-          updateData.core_requirements = core_requirements
+        if (Array.isArray(techStack) && techStack.length) {
+          updateData.tech_stack = techStack
         }
         
         updateData.enriched_at = new Date().toISOString()
