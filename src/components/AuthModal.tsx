@@ -12,6 +12,7 @@ import { PasswordStrengthIndicator } from "@/components/PasswordStrengthIndicato
 import { supabase } from "@/integrations/supabase/client";
 import { StudentCreateSchema } from "@/lib/schemas";
 import { X, Mail, Lock, User, Building } from "lucide-react";
+import confetti from "canvas-confetti";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -145,8 +146,18 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login' }: AuthModalPr
           description: "Check your TTU inbox to confirm your account.",
           variant: 'default'
         });
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
       } else {
         toast({ title: 'Account created!', description: "You're now signed in." });
+        confetti({
+          particleCount: 100,
+          spread: 70,
+          origin: { y: 0.6 }
+        });
       }
       
       onClose();
