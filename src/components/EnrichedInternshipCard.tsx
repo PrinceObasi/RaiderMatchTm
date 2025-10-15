@@ -102,13 +102,28 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
     ? internship.locations 
     : (internship.location ? [internship.location] : []);
 
+  // Extract clean role title by removing long descriptions
+  const cleanRoleTitle = (title: string | null) => {
+    if (!title) return 'Software Engineering Intern';
+    // If title is too long (likely contains full description), extract just the job title part
+    if (title.length > 80) {
+      // Try to extract title before " at " or " - " or take first 60 chars
+      const atIndex = title.indexOf(' at ');
+      if (atIndex > 0 && atIndex < 80) {
+        return title.substring(0, atIndex).trim();
+      }
+      return title.substring(0, 60).trim() + '...';
+    }
+    return title;
+  };
+
   return (
     <Card className="hover:shadow-lg transition-shadow">
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <CardTitle className="text-lg font-semibold text-foreground mb-1">
-              {internship.role_title || 'Software Engineering Intern'}
+              {cleanRoleTitle(internship.role_title)}
             </CardTitle>
             <div className="flex items-center gap-2 flex-wrap">
               <p className="text-muted-foreground font-medium">{internship.company}</p>
