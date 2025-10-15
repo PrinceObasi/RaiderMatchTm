@@ -155,38 +155,6 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
           )}
         </div>
 
-
-        {displayDescription && (
-          <div className="text-sm text-foreground leading-relaxed">
-            {displayDescription.slice(0, 160)}
-            {displayDescription.length > 160 && '...'}
-          </div>
-        )}
-
-
-        {(internship.core_requirements || internship.requirements) && 
-         (internship.core_requirements || internship.requirements || []).length > 0 && (
-          <div className="space-y-2">
-            <p className="text-sm font-semibold text-foreground">Requirements:</p>
-            <ul className="text-sm text-muted-foreground space-y-1 list-disc list-inside">
-              {(internship.core_requirements || internship.requirements)!.slice(0, 4).map((req, idx) => (
-                <li key={idx} className="line-clamp-1">{req}</li>
-              ))}
-              {(internship.core_requirements || internship.requirements || []).length > 4 && (
-                <li className="text-xs italic">
-                  +{(internship.core_requirements || internship.requirements || []).length - 4} more requirements
-                </li>
-              )}
-            </ul>
-          </div>
-        )}
-
-        {internship.enriched_at && (
-          <div className="text-xs text-muted-foreground">
-            Enriched {formatDistanceToNow(new Date(internship.enriched_at), { addSuffix: true })}
-          </div>
-        )}
-
         {internship.tech_stack && internship.tech_stack.length > 0 && (
           <div className="flex flex-wrap gap-2">
             {internship.tech_stack.slice(0, 6).map((tech) => (
