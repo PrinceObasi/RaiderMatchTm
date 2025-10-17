@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.enrich-display]
 verify_jwt = false
+
+[functions.trigger-enrichment]
+verify_jwt = false
