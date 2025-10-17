@@ -11,18 +11,18 @@ serve(async (req) => {
   }
 
   try {
-    const ENRICHER_URL = Deno.env.get('EXTRACTOR_URL');
-    const SHARED_SECRET = Deno.env.get('ENRICH_SHARED_SECRET');
+    const ENRICH_URL = Deno.env.get('ENRICH_URL');
+    const ENRICH_SHARED_SECRET = Deno.env.get('ENRICH_SHARED_SECRET');
 
-    if (!ENRICHER_URL) {
-      console.error('EXTRACTOR_URL not configured');
+    if (!ENRICH_URL) {
+      console.error('ENRICH_URL not configured');
       return new Response(
         JSON.stringify({ error: 'Enricher service not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    if (!SHARED_SECRET) {
+    if (!ENRICH_SHARED_SECRET) {
       console.error('ENRICH_SHARED_SECRET not configured');
       return new Response(
         JSON.stringify({ error: 'Shared secret not configured' }),
@@ -30,15 +30,15 @@ serve(async (req) => {
       );
     }
 
-    const { limit = 40 } = await req.json().catch(() => ({}));
+    const { limit = 80 } = await req.json().catch(() => ({ limit: 80 }));
 
     console.log(`Triggering enrichment batch with limit: ${limit}`);
 
-    const enrichResponse = await fetch(`${ENRICHER_URL}/enrichBatch`, {
+    const enrichResponse = await fetch(`${ENRICH_URL}/enrichBatch`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-raider-secret': SHARED_SECRET,
+        'x-raider-secret': ENRICH_SHARED_SECRET,
       },
       body: JSON.stringify({ limit }),
     });

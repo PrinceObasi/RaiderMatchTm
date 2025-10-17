@@ -170,16 +170,24 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
           )}
         </div>
 
+        {displayDescription ? (
+          <p className="text-sm text-muted-foreground whitespace-pre-line line-clamp-4">
+            {displayDescription}
+          </p>
+        ) : (
+          <p className="text-sm italic text-muted-foreground">Description loading…</p>
+        )}
+
         {internship.tech_stack && internship.tech_stack.length > 0 && (
           <div className="flex flex-wrap gap-2">
-            {internship.tech_stack.slice(0, 6).map((tech) => (
-              <Badge key={tech} variant="outline" className="text-xs">
+            {internship.tech_stack.slice(0, 8).map((tech) => (
+              <Badge key={tech} variant="outline" className="text-xs border-primary/20 bg-primary/5">
                 {tech}
               </Badge>
             ))}
-            {internship.tech_stack.length > 6 && (
+            {internship.tech_stack.length > 8 && (
               <Badge variant="outline" className="text-xs">
-                +{internship.tech_stack.length - 6} more
+                +{internship.tech_stack.length - 8} more
               </Badge>
             )}
           </div>

@@ -170,6 +170,21 @@ serve(async (req) => {
       }
     }
 
+    // Trigger enrichment for the newly inserted internships
+    if (inserted > 0) {
+      try {
+        console.log(`Triggering enrichment for ${inserted} new internships...`)
+        const enrichUrl = `${Deno.env.get('SUPABASE_URL')}/functions/v1/trigger-enrichment`
+        await fetch(enrichUrl, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ limit: Math.min(inserted, 100) })
+        }).catch(err => console.error('Failed to trigger enrichment:', err))
+      } catch (err) {
+        console.error('Enrichment trigger error:', err)
+      }
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
