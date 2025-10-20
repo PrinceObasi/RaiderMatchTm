@@ -64,6 +64,13 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "applications_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "ux_internships"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "applications_job_id_fkey"
             columns: ["job_id"]
             isOneToOne: false
@@ -183,6 +190,13 @@ export type Database = {
             columns: ["internship_id"]
             isOneToOne: false
             referencedRelation: "jobs_for_app"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "feedback_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "ux_internships"
             referencedColumns: ["id"]
           },
         ]
@@ -374,6 +388,13 @@ export type Database = {
             referencedRelation: "jobs_for_app"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "internships_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
+            referencedRelation: "ux_internships"
+            referencedColumns: ["id"]
+          },
         ]
       }
       job_events: {
@@ -411,6 +432,13 @@ export type Database = {
             columns: ["internship_id"]
             isOneToOne: false
             referencedRelation: "jobs_for_app"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "job_events_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "ux_internships"
             referencedColumns: ["id"]
           },
         ]
@@ -612,6 +640,39 @@ export type Database = {
           visa_sponsorship:
             | Database["public"]["Enums"]["visa_sponsorship_status"]
             | null
+        }
+        Relationships: []
+      }
+      ux_internships: {
+        Row: {
+          application_link: string | null
+          company: string | null
+          created_at: string | null
+          id: string | null
+          location: string | null
+          role_title: string | null
+          summary_text: string | null
+          tech_stack: string[] | null
+        }
+        Insert: {
+          application_link?: string | null
+          company?: string | null
+          created_at?: string | null
+          id?: string | null
+          location?: string | null
+          role_title?: string | null
+          summary_text?: string | null
+          tech_stack?: string[] | null
+        }
+        Update: {
+          application_link?: string | null
+          company?: string | null
+          created_at?: string | null
+          id?: string | null
+          location?: string | null
+          role_title?: string | null
+          summary_text?: string | null
+          tech_stack?: string[] | null
         }
         Relationships: []
       }
