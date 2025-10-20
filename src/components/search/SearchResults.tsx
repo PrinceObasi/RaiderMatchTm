@@ -149,8 +149,8 @@ export function SearchResults({
             {/* Description */}
             <div className="mt-3">
               {internship.summary_text ? (
-                <p className="text-sm whitespace-pre-line line-clamp-6">
-                  {internship.summary_text}
+                <p className="text-sm whitespace-pre-line leading-6 line-clamp-4">
+                  {internship.summary_text.replace(/\b(Apply( now)?|Click here to apply)[\s\S]*$/i, '').replace(/\s+/g, ' ').trim()}
                 </p>
               ) : (
                 <p className="text-sm italic text-muted-foreground">
