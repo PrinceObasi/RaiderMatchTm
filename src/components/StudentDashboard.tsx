@@ -819,9 +819,9 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                 
                                   {/* Description from enriched data */}
                                   <div className="mt-3">
-                                    {(job.summary_text || job.description_text) ? (
+                                    {job.summary_text ? (
                                       <p className="text-sm whitespace-pre-line line-clamp-6">
-                                        {job.summary_text || job.description_text}
+                                        {job.summary_text}
                                       </p>
                                     ) : (
                                       <p className="text-sm italic text-muted-foreground">

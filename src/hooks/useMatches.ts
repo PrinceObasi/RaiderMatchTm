@@ -6,33 +6,31 @@ interface MatchedInternship {
   company: string;
   role_title: string | null;
   location: string | null;
-  tech_stack: string[] | null;
-  visa_sponsorship: 'Yes' | 'No' | 'Unspecified';
   application_link: string;
-  date_posted: string | null;
-  deadline: string | null;
+  created_at: string | null;
   summary_text: string | null;
-  description_text: string | null;
-  work_mode: string | null;
-  direct_link: string | null;
+  tech_stack: string[] | null;
 }
 
 export function useMatches(limit = 20, offset = 0) {
   return useQuery({
     queryKey: ['matches', limit, offset],
     queryFn: async (): Promise<MatchedInternship[]> => {
-      // Get current user
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) {
-        throw new Error('User not authenticated');
-      }
-
-      // Call the matching RPC function
-      const { data, error } = await supabase.rpc('match_internships_for_user', {
-        p_user_id: user.id,
-        p_limit: limit,
-        p_offset: offset
-      });
+      const { data, error } = await supabase
+        .from('internships')
+        .select(`
+          id,
+          company,
+          role_title,
+          location,
+          application_link,
+          created_at,
+          summary_text,
+          tech_stack
+        `)
+        .eq('is_texas', true)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + limit - 1);
 
       if (error) {
         console.error('Error fetching matches:', error);
