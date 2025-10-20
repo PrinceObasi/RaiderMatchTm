@@ -660,55 +660,27 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                             <CardContent className="p-4 sm:p-6">
                               <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                                 <div className="flex-1">
-                                  <h3 className="text-lg sm:text-xl font-semibold leading-tight mb-1">{internship.role_title || internship.title}</h3>
+                                  <h3 className="text-lg sm:text-xl font-semibold leading-tight mb-1">{internship.role_title}</h3>
                                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                                     <div className="flex items-center gap-1">
                                       <Building className="h-4 w-4" />
                                       {internship.company}
                                     </div>
-                                    <div className="flex items-center gap-1">
-                                      <MapPin className="h-4 w-4" />
-                                      {internship.location || internship.city}
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                  {internship.work_mode && (
-                                    <Badge variant="outline" className="text-xs">
-                                      {internship.work_mode === 'in-person' ? 'In Person' : internship.work_mode.charAt(0).toUpperCase() + internship.work_mode.slice(1)}
-                                    </Badge>
-                                  )}
-                                  {internship.visa_sponsorship && internship.visa_sponsorship !== 'Unspecified' && (
-                                    <Badge variant={internship.visa_sponsorship === 'Yes' ? 'default' : 'secondary'}>
-                                      {internship.visa_sponsorship === 'Yes' ? 'Sponsors Visa' : 'No Visa Sponsorship'}
-                                    </Badge>
-                                  )}
-                                </div>
-                              </div>
-
-                              {/* Tech Stack */}
-                              {(internship.tech_stack || internship.skills) && (internship.tech_stack || internship.skills).length > 0 && (
-                                <div className="mt-3 mb-4">
-                                  <div className="flex flex-wrap gap-2">
-                                    {(internship.tech_stack || internship.skills).slice(0, 8).map((tech) => (
-                                      <Badge key={tech} variant="outline" className="text-xs border-primary/20 bg-primary/5">
-                                        {tech}
-                                      </Badge>
-                                    ))}
-                                    {(internship.tech_stack || internship.skills).length > 8 && (
-                                      <Badge variant="outline" className="text-xs">
-                                        +{(internship.tech_stack || internship.skills).length - 8} more
-                                      </Badge>
+                                    {internship.location && (
+                                      <div className="flex items-center gap-1">
+                                        <MapPin className="h-4 w-4" />
+                                        {internship.location}
+                                      </div>
                                     )}
                                   </div>
                                 </div>
-                              )}
+                              </div>
 
                               {/* Description */}
                               <div className="mt-3">
-                                {(internship.description_text || internship.summary_text || internship.jd_summary) ? (
+                                {internship.summary_text ? (
                                   <p className="text-sm whitespace-pre-line line-clamp-6">
-                                    {(internship.description_text || internship.summary_text || internship.jd_summary)}
+                                    {internship.summary_text}
                                   </p>
                                 ) : (
                                   <p className="text-sm italic text-muted-foreground">
@@ -717,13 +689,29 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                 )}
                               </div>
 
+                              {/* Tech Stack */}
+                              {Array.isArray(internship.tech_stack) && internship.tech_stack.length > 0 && (
+                                <div className="mt-3 flex flex-wrap gap-1.5">
+                                  {internship.tech_stack.slice(0, 12).map((tech) => (
+                                    <span key={tech} className="rounded-full border px-2 py-0.5 text-xs">
+                                      {tech}
+                                    </span>
+                                  ))}
+                                  {internship.tech_stack.length > 12 && (
+                                    <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+                                      +{internship.tech_stack.length - 12} more
+                                    </span>
+                                  )}
+                                </div>
+                              )}
+
                               <div className="mt-4 flex flex-col sm:flex-row gap-2">
-                <Button 
-                  onClick={() => handleApply(internship.id, internship.application_link || internship.application_url || '', true)}
-                  className="w-full sm:w-auto h-11"
-                  size="lg"
-                  disabled={!(internship.application_link || internship.application_url)}
-                >
+                                <Button 
+                                  onClick={() => handleApply(internship.id, internship.application_link, true)}
+                                  className="w-full sm:w-auto h-11"
+                                  size="lg"
+                                  disabled={!internship.application_link}
+                                >
                                   <ExternalLink className="h-4 w-4" />
                                   Apply Now
                                 </Button>

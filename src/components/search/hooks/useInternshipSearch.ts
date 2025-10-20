@@ -25,20 +25,10 @@ export function useInternshipSearch(params: NormalizedParams | null, enabled = t
             company,
             role_title,
             location,
-            tech_stack,
-            visa_sponsorship,
             application_link,
-            direct_link,
-            is_direct,
-            link_type,
-            final_domain,
-            date_posted,
-            deadline,
-            jd_summary,
+            created_at,
             summary_text,
-            description_text,
-            work_mode,
-            core_requirements
+            tech_stack
           `);
 
         // Apply filters
