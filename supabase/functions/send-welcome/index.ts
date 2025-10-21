@@ -44,10 +44,17 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
-  // Verify hook secret
-  const secret = Deno.env.get("HOOK_SECRET");
-  if (!secret || req.headers.get("x-hook-secret") !== secret) {
-    console.error("Invalid or missing hook secret");
+  // Verify request comes from trusted source: either HOOK_SECRET or Service Role token
+  const hookSecret = Deno.env.get("HOOK_SECRET");
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const authHeader = req.headers.get("authorization") || req.headers.get("Authorization");
+  const bearer = authHeader?.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+  const hookOk = hookSecret && req.headers.get("x-hook-secret") === hookSecret;
+  const serviceOk = serviceRoleKey && bearer === serviceRoleKey;
+
+  if (!hookOk && !serviceOk) {
+    console.error("Unauthorized call to send-welcome: missing/invalid secret or service token");
     return new Response("forbidden", { status: 403 });
   }
 
