@@ -44,3 +44,6 @@ verify_jwt = false
 
 [functions.trigger-enrichment]
 verify_jwt = false
+
+[functions.send-welcome]
+verify_jwt = false
