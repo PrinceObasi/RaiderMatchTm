@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_secrets: {
+        Row: {
+          created_at: string | null
+          key: string
+          updated_at: string | null
+          value: string
+        }
+        Insert: {
+          created_at?: string | null
+          key: string
+          updated_at?: string | null
+          value: string
+        }
+        Update: {
+          created_at?: string | null
+          key?: string
+          updated_at?: string | null
+          value?: string
+        }
+        Relationships: []
+      }
       applications: {
         Row: {
           applied_at: string | null
@@ -248,7 +269,7 @@ export type Database = {
           salary_min: number | null
           salary_period: string | null
           scrape_source: string | null
-          search_tsv: unknown | null
+          search_tsv: unknown
           source: string | null
           source_url: string | null
           sponsorship_flag: string | null
@@ -305,7 +326,7 @@ export type Database = {
           salary_min?: number | null
           salary_period?: string | null
           scrape_source?: string | null
-          search_tsv?: unknown | null
+          search_tsv?: unknown
           source?: string | null
           source_url?: string | null
           sponsorship_flag?: string | null
@@ -362,7 +383,7 @@ export type Database = {
           salary_min?: number | null
           salary_period?: string | null
           scrape_source?: string | null
-          search_tsv?: unknown | null
+          search_tsv?: unknown
           source?: string | null
           source_url?: string | null
           sponsorship_flag?: string | null
@@ -682,10 +703,7 @@ export type Database = {
         Args: { application_job_id: string }
         Returns: boolean
       }
-      confirm_application: {
-        Args: { click_id: string }
-        Returns: Json
-      }
+      confirm_application: { Args: { click_id: string }; Returns: Json }
       explore_internships: {
         Args: {
           p_cities?: string[]
@@ -740,7 +758,7 @@ export type Database = {
           salary_min: number | null
           salary_period: string | null
           scrape_source: string | null
-          search_tsv: unknown | null
+          search_tsv: unknown
           source: string | null
           source_url: string | null
           sponsorship_flag: string | null
@@ -751,6 +769,12 @@ export type Database = {
           visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
           work_mode: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "internships"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       get_applicant_info: {
         Args: { p_job_id: string }
@@ -770,20 +794,31 @@ export type Database = {
           student_id: string
         }[]
       }
-      match_internships: {
-        Args:
-          | { is_international?: boolean; student_skills: string[] }
-          | { student_skills: string[] }
-        Returns: {
-          city: string
-          company: string
-          description: string
-          id: string
-          similarity: number
-          skills: string[]
-          title: string
-        }[]
-      }
+      match_internships:
+        | {
+            Args: { student_skills: string[] }
+            Returns: {
+              city: string
+              company: string
+              description: string
+              id: string
+              similarity: number
+              skills: string[]
+              title: string
+            }[]
+          }
+        | {
+            Args: { is_international?: boolean; student_skills: string[] }
+            Returns: {
+              city: string
+              company: string
+              description: string
+              id: string
+              similarity: number
+              skills: string[]
+              title: string
+            }[]
+          }
       match_internships_for_user: {
         Args: { p_limit?: number; p_offset?: number; p_user_id: string }
         Returns: {
@@ -817,10 +852,7 @@ export type Database = {
           title: string
         }[]
       }
-      normalize_keywords: {
-        Args: { raw: string[] }
-        Returns: string[]
-      }
+      normalize_keywords: { Args: { raw: string[] }; Returns: string[] }
       random_internships: {
         Args: { limit_count?: number }
         Returns: {
@@ -869,7 +901,7 @@ export type Database = {
           salary_min: number | null
           salary_period: string | null
           scrape_source: string | null
-          search_tsv: unknown | null
+          search_tsv: unknown
           source: string | null
           source_url: string | null
           sponsorship_flag: string | null
@@ -880,6 +912,12 @@ export type Database = {
           visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
           work_mode: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "internships"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       search_internships: {
         Args: {
@@ -938,7 +976,7 @@ export type Database = {
           salary_min: number | null
           salary_period: string | null
           scrape_source: string | null
-          search_tsv: unknown | null
+          search_tsv: unknown
           source: string | null
           source_url: string | null
           sponsorship_flag: string | null
@@ -949,6 +987,12 @@ export type Database = {
           visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
           work_mode: string | null
         }[]
+        SetofOptions: {
+          from: "*"
+          to: "internships"
+          isOneToOne: false
+          isSetofReturn: true
+        }
       }
       set_job_keywords: {
         Args: { p_job_id: string; raw: string[] }
