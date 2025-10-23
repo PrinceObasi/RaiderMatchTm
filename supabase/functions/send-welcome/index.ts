@@ -9,15 +9,13 @@ Hi {STUDENT_NAME},
 
 My name is Prince Emeka-Obasi, and I'm a senior here at Texas Tech University majoring in Computer Science.
 
-Thanks for giving RaiderMatch a chance. I know how overwhelming it can feel trying to land your first internship. I've been where you are—endless applications and interviews that don't lead anywhere.
+Thanks for giving RaiderMatch a chance. I know how overwhelming it can feel trying to land your first internship. I've been where you have endless applications and interviews that don't lead anywhere.
 
 I built RaiderMatch as a CS student at Texas Tech because I realized how tough it was to break into internships without the right connections. Handshake and LinkedIn are crowded, and it's hard to know where you actually stand. RaiderMatch is different:
 
 • It's built exclusively for Texas Tech CS students
 • It's focused on getting users curated roles and interviews
-• It helps you discover opportunities faster, filter out noise, and learn more about what's out there in the CS job market
-
-I can't guarantee you'll land an internship just by signing up—no platform can do that. But RaiderMatch is here to bring you closer: surfacing roles you might miss, helping you track where you've applied, and giving you a clearer picture of how this process works.
+• It helps you discover opportunities faster and learn more about what's out there in the CS job market
 
 We're also partnering with the CS Department and various companies and firms to post their openings directly on RaiderMatch, creating a seamless candidate selection process to help Tech students secure interviews. Stay tuned for exclusive opportunities coming soon.
 
