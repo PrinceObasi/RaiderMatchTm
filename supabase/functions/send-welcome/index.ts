@@ -112,8 +112,8 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Prince from RaiderMatch <no-reply@raidermatch.com>",
-        reply_to: "premekao@ttu.edu",
+        from: "RaiderMatch <hello@raidermatch.com>",
+        reply_to: "Prince Emeka-Obasi <prince@raidermatch.com>",
         to,
         subject: SUBJECT,
         text: emailBody,
