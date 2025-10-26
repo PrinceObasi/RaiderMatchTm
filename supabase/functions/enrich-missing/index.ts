@@ -24,9 +24,9 @@ serve(async (req) => {
     const { data: internships, error: fetchError } = await supabaseClient
       .from('internships')
       .select('id, application_link')
-      .is('jd_summary', null)
+      .is('summary_text', null)
       .not('application_link', 'is', null)
-      .limit(10) // Process in small batches to avoid timeouts
+      .limit(20) // Process in batches to avoid timeouts
 
     if (fetchError) {
       console.error('Fetch error:', fetchError)

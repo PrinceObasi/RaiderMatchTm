@@ -93,7 +93,7 @@ serve(async (req) => {
       .from('internships')
       .update({
         jd_raw: html.substring(0, 50000), // Limit raw HTML size
-        jd_summary: enrichmentData.summary,
+        summary_text: enrichmentData.summary,
         salary_min: enrichmentData.salary_min,
         salary_max: enrichmentData.salary_max,
         salary_currency: enrichmentData.salary_currency,
