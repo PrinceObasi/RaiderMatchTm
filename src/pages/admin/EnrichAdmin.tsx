@@ -39,6 +39,17 @@ interface DisplayEnrichResult {
   }>;
 }
 
+interface BatchEnrichResult {
+  processed: number;
+  successful: number;
+  failed: number;
+  results: Array<{
+    id: string;
+    success: boolean;
+    error: string | null;
+  }>;
+}
+
 const getWorkModeBadgeColor = (mode: string | null) => {
   if (!mode) return 'secondary';
   if (mode === 'remote') return 'default';
@@ -57,6 +68,11 @@ export default function EnrichAdmin({ onBack }: { onBack: () => void }) {
   const [force, setForce] = useState(false);
   const [isDisplayEnriching, setIsDisplayEnriching] = useState(false);
   const [displayResult, setDisplayResult] = useState<DisplayEnrichResult | null>(null);
+
+  // Batch missing enrichment states
+  const [isBatchEnriching, setIsBatchEnriching] = useState(false);
+  const [batchResult, setBatchResult] = useState<BatchEnrichResult | null>(null);
+  const [totalEnriched, setTotalEnriched] = useState(0);
 
   const handleEnrich = async () => {
     setIsEnriching(true);
@@ -104,6 +120,34 @@ export default function EnrichAdmin({ onBack }: { onBack: () => void }) {
     }
   };
 
+  const handleBatchEnrich = async () => {
+    setIsBatchEnriching(true);
+    try {
+      const { data, error } = await supabase.functions.invoke('enrich-missing', {
+        body: {}
+      });
+
+      if (error) throw error;
+
+      setBatchResult(data as BatchEnrichResult);
+      setTotalEnriched(prev => prev + (data.successful || 0));
+      
+      toast({
+        title: "Batch Enrichment Complete",
+        description: `Successfully enriched ${data.successful} of ${data.processed} internships`,
+      });
+    } catch (error: any) {
+      console.error('Batch enrichment error:', error);
+      toast({
+        title: "Batch Enrichment Failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsBatchEnriching(false);
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 max-w-6xl">
       <Button
@@ -116,6 +160,76 @@ export default function EnrichAdmin({ onBack }: { onBack: () => void }) {
       </Button>
 
       <div className="space-y-6">
+        {/* NEW: Batch Missing Descriptions */}
+        <Card className="border-primary/50 shadow-lg">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" />
+              Batch Enrich Missing Descriptions
+            </CardTitle>
+            <CardDescription>
+              Process internships lacking descriptions in batches of 20. Run multiple times to enrich all 141 missing descriptions (~7 runs needed).
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {totalEnriched > 0 && (
+              <div className="p-4 bg-primary/10 rounded-lg text-center">
+                <div className="text-2xl font-bold text-primary">{totalEnriched}</div>
+                <div className="text-sm text-muted-foreground">Total Enriched This Session</div>
+              </div>
+            )}
+            
+            <Button
+              onClick={handleBatchEnrich}
+              disabled={isBatchEnriching}
+              className="w-full"
+              size="lg"
+            >
+              {isBatchEnriching ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Processing Batch (20 internships)...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Enrich Next Batch (20)
+                </>
+              )}
+            </Button>
+
+            {batchResult && (
+              <div className="space-y-4 pt-4">
+                <div className="grid grid-cols-3 gap-4">
+                  <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
+                    <div className="text-3xl font-bold text-green-600 dark:text-green-400">{batchResult.successful}</div>
+                    <div className="text-sm text-muted-foreground">Successful</div>
+                  </div>
+                  <div className="text-center p-4 bg-red-50 dark:bg-red-950 rounded-lg">
+                    <div className="text-3xl font-bold text-red-600 dark:text-red-400">{batchResult.failed}</div>
+                    <div className="text-sm text-muted-foreground">Failed</div>
+                  </div>
+                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
+                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{batchResult.processed}</div>
+                    <div className="text-sm text-muted-foreground">Processed</div>
+                  </div>
+                </div>
+
+                {batchResult.results && batchResult.results.some(r => !r.success) && (
+                  <div className="text-sm text-muted-foreground p-3 bg-muted rounded-lg">
+                    <div className="font-semibold mb-1">Failed IDs:</div>
+                    <div className="text-xs space-y-1">
+                      {batchResult.results.filter(r => !r.success).map(r => (
+                        <div key={r.id}>{r.id.substring(0, 8)}... - {r.error}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
