@@ -26,7 +26,7 @@ serve(async (req) => {
       .select('id, application_link')
       .is('summary_text', null)
       .not('application_link', 'is', null)
-      .limit(20) // Process in batches to avoid timeouts
+      .limit(30) // Process 30 internships per batch
 
     if (fetchError) {
       console.error('Fetch error:', fetchError)
