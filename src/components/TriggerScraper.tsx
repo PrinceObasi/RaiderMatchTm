@@ -110,6 +110,22 @@ export const TriggerScraper = () => {
             <p>✓ Successful: {enrichResult.successful}</p>
             {enrichResult.failed > 0 && <p>✗ Failed: {enrichResult.failed}</p>}
           </div>
+          
+          {enrichResult.results && enrichResult.results.length > 0 && (
+            <div className="mt-4 space-y-2">
+              <h4 className="font-semibold text-sm text-green-900">Detailed Results:</h4>
+              <div className="max-h-60 overflow-y-auto space-y-1">
+                {enrichResult.results.map((result: any, idx: number) => (
+                  <div key={idx} className={`text-xs p-2 rounded ${result.success ? 'bg-green-100' : 'bg-red-100'}`}>
+                    <span className={result.success ? 'text-green-700' : 'text-red-700'}>
+                      {result.success ? '✓' : '✗'} {result.id}
+                      {result.error && <span className="ml-2 text-red-600">- {result.error}</span>}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
 
