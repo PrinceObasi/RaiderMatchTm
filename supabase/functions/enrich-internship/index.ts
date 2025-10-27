@@ -7,6 +7,8 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -30,10 +32,10 @@ serve(async (req) => {
 
     console.log(`Starting enrichment for internship ${id}`)
 
-    // Get the internship record
+    // Get the internship record with company and role_title
     const { data: internship, error: fetchError } = await supabaseClient
       .from('internships')
-      .select('application_link')
+      .select('application_link, company, role_title')
       .eq('id', id)
       .single()
 
@@ -84,9 +86,13 @@ serve(async (req) => {
       )
     }
 
-    // Extract enrichment data
-    const enrichmentData = extractJobData(html)
-    console.log('Extracted data:', enrichmentData)
+    // Enrich with AI
+    const enrichmentData = await enrichWithAI(html, internship.company, internship.role_title)
+    console.log('AI enriched data:', { 
+      summaryLength: enrichmentData.summary.length, 
+      techCount: enrichmentData.tech_stack.length,
+      confidence: enrichmentData.confidence 
+    })
 
     // Update the database
     const { error: updateError } = await supabaseClient
@@ -94,10 +100,7 @@ serve(async (req) => {
       .update({
         jd_raw: html.substring(0, 50000), // Limit raw HTML size
         summary_text: enrichmentData.summary,
-        salary_min: enrichmentData.salary_min,
-        salary_max: enrichmentData.salary_max,
-        salary_currency: enrichmentData.salary_currency,
-        salary_period: enrichmentData.salary_period,
+        tech_stack: enrichmentData.tech_stack,
         enrichment_confidence: enrichmentData.confidence,
         enriched_at: new Date().toISOString()
       })
@@ -116,10 +119,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         ok: true,
-        jd_summary: enrichmentData.summary,
-        salary_min: enrichmentData.salary_min,
-        salary_max: enrichmentData.salary_max,
-        salary_period: enrichmentData.salary_period
+        summary: enrichmentData.summary,
+        tech_stack: enrichmentData.tech_stack,
+        confidence: enrichmentData.confidence
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )
@@ -133,157 +135,136 @@ serve(async (req) => {
   }
 })
 
-function extractJobData(html: string) {
-  let summary = ''
-  let salary_min: number | null = null
-  let salary_max: number | null = null
-  let salary_currency = 'USD'
-  let salary_period: string | null = null
-  let confidence = 40
+// Clean HTML content for AI processing
+function cleanHtmlForAI(html: string): string {
+  const parser = new DOMParser()
+  const doc = parser.parseFromString(html, 'text/html')
+  if (!doc) return html
+  
+  // Remove script, style, nav, footer, ads
+  const removeSelectors = ['script', 'style', 'nav', 'footer', 'header', '.nav', '.footer', '.header', '[class*="ad"]', '[id*="ad"]']
+  removeSelectors.forEach(selector => {
+    const elements = doc.querySelectorAll(selector)
+    elements.forEach(el => el.remove())
+  })
+  
+  // Extract main content area
+  const contentSelectors = ['main', 'article', '[class*="job"]', '[class*="description"]', '[id*="job"]', 'body']
+  for (const selector of contentSelectors) {
+    const content = doc.querySelector(selector)
+    if (content && content.textContent && content.textContent.length > 200) {
+      return content.textContent
+        .replace(/\s+/g, ' ')
+        .replace(/\n+/g, '\n')
+        .trim()
+        .substring(0, 5000) // Limit to 5000 chars for AI
+    }
+  }
+  
+  return doc.body?.textContent?.replace(/\s+/g, ' ').trim().substring(0, 5000) || html
+}
+
+// Use Lovable AI to generate student-focused description and tech stack
+async function enrichWithAI(html: string, company: string, roleTitle: string) {
+  if (!LOVABLE_API_KEY) {
+    console.error('LOVABLE_API_KEY not configured')
+    return {
+      summary: 'Enrichment unavailable - API key not configured',
+      tech_stack: [],
+      confidence: 0
+    }
+  }
+  
+  const cleanedContent = cleanHtmlForAI(html)
+  
+  const prompt = `You are an internship description editor for students. Transform this job posting into a concise, student-focused format.
+
+Company: ${company}
+Role: ${roleTitle}
+
+Job Posting Content:
+${cleanedContent}
+
+INSTRUCTIONS:
+1. Write a 2-3 sentence description focusing on what the intern will BUILD, LEARN, and DO (not corporate history or fluff)
+2. Extract up to 12 key technologies as lowercase tags
+3. Keep it action-oriented and specific
+
+OUTPUT FORMAT (must match exactly):
+Description: [your 2-3 sentences here]
+Tech: {tag1, tag2, tag3, ...}
+
+Example output:
+Description: Join 7-Eleven's technology team to build POS, mobile, and retail systems. Work across the full SDLC—design, development, testing, and deployment. Analyze performance and produce clear design docs.
+Tech: {c++, sqlserver, oracle, angular, jquery, bootstrap, rest, json, web api, wcf, nodejs, android}`
 
   try {
-    const doc = new DOMParser().parseFromString(html, 'text/html')
-    if (!doc) {
-      throw new Error('Failed to parse HTML')
-    }
+    const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${LOVABLE_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.3, // Lower temperature for more consistent formatting
+      }),
+    })
 
-    // Extract from meta tags first
-    const ogDescription = doc.querySelector('meta[property="og:description"]')?.getAttribute('content') ||
-                         doc.querySelector('meta[name="twitter:description"]')?.getAttribute('content') ||
-                         doc.querySelector('meta[name="description"]')?.getAttribute('content')
-
-    // Extract salary from JSON-LD
-    const jsonLdScripts = doc.querySelectorAll('script[type="application/ld+json"]')
-    for (const script of jsonLdScripts) {
-      try {
-        const jsonLd = JSON.parse(script.textContent || '')
-        if (jsonLd.baseSalary) {
-          const baseSalary = jsonLd.baseSalary
-          if (baseSalary.value) {
-            const minValue = baseSalary.value.minValue || baseSalary.value
-            const maxValue = baseSalary.value.maxValue || baseSalary.value
-            salary_min = parseFloat(minValue)
-            salary_max = parseFloat(maxValue)
-            salary_currency = baseSalary.currency || 'USD'
-            salary_period = baseSalary.unitText || 'year'
-            confidence = 100
-            break
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to parse JSON-LD:', e)
-      }
-    }
-
-    // Fallback: Extract salary with regex from text content
-    if (!salary_min) {
-      const text = doc.body?.textContent || ''
-      const salaryPatterns = [
-        // $40-50/hr, $40-$50 per hour
-        /\$?\s?(\d{2,3})(?:,?\d{3})?\s*-\s*\$?\s?(\d{2,3})(?:,?\d{3})?\s*(?:per\s)?(hour|hr)/i,
-        // $80k-95k, $80K-$95K
-        /\$?\s?(\d{2,3})[kK]\s*-\s*\$?\s?(\d{2,3})[kK]/i,
-        // $70,000-$90,000
-        /\$?\s?(\d{2,3}),?(\d{3})\s*-\s*\$?\s?(\d{2,3}),?(\d{3})/i,
-        // Single values: $25/hr, $85k
-        /\$?\s?(\d+(?:\.\d{1,2})?)\s*(hour|hr|k|year|yr|annum)/i
-      ]
-
-      for (const pattern of salaryPatterns) {
-        const match = text.match(pattern)
-        if (match) {
-          if (pattern.source.includes('kK')) {
-            // Handle k format (80k-95k)
-            salary_min = parseInt(match[1]) * 1000
-            salary_max = parseInt(match[2]) * 1000
-            salary_period = 'year'
-            confidence = 70
-          } else if (match[3] && match[4]) {
-            // Handle full numbers with commas
-            salary_min = parseInt(match[1] + match[2])
-            salary_max = parseInt(match[3] + match[4])
-            salary_period = 'year'
-            confidence = 70
-          } else if (match[2]) {
-            // Handle single value with unit
-            const value = parseFloat(match[1])
-            const unit = match[2].toLowerCase()
-            if (unit.includes('hour') || unit.includes('hr')) {
-              salary_min = value
-              salary_max = value
-              salary_period = 'hour'
-            } else if (unit === 'k') {
-              salary_min = value * 1000
-              salary_max = value * 1000
-              salary_period = 'year'
-            }
-            confidence = 70
-          }
-          break
-        }
-      }
-    }
-
-    // Generate summary
-    if (ogDescription && ogDescription.length > 50) {
-      summary = ogDescription.substring(0, 300)
-    } else {
-      // Extract from main content areas
-      const contentSelectors = ['main', 'article', '[class*="job"]', '[class*="description"]', '[class*="content"]']
-      let extractedText = ''
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error(`Lovable AI error (${response.status}):`, errorText)
       
-      for (const selector of contentSelectors) {
-        const elements = doc.querySelectorAll(selector)
-        for (const element of elements) {
-          const text = element.textContent || ''
-          if (text.length > 100) {
-            extractedText = text.replace(/\s+/g, ' ').trim()
-            break
-          }
+      if (response.status === 429) {
+        return {
+          summary: 'Rate limit exceeded - please try again later',
+          tech_stack: [],
+          confidence: 0
         }
-        if (extractedText.length > 100) break
       }
-
-      if (extractedText) {
-        // Extract key sentences
-        const sentences = extractedText.split(/[.!?]+/).filter(s => s.trim().length > 20)
-        const techKeywords = ['python', 'java', 'javascript', 'react', 'node', 'sql', 'aws', 'azure', 'c++', 'c#']
-        
-        let techSentence = ''
-        let roleSentence = ''
-        
-        for (const sentence of sentences.slice(0, 10)) {
-          const lowerSentence = sentence.toLowerCase()
-          if (!techSentence && techKeywords.some(keyword => lowerSentence.includes(keyword))) {
-            techSentence = sentence.trim()
-          }
-          if (!roleSentence && (lowerSentence.includes('responsible') || lowerSentence.includes('develop') || lowerSentence.includes('build'))) {
-            roleSentence = sentence.trim()
-          }
-          if (techSentence && roleSentence) break
+      
+      if (response.status === 402) {
+        return {
+          summary: 'AI credits depleted - please add funds to continue enrichment',
+          tech_stack: [],
+          confidence: 0
         }
-
-        const summaryParts = [roleSentence, techSentence].filter(Boolean)
-        summary = summaryParts.join('. ').substring(0, 300)
       }
+      
+      throw new Error(`AI API error: ${response.status}`)
     }
 
-    // Fallback to default summary if nothing extracted
-    if (!summary || summary.length < 50) {
-      summary = 'Software engineering internship opportunity. Apply to learn more about specific requirements and responsibilities.'
+    const data = await response.json()
+    const aiOutput = data.choices[0].message.content
+    
+    console.log('AI Output:', aiOutput.substring(0, 200))
+    
+    // Parse the AI output
+    const descMatch = aiOutput.match(/Description:\s*(.+?)(?=\nTech:|$)/s)
+    const techMatch = aiOutput.match(/Tech:\s*\{([^}]+)\}/)
+    
+    const summary = descMatch ? descMatch[1].trim() : 'Internship opportunity available'
+    const techStackRaw = techMatch ? techMatch[1] : ''
+    const tech_stack = techStackRaw
+      .split(',')
+      .map(t => t.trim().toLowerCase())
+      .filter(t => t.length > 0)
+      .slice(0, 12)
+    
+    return {
+      summary,
+      tech_stack,
+      confidence: (summary.length > 50 && tech_stack.length > 0) ? 90 : 50
     }
-
   } catch (error) {
-    console.error('Data extraction error:', error)
-    summary = 'Software engineering internship opportunity. Apply to learn more about specific requirements and responsibilities.'
-  }
-
-  return {
-    summary: summary.trim(),
-    salary_min,
-    salary_max,
-    salary_currency,
-    salary_period,
-    confidence
+    console.error('AI enrichment error:', error)
+    return {
+      summary: 'Unable to enrich job description - please try again',
+      tech_stack: [],
+      confidence: 0
+    }
   }
 }
