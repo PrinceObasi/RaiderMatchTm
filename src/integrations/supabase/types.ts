@@ -794,6 +794,7 @@ export type Database = {
           student_id: string
         }[]
       }
+      get_top_locations: { Args: { p_limit?: number }; Returns: string[] }
       match_internships:
         | {
             Args: { student_skills: string[] }

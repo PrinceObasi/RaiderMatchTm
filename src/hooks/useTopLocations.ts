@@ -6,11 +6,12 @@ export function useTopLocations(limit = 15) {
     queryKey: ["top-locations", limit],
     queryFn: async () => {
       const { data, error } = await supabase
-        .rpc("get_top_locations", { p_limit: limit });
+        .rpc("get_top_locations", { p_limit: limit }) as { data: string[] | null; error: any };
 
       if (error) {
         console.error("Error fetching top locations:", error);
-        throw error;
+        // Fallback to common locations if query fails
+        return ["Remote", "New York, NY", "San Francisco, CA", "Austin, TX", "Seattle, WA", "Boston, MA"];
       }
 
       // Always include Remote as a prominent option

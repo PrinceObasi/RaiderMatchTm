@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import { Check, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -9,19 +9,8 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-
-const LOCATION_OPTIONS = [
-  "Austin, TX",
-  "Dallas, TX",
-  "Houston, TX",
-  "Remote",
-  "San Antonio, TX",
-  "Fort Worth, TX",
-  "El Paso, TX",
-  "Arlington, TX",
-  "Corpus Christi, TX",
-  "Plano, TX",
-];
+import { useTopLocations } from "@/hooks/useTopLocations";
+import { Badge } from "@/components/ui/badge";
 
 interface LocationMultiSelectProps {
   value: string[];
@@ -32,8 +21,16 @@ interface LocationMultiSelectProps {
 export function LocationMultiSelect({ value, onChange, name }: LocationMultiSelectProps) {
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
+  const { data: locationOptions, isLoading } = useTopLocations(20);
 
-  const filteredOptions = LOCATION_OPTIONS.filter((location) =>
+  const allLocations = locationOptions || ["Remote"];
+  
+  // Get all unique Texas cities from the data
+  const texasCities = useMemo(() => {
+    return allLocations.filter(loc => loc.includes(", TX"));
+  }, [allLocations]);
+
+  const filteredOptions = allLocations.filter((location) =>
     location.toLowerCase().includes(searchValue.toLowerCase())
   );
 
@@ -45,8 +42,12 @@ export function LocationMultiSelect({ value, onChange, name }: LocationMultiSele
     onChange(newLocations);
   };
 
+  const selectTexasOnly = () => {
+    onChange(texasCities);
+  };
+
   const selectAll = () => {
-    onChange(LOCATION_OPTIONS);
+    onChange(allLocations);
   };
 
   const clearAll = () => {
@@ -91,25 +92,30 @@ export function LocationMultiSelect({ value, onChange, name }: LocationMultiSele
                 <CommandEmpty>No locations found.</CommandEmpty>
               ) : (
                 <CommandGroup>
-                  <div className="flex gap-2 p-2 border-b">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      type="button"
-                      onClick={selectAll}
-                      className="h-6 text-xs"
-                    >
-                      Select All
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      type="button"
-                      onClick={clearAll}
-                      className="h-6 text-xs"
-                    >
-                      Clear All
-                    </Button>
+                  <div className="flex flex-col gap-2 p-2 border-b">
+                    <div className="flex gap-2">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        type="button"
+                        onClick={selectTexasOnly}
+                        className="h-7 text-xs flex-1"
+                      >
+                        <Badge variant="secondary" className="mr-1 h-4 px-1 text-[10px]">
+                          Quick
+                        </Badge>
+                        Texas Only
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        type="button"
+                        onClick={clearAll}
+                        className="h-7 text-xs"
+                      >
+                        Clear All
+                      </Button>
+                    </div>
                   </div>
                   {filteredOptions.map((location) => (
                     <div
