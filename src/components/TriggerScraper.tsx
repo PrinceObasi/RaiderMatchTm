@@ -5,7 +5,9 @@ import { toast } from 'sonner';
 
 export const TriggerScraper = () => {
   const [isLoading, setIsLoading] = useState(false);
+  const [isEnriching, setIsEnriching] = useState(false);
   const [result, setResult] = useState<any>(null);
+  const [enrichResult, setEnrichResult] = useState<any>(null);
 
   const handleScrape = async () => {
     setIsLoading(true);
@@ -42,17 +44,74 @@ export const TriggerScraper = () => {
     }
   };
 
+  const handleEnrich = async () => {
+    setIsEnriching(true);
+    setEnrichResult(null);
+    try {
+      console.log('Triggering batch enrichment...');
+      
+      const { data, error } = await supabase.functions.invoke('enrich-missing', {
+        body: {}
+      });
+
+      if (error) {
+        console.error('Enrichment error:', error);
+        toast.error('Enrichment failed: ' + error.message);
+        return;
+      }
+
+      console.log('Enrichment result:', data);
+      setEnrichResult(data);
+      
+      if (data?.processed > 0) {
+        toast.success(`Enrichment batch complete! 
+          Processed: ${data.processed}, 
+          Successful: ${data.successful}, 
+          Failed: ${data.failed}`);
+      } else {
+        toast.info('No internships to enrich');
+      }
+    } catch (error) {
+      console.error('Unexpected error:', error);
+      toast.error('Unexpected error occurred');
+    } finally {
+      setIsEnriching(false);
+    }
+  };
+
   return (
     <div className="p-6 space-y-4">
-      <h2 className="text-2xl font-bold">SimplifyJobs Scraper</h2>
+      <h2 className="text-2xl font-bold">Admin Tools</h2>
       
-      <Button 
-        onClick={handleScrape} 
-        disabled={isLoading}
-        className="w-full"
-      >
-        {isLoading ? 'Scraping...' : 'Run SimplifyJobs Scraper'}
-      </Button>
+      <div className="space-y-3">
+        <Button 
+          onClick={handleScrape} 
+          disabled={isLoading || isEnriching}
+          className="w-full"
+        >
+          {isLoading ? 'Scraping...' : 'Run SimplifyJobs Scraper'}
+        </Button>
+
+        <Button 
+          onClick={handleEnrich} 
+          disabled={isEnriching || isLoading}
+          className="w-full"
+          variant="secondary"
+        >
+          {isEnriching ? 'Enriching 20 internships...' : 'AI Enrich 20 Internships (New Format)'}
+        </Button>
+      </div>
+
+      {enrichResult && (
+        <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+          <h3 className="font-semibold mb-2 text-green-900">Enrichment Results:</h3>
+          <div className="text-sm space-y-1 text-green-800">
+            <p>✓ Processed: {enrichResult.processed}</p>
+            <p>✓ Successful: {enrichResult.successful}</p>
+            {enrichResult.failed > 0 && <p>✗ Failed: {enrichResult.failed}</p>}
+          </div>
+        </div>
+      )}
 
       {result && (
         <div className="mt-4 p-4 bg-secondary rounded-lg">
