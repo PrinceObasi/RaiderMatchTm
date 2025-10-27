@@ -94,6 +94,14 @@ serve(async (req) => {
       confidence: enrichmentData.confidence 
     })
 
+    // Fail if enrichment confidence is too low
+    if (enrichmentData.confidence === 0) {
+      return new Response(
+        JSON.stringify({ error: enrichmentData.summary }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     // Update the database
     const { error: updateError } = await supabaseClient
       .from('internships')

@@ -57,10 +57,23 @@ serve(async (req) => {
         })
 
         if (response.error) {
+          console.log(`Enrichment failed for ${internship.id}, deleting internship`)
+          
+          // Delete failed internship
+          const { error: deleteError } = await supabaseClient
+            .from('internships')
+            .delete()
+            .eq('id', internship.id)
+          
+          if (deleteError) {
+            console.error(`Failed to delete internship ${internship.id}:`, deleteError)
+          }
+          
           results.push({
             id: internship.id,
             success: false,
-            error: response.error.message
+            error: response.error.message,
+            deleted: !deleteError
           })
         } else {
           results.push({
@@ -78,10 +91,22 @@ serve(async (req) => {
         await new Promise(resolve => setTimeout(resolve, 2000))
       } catch (error) {
         console.error(`Error processing ${internship.id}:`, error)
+        
+        // Delete internship on exception too
+        const { error: deleteError } = await supabaseClient
+          .from('internships')
+          .delete()
+          .eq('id', internship.id)
+        
+        if (deleteError) {
+          console.error(`Failed to delete internship ${internship.id}:`, deleteError)
+        }
+        
         results.push({
           id: internship.id,
           success: false,
-          error: error instanceof Error ? error.message : 'Unknown error'
+          error: error instanceof Error ? error.message : 'Unknown error',
+          deleted: !deleteError
         })
       }
     }
