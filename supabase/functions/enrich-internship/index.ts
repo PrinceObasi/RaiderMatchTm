@@ -119,6 +119,8 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         ok: true,
+        company: internship.company,
+        role: internship.role_title,
         summary: enrichmentData.summary,
         tech_stack: enrichmentData.tech_stack,
         confidence: enrichmentData.confidence

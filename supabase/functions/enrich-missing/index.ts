@@ -56,11 +56,23 @@ serve(async (req) => {
           body: { id: internship.id }
         })
 
-        results.push({
-          id: internship.id,
-          success: !response.error,
-          error: response.error?.message || null
-        })
+        if (response.error) {
+          results.push({
+            id: internship.id,
+            success: false,
+            error: response.error.message
+          })
+        } else {
+          results.push({
+            id: internship.id,
+            company: response.data?.company,
+            role: response.data?.role,
+            summary: response.data?.summary,
+            tech_stack: response.data?.tech_stack,
+            success: true,
+            error: null
+          })
+        }
 
         // Add small delay to avoid overwhelming external servers
         await new Promise(resolve => setTimeout(resolve, 2000))

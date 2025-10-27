@@ -112,15 +112,45 @@ export const TriggerScraper = () => {
           </div>
           
           {enrichResult.results && enrichResult.results.length > 0 && (
-            <div className="mt-4 space-y-2">
-              <h4 className="font-semibold text-sm text-green-900">Detailed Results:</h4>
-              <div className="max-h-60 overflow-y-auto space-y-1">
+            <div className="mt-4 space-y-3">
+              <h4 className="font-semibold text-sm text-green-900">Enriched Internships:</h4>
+              <div className="max-h-96 overflow-y-auto space-y-2">
                 {enrichResult.results.map((result: any, idx: number) => (
-                  <div key={idx} className={`text-xs p-2 rounded ${result.success ? 'bg-green-100' : 'bg-red-100'}`}>
-                    <span className={result.success ? 'text-green-700' : 'text-red-700'}>
-                      {result.success ? '✓' : '✗'} {result.id}
-                      {result.error && <span className="ml-2 text-red-600">- {result.error}</span>}
-                    </span>
+                  <div key={idx} className={`text-xs p-3 rounded-lg ${result.success ? 'bg-white border border-green-300' : 'bg-red-50 border border-red-300'}`}>
+                    {result.success ? (
+                      <div className="space-y-2">
+                        <div className="flex items-start gap-2">
+                          <span className="text-green-600 font-bold">✓</span>
+                          <div className="flex-1">
+                            <div className="font-semibold text-green-900">
+                              {result.company || 'Unknown'} - {result.role || 'Role'}
+                            </div>
+                            {result.summary && (
+                              <p className="text-gray-700 mt-1 text-xs leading-relaxed">
+                                {result.summary}
+                              </p>
+                            )}
+                            {result.tech_stack && result.tech_stack.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-2">
+                                {result.tech_stack.map((tech: string, i: number) => (
+                                  <span key={i} className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">
+                                    {tech}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-2">
+                        <span className="text-red-600 font-bold">✗</span>
+                        <div>
+                          <div className="text-red-700">Failed: {result.id}</div>
+                          {result.error && <div className="text-red-600 mt-1">{result.error}</div>}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
