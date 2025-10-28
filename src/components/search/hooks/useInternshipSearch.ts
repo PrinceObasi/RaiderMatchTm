@@ -29,8 +29,7 @@ export function useInternshipSearch(params: NormalizedParams | null, enabled = t
             created_at,
             summary_text,
             tech_stack
-          `)
-          .not('enriched_at', 'is', null); // Only show roles processed by AI enrichment
+          `);
 
         // Apply filters
         if (queryParams.q) {

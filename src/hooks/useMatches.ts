@@ -29,7 +29,6 @@ export function useMatches(limit = 20, offset = 0) {
           tech_stack
         `)
         .eq('is_texas', true)
-        .not('enriched_at', 'is', null) // Only show roles processed by AI enrichment
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
