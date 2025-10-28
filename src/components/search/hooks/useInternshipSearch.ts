@@ -61,6 +61,9 @@ export function useInternshipSearch(params: NormalizedParams | null, enabled = t
           query = query.overlaps('tech_stack', queryParams.stacks);
         }
 
+        // Exclude PhD roles
+        query = query.not('role_title', 'ilike', '%phd%');
+
         // Apply pagination
         query = query
           .range(queryParams.offset_count, queryParams.offset_count + queryParams.limit_count - 1)

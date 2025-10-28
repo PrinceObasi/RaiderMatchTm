@@ -29,6 +29,7 @@ export function useMatches(limit = 20, offset = 0) {
           tech_stack
         `)
         .eq('is_texas', true)
+        .not('role_title', 'ilike', '%phd%')
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
