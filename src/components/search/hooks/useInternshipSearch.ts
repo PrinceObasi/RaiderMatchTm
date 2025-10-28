@@ -29,7 +29,8 @@ export function useInternshipSearch(params: NormalizedParams | null, enabled = t
             created_at,
             summary_text,
             tech_stack
-          `);
+          `)
+          .not('summary_text', 'is', null); // Only show enriched internships
 
         // Apply filters
         if (queryParams.q) {

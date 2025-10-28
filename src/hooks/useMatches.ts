@@ -29,6 +29,7 @@ export function useMatches(limit = 20, offset = 0) {
           tech_stack
         `)
         .eq('is_texas', true)
+        .not('summary_text', 'is', null) // Only show enriched internships
         .order('created_at', { ascending: false })
         .range(offset, offset + limit - 1);
 
