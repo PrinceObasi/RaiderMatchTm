@@ -38,25 +38,32 @@ function validateLocation(location: string | null): ValidationResult {
     return { pass: false, reasons: ['No location'] };
   }
 
-  // Check for multiple location separators
-  const multiLocationPattern = /[;/|]|( and )|( or )/i;
-  if (multiLocationPattern.test(location)) {
-    return { pass: false, reasons: ['Multiple locations detected (separators)'] };
+  const loc = location.trim();
+
+  // Reject if contains multiple location indicators
+  const multiLocationPattern = /[;/|]|( and )|( or )|,.*,.*,/i;
+  if (multiLocationPattern.test(loc)) {
+    return { pass: false, reasons: ['Multiple locations (separators)'] };
   }
 
-  // Count city/state pairs - looking for pattern like "City, ST"
-  const cityStateMatches = location.match(/[A-Za-z\s]+,\s*[A-Z]{2}/g);
-  if (cityStateMatches && cityStateMatches.length > 1) {
-    return { pass: false, reasons: ['Multiple city/state pairs'] };
+  // Count commas - if more than 1, likely multiple locations
+  const commaCount = (loc.match(/,/g) || []).length;
+  if (commaCount > 1) {
+    return { pass: false, reasons: ['Multiple locations (comma count)'] };
   }
 
-  // Must have at least one city/state pair
-  if (!cityStateMatches || cityStateMatches.length === 0) {
-    // Allow "Remote" only if it's the entire location
-    if (location.toLowerCase() === 'remote') {
-      return { pass: true, reasons: [] };
-    }
-    return { pass: false, reasons: ['No valid city/state format'] };
+  // Check for multiple city patterns (e.g., "Austin" followed by another capital city name)
+  const cityPattern = /\b[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*/g;
+  const cityMatches = loc.match(cityPattern);
+  if (cityMatches && cityMatches.length > 2) {
+    // More than 2 capitalized words likely means multiple cities
+    return { pass: false, reasons: ['Multiple locations (multiple cities)'] };
+  }
+
+  // Must match simple pattern: "City, ST" or "City Name, ST" or just "Remote"
+  const validPattern = /^(Remote|[A-Z][a-z]+(?:\s+[A-Z][a-z]+)*,\s*[A-Z]{2})(\s*[·•]\s*(remote|hybrid|in-person))?$/i;
+  if (!validPattern.test(loc)) {
+    return { pass: false, reasons: ['Invalid location format'] };
   }
 
   return { pass: true, reasons: [] };
@@ -69,24 +76,34 @@ function validateSummary(summary: string | null): ValidationResult {
     return { pass: false, reasons: ['No summary'] };
   }
 
-  // Length check
-  if (summary.length > 320) {
-    reasons.push(`Too long (${summary.length} chars)`);
+  const trimmed = summary.trim();
+
+  // Reject if too short (less than 100 chars is likely too brief)
+  if (trimmed.length < 100) {
+    reasons.push(`Too short (${trimmed.length} chars)`);
   }
 
-  // Sentence count (2-3)
-  const sentences = summary.split(/[.!?]+/).filter(s => s.trim().length > 0);
-  if (sentences.length < 2 || sentences.length > 3) {
-    reasons.push(`Wrong sentence count (${sentences.length})`);
+  // Length check (max 320 chars)
+  if (trimmed.length > 320) {
+    reasons.push(`Too long (${trimmed.length} chars)`);
+  }
+
+  // Sentence count (must be 2-3 sentences)
+  const sentences = trimmed.split(/[.!?]+/).filter(s => s.trim().length > 10);
+  if (sentences.length < 2) {
+    reasons.push(`Too few sentences (${sentences.length}, need 2-3)`);
+  }
+  if (sentences.length > 3) {
+    reasons.push(`Too many sentences (${sentences.length}, need 2-3)`);
   }
 
   // Must have BUILD/LEARN/DO verbs
-  if (!BUILD_VERBS.test(summary)) {
+  if (!BUILD_VERBS.test(trimmed)) {
     reasons.push('Missing action verbs');
   }
 
   // Must not have fluff terms
-  if (FLUFF_TERMS.test(summary)) {
+  if (FLUFF_TERMS.test(trimmed)) {
     reasons.push('Contains fluff terms');
   }
 
