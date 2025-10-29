@@ -42,12 +42,17 @@ export function useInternshipSearch(params: NormalizedParams | null, enabled = t
           const hasRemote = queryParams.locations.includes('Remote');
           const otherLocations = queryParams.locations.filter(loc => loc !== 'Remote');
           
-          if (hasRemote && otherLocations.length > 0) {
-            query = query.or(`location.in.(${otherLocations.join(',')}),remote_flag.eq.true`);
+          if (otherLocations.length > 0) {
+            // Build OR conditions for pattern matching each location
+            const locationConditions = otherLocations.map(loc => `location.ilike.%${loc}%`).join(',');
+            
+            if (hasRemote) {
+              query = query.or(`${locationConditions},remote_flag.eq.true`);
+            } else {
+              query = query.or(locationConditions);
+            }
           } else if (hasRemote) {
             query = query.eq('remote_flag', true);
-          } else {
-            query = query.in('location', otherLocations);
           }
         }
 
