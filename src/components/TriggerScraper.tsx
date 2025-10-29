@@ -29,9 +29,11 @@ export const TriggerScraper = () => {
       
       if (data?.success) {
         toast.success(`Scraper completed! 
-          Parsed: ${data.parsed || 0}, 
-          Relevant: ${data.relevant || 0}, 
-          Inserted: ${data.inserted || 0}, 
+          Total rows: ${data.total_rows || 0}
+          Filtered non-SWE: ${data.filtered_non_swe || 0}
+          Filtered non-US: ${data.filtered_non_us || 0}
+          Relevant: ${data.relevant_roles || 0}
+          Inserted: ${data.inserted || 0}
           Skipped: ${data.skipped || 0}`);
       } else {
         toast.error('Scraper completed with errors');

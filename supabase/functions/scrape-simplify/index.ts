@@ -95,6 +95,8 @@ serve(async (req) => {
     console.log(`Found ${rows.length} table rows`)
     
     const internships = [];
+    let filteredRoles = 0;
+    let filteredLocations = 0;
 
     for (const row of rows) {
       // Skip header rows
@@ -116,6 +118,7 @@ serve(async (req) => {
       
       // Skip non-software engineering roles
       if (!isSoftwareEngineeringRole(roleText)) {
+        filteredRoles++;
         continue;
       }
       
@@ -125,6 +128,7 @@ serve(async (req) => {
       
       // Skip non-US locations
       if (!isUSLocation(locationText)) {
+        filteredLocations++;
         continue;
       }
       
@@ -163,15 +167,18 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Parsed ${internships.length} internships`)
+    console.log(`Parsed ${internships.length} software engineering internships (after filtering)`)
     
     if (internships.length === 0) {
-      console.warn('No internships parsed - table format may have changed')
+      console.warn('No relevant internships found after filtering')
       return new Response(
         JSON.stringify({
-          success: false,
-          error: 'No internships found - README format may have changed',
-          total_parsed: 0
+          success: true,
+          message: 'No new software engineering roles found in US locations',
+          total_parsed: 0,
+          filtered_out: rows.length - 1,
+          inserted: 0,
+          skipped: 0
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
@@ -255,11 +262,16 @@ serve(async (req) => {
       }
     }
 
+    console.log(`Filtering stats: ${filteredRoles} non-SWE roles filtered, ${filteredLocations} non-US locations filtered`)
+    
     return new Response(
       JSON.stringify({
         success: true,
         source: 'SimplifyJobs GitHub (HTML format)',
-        total_parsed: internships.length,
+        total_rows: rows.length,
+        filtered_non_swe: filteredRoles,
+        filtered_non_us: filteredLocations,
+        relevant_roles: internships.length,
         inserted,
         skipped,
         errors: errors.slice(0, 5),
