@@ -25,9 +25,9 @@ export function LocationMultiSelect({ value, onChange, name }: LocationMultiSele
 
   const allLocations = locationOptions || ["Remote"];
   
-  // Get Texas state option (now just "TX" instead of individual cities)
+  // Get Texas state option
   const texasOption = useMemo(() => {
-    return allLocations.filter(loc => loc === "TX" || loc === "Austin, TX");
+    return allLocations.filter(loc => loc === "Texas" || loc === "Austin, Texas");
   }, [allLocations]);
 
   const filteredOptions = allLocations.filter((location) =>
