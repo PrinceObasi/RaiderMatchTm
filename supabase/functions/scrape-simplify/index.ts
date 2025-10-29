@@ -6,6 +6,66 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+// Helper function to check if role is software engineering related
+function isSoftwareEngineeringRole(roleTitle: string): boolean {
+  const roleLower = roleTitle.toLowerCase();
+  
+  // Software engineering keywords
+  const includeKeywords = [
+    'software', 'swe', 'engineer', 'engineering', 
+    'developer', 'dev', 'backend', 'frontend', 
+    'full stack', 'full-stack', 'fullstack', 'web'
+  ];
+  
+  // Exclude non-SWE roles
+  const excludeKeywords = [
+    'hardware', 'product manager', 'product management', 
+    'data scientist', 'data analyst', 'data engineer',
+    'analytics', 'analyst', 'machine learning', 'ml engineer',
+    'ai engineer', 'quant', 'trading', 'business',
+    'program manager', 'project manager', 'designer', 
+    'ux', 'ui', 'qa', 'test', 'quality assurance'
+  ];
+  
+  // Must match at least one include keyword
+  const hasInclude = includeKeywords.some(kw => roleLower.includes(kw));
+  
+  // Must not match any exclude keyword
+  const hasExclude = excludeKeywords.some(kw => roleLower.includes(kw));
+  
+  return hasInclude && !hasExclude;
+}
+
+// Helper function to check if location is in the United States
+function isUSLocation(location: string): boolean {
+  const locationLower = location.toLowerCase();
+  
+  // Exclude international locations
+  const excludeLocations = [
+    'canada', 'toronto', 'vancouver', 'montreal', 'ottawa', 'calgary',
+    'uk', 'united kingdom', 'london', 'england', 'scotland', 'wales',
+    'germany', 'france', 'india', 'china', 'japan', 'australia',
+    'singapore', 'hong kong', 'korea', 'brazil', 'mexico'
+  ];
+  
+  if (excludeLocations.some(loc => locationLower.includes(loc))) {
+    return false;
+  }
+  
+  // Accept US indicators (state codes in ", ST" format)
+  const usStatePattern = /, (al|ak|az|ar|ca|co|ct|de|fl|ga|hi|id|il|in|ia|ks|ky|la|me|md|ma|mi|mn|ms|mo|mt|ne|nv|nh|nj|nm|ny|nc|nd|oh|ok|or|pa|ri|sc|sd|tn|tx|ut|vt|va|wa|wv|wi|wy|dc)/i;
+  
+  // Accept Remote (assume US-based) or explicit US mentions
+  if (locationLower === 'remote' || 
+      locationLower.includes('united states') || 
+      locationLower.includes('usa') ||
+      usStatePattern.test(locationLower)) {
+    return true;
+  }
+  
+  return false;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -54,9 +114,19 @@ serve(async (req) => {
       const roleHtml = tdMatches[1][1];
       const roleText = roleHtml.replace(/<[^>]+>/g, '').trim();
       
+      // Skip non-software engineering roles
+      if (!isSoftwareEngineeringRole(roleText)) {
+        continue;
+      }
+      
       // Location is in third <td> (index 2)  
       const locationHtml = tdMatches[2][1];
       const locationText = locationHtml.replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim() || 'United States';
+      
+      // Skip non-US locations
+      if (!isUSLocation(locationText)) {
+        continue;
+      }
       
       // Application links in fourth <td> (index 3)
       const appHtml = tdMatches[3][1];
