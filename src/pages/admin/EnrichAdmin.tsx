@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { CardShapeFilter } from "@/components/CardShapeFilter";
 
 interface EnrichmentResult {
   success: boolean;
@@ -312,6 +313,9 @@ export default function EnrichAdmin({ onBack }: { onBack: () => void }) {
             )}
           </CardContent>
         </Card>
+
+        {/* Card-Shape Filter */}
+        <CardShapeFilter />
 
         {/* Re-enrichment Tool */}
         <Card>
