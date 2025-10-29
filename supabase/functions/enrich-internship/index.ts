@@ -197,8 +197,11 @@ ${cleanedContent}
 
 INSTRUCTIONS:
 1. Write a 2-3 sentence description focusing on what the intern will BUILD, LEARN, and DO (not corporate history or fluff)
-2. Extract up to 12 key technologies as lowercase tags
-3. Keep it action-oriented and specific
+2. Extract up to 12 REAL TECHNOLOGIES ONLY: programming languages, frameworks, databases, cloud platforms, and development tools
+3. EXCLUDE roles/domains like "product management", "research", "computer vision", "machine learning" unless accompanied by a concrete tech (e.g., "pytorch" for ML)
+4. EXCLUDE soft skills like "communication", "teamwork", "leadership"
+5. Use lowercase canonical forms: python, java, c++, typescript, javascript, react, nodejs, postgresql, aws, docker, kubernetes, git, etc.
+6. Keep it action-oriented and specific
 
 OUTPUT FORMAT (must match exactly):
 Description: [your 2-3 sentences here]
@@ -206,7 +209,7 @@ Tech: {tag1, tag2, tag3, ...}
 
 Example output:
 Description: Join 7-Eleven's technology team to build POS, mobile, and retail systems. Work across the full SDLC—design, development, testing, and deployment. Analyze performance and produce clear design docs.
-Tech: {c++, sqlserver, oracle, angular, jquery, bootstrap, rest, json, web api, wcf, nodejs, android}`
+Tech: {c++, postgresql, angular, bootstrap, rest, nodejs, android}`
 
   try {
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -264,10 +267,13 @@ Tech: {c++, sqlserver, oracle, angular, jquery, bootstrap, rest, json, web api, 
       .filter(t => t.length > 0)
       .slice(0, 12)
     
+    // Validate against canonical tech_tags
+    const validatedTechStack = await validateTechStack(tech_stack)
+    
     return {
       summary,
-      tech_stack,
-      confidence: (summary.length > 50 && tech_stack.length > 0) ? 90 : 50
+      tech_stack: validatedTechStack,
+      confidence: (summary.length > 50 && validatedTechStack.length > 0) ? 90 : 50
     }
   } catch (error) {
     console.error('AI enrichment error:', error)
@@ -276,5 +282,41 @@ Tech: {c++, sqlserver, oracle, angular, jquery, bootstrap, rest, json, web api, 
       tech_stack: [],
       confidence: 0
     }
+  }
+}
+
+// Validate tech stack against canonical tags
+async function validateTechStack(techStack: string[]): Promise<string[]> {
+  try {
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
+    
+    // Fetch all canonical tags
+    const { data: canonicalTags, error } = await supabaseClient
+      .from('tech_tags')
+      .select('tag')
+    
+    if (error || !canonicalTags) {
+      console.error('Failed to fetch canonical tags:', error)
+      return techStack // Fallback to original if fetch fails
+    }
+    
+    const validTags = new Set(canonicalTags.map(t => t.tag.toLowerCase()))
+    
+    // Filter to only canonical tags
+    const validated = techStack.filter(tag => validTags.has(tag.toLowerCase()))
+    
+    // Log rejected tags
+    const rejected = techStack.filter(tag => !validTags.has(tag.toLowerCase()))
+    if (rejected.length > 0) {
+      console.log('Rejected non-canonical tags:', rejected)
+    }
+    
+    return validated
+  } catch (error) {
+    console.error('Tech stack validation error:', error)
+    return techStack // Fallback to original if validation fails
   }
 }

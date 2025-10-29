@@ -641,6 +641,18 @@ export type Database = {
         }
         Relationships: []
       }
+      tech_tags: {
+        Row: {
+          tag: string
+        }
+        Insert: {
+          tag: string
+        }
+        Update: {
+          tag?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       jobs_for_app: {
