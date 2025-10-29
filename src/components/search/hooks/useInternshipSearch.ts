@@ -41,18 +41,24 @@ export function useInternshipSearch(params: NormalizedParams | null, enabled = t
           // Handle remote separately
           const hasRemote = queryParams.locations.includes('Remote');
           const otherLocations = queryParams.locations.filter(loc => loc !== 'Remote');
+
+          // Helper to safely quote values that may include commas
+          const esc = (s: string) => s.replace(/"/g, '\\"');
           
           if (otherLocations.length > 0) {
-            // Build OR conditions for pattern matching each location
-            const locationConditions = otherLocations.map(loc => `location.ilike.%${loc}%`).join(',');
+            // Build OR conditions for pattern matching each location (quote values to support commas)
+            const locationConditions = otherLocations
+              .map(loc => `location.ilike."%${esc(loc)}%"`)
+              .join(',');
             
             if (hasRemote) {
-              query = query.or(`${locationConditions},remote_flag.eq.true`);
+              // Match either any of the locations OR remote postings
+              query = query.or(`${locationConditions},remote_flag.eq.true,location.ilike."%Remote%"`);
             } else {
               query = query.or(locationConditions);
             }
           } else if (hasRemote) {
-            query = query.eq('remote_flag', true);
+            query = query.or('remote_flag.eq.true,location.ilike."%Remote%"');
           }
         }
 
