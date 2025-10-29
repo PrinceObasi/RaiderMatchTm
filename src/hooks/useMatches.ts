@@ -12,7 +12,7 @@ interface MatchedInternship {
   tech_stack: string[] | null;
 }
 
-export function useMatches(limit = 20, offset = 0) {
+export function useMatches(limit = 10, offset = 0) {
   return useQuery({
     queryKey: ['matches', limit, offset],
     queryFn: async (): Promise<MatchedInternship[]> => {

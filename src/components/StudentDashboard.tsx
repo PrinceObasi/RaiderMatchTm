@@ -81,9 +81,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [matchesOffset, setMatchesOffset] = useState(0);
   
   // Use the new matches hook instead of local state
-  const { data: matches = [], isLoading: isMatching, refetch: refetchMatches } = useMatches(20, 0);
+  const { data: matches = [], isLoading: isMatching, refetch: refetchMatches } = useMatches(10, matchesOffset);
   
   const [student, setStudent] = useState<any>(null);
   const [resumeAnalyzed, setResumeAnalyzed] = useState(false);
@@ -258,10 +259,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   };
 
   const handleRefreshMatches = async () => {
-    refetchMatches();
+    setMatchesOffset(prev => prev + 10);
     toast({
-      title: "Refreshed matches",
-      description: "Loading updated recommendations based on your profile.",
+      title: "Loading next matches",
+      description: "Showing the next 10 internships...",
     });
   };
 
@@ -745,7 +746,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                       className="gap-2"
                     >
                       <RefreshCw className={`h-4 w-4 ${isMatching ? 'animate-spin' : ''}`} />
-                      Refresh Matches
+                      Show Different Results
                     </Button>
                   </CardHeader>
                   <CardContent>
