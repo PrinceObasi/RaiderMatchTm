@@ -1,11 +1,11 @@
 import React from "react";
-import { Building, AlertCircle } from "lucide-react";
+import { Building, AlertCircle, ExternalLink, MapPin } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { InternshipSearchResult } from "./types";
-import { InternshipCard } from "@/components/InternshipCard";
-import { supabase } from "@/integrations/supabase/client";
+import { ApplicationToggle } from "@/components/ApplicationToggle";
 
 interface SearchResultsProps {
   results: InternshipSearchResult[];
@@ -25,8 +25,13 @@ export function SearchResults({
   resultCount 
 }: SearchResultsProps) {
   
-  const handleApply = async (internshipId: string, applicationLink: string) => {
-    if (!applicationLink) return;
+  const handleApply = (internshipId: string, applicationLink: string) => {
+    if (!applicationLink) {
+      return;
+    }
+
+    // Open application link
+    window.open(applicationLink, '_blank', 'noopener,noreferrer');
 
     // Call onApply callback if provided
     if (onApply) {
@@ -34,16 +39,22 @@ export function SearchResults({
     }
 
     // Log the application
-    try {
-      await supabase.functions.invoke('apply-log', {
-        body: {
-          internship_id: internshipId,
-          application_url: applicationLink,
-          user_agent: navigator.userAgent,
-        }
-      });
-    } catch (error) {
-      // Silent fail - logging is not critical
+    const logPayload = JSON.stringify({
+      internship_id: internshipId,
+      application_url: applicationLink,
+      user_agent: navigator.userAgent,
+    });
+
+    if (navigator.sendBeacon) {
+      const blob = new Blob([logPayload], { type: 'application/json' });
+      navigator.sendBeacon('https://tjahvypvfrjulnqmnhsh.supabase.co/functions/v1/apply-log', blob);
+    } else {
+      fetch('https://tjahvypvfrjulnqmnhsh.supabase.co/functions/v1/apply-log', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: logPayload,
+        keepalive: true,
+      }).catch(() => {});
     }
   };
 
@@ -113,12 +124,70 @@ export function SearchResults({
 
       {/* Results */}
       {results.map((internship) => (
-        <InternshipCard
-          key={internship.id}
-          internship={internship}
-          onApply={handleApply}
-          showApplicationToggle={true}
-        />
+        <Card key={internship.id} className="border hover:shadow-md transition-smooth">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
+              <div className="flex-1">
+                <h3 className="text-lg sm:text-xl font-semibold leading-tight mb-1">
+                  {internship.role_title}
+                </h3>
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <div className="flex items-center gap-1">
+                    <Building className="h-4 w-4" />
+                    {internship.company}
+                  </div>
+                  {internship.location && (
+                    <div className="flex items-center gap-1">
+                      <MapPin className="h-4 w-4" />
+                      {internship.location}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="mt-3">
+              {internship.summary_text ? (
+                <p className="text-sm whitespace-pre-line leading-5 line-clamp-4">
+                  {internship.summary_text}
+                </p>
+              ) : (
+                <p className="text-sm italic text-muted-foreground">
+                  Description loading…
+                </p>
+              )}
+            </div>
+
+            {/* Tech Stack */}
+            {Array.isArray(internship.tech_stack) && internship.tech_stack.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {internship.tech_stack.slice(0, 12).map((tech) => (
+                  <span key={tech} className="rounded-full border px-2 py-0.5 text-xs">
+                    {tech}
+                  </span>
+                ))}
+                {internship.tech_stack.length > 12 && (
+                  <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+                    +{internship.tech_stack.length - 12} more
+                  </span>
+                )}
+              </div>
+            )}
+
+            <div className="mt-4 flex flex-col sm:flex-row gap-2">
+              <Button 
+                onClick={() => handleApply(internship.id, internship.application_link)}
+                className="w-full sm:w-auto"
+                disabled={!internship.application_link}
+              >
+                <ExternalLink className="h-4 w-4 mr-2" />
+                Apply Now
+              </Button>
+              <ApplicationToggle internshipId={internship.id} />
+            </div>
+          </CardContent>
+        </Card>
       ))}
     </div>
   );

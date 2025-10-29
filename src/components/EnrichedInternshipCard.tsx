@@ -1,7 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardTitle } from "@/components/ui/card";
-import { Building, MapPin, Clock, RefreshCw, ExternalLink } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MapPin, Clock, RefreshCw, ExternalLink } from "lucide-react";
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { formatDistanceToNow } from "date-fns";
@@ -116,48 +116,35 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
     return title;
   };
 
-  // Clean description
-  const cleanDescription = displayDescription
-    .replace(/\b(Apply( now)?|Click here to apply)[\s\S]*$/i, '')
-    .replace(/\s+/g, ' ')
-    .trim();
-
-  const handleApply = () => {
-    const applyUrl = internship.direct_link || internship.application_link;
-    if (applyUrl) {
-      window.open(applyUrl, '_blank');
-      onApply(internship);
-    }
-  };
-
   return (
-    <Card className="border hover:shadow-md transition-shadow">
-      <CardContent className="p-6">
-        {/* Header with title and Job insights */}
-        <div className="flex items-start justify-between gap-4 mb-3">
+    <Card className="hover:shadow-lg transition-shadow">
+      <CardHeader className="pb-3">
+        <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
-            <CardTitle className="text-xl font-bold leading-tight">
+            <CardTitle className="text-lg font-semibold text-foreground mb-1">
               {cleanRoleTitle(internship.role_title)}
             </CardTitle>
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-muted-foreground font-medium">{internship.company}</p>
+              {internship.final_domain && (
+                <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                  {internship.final_domain}
+                </Badge>
+              )}
+            </div>
           </div>
-          <div className="flex items-center gap-2 shrink-0">
-            {salaryBadge && (
-              <Badge variant="secondary" className="font-medium">
-                {salaryBadge}
-              </Badge>
-            )}
-            <span className="text-sm text-muted-foreground">Job insights</span>
-          </div>
+          {salaryBadge && (
+            <Badge variant="secondary" className="ml-2 font-medium shrink-0">
+              {salaryBadge}
+            </Badge>
+          )}
         </div>
-
-        {/* Company and Location */}
-        <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-          <div className="flex items-center gap-1.5">
-            <Building className="h-4 w-4" />
-            <span>{internship.company}</span>
-          </div>
+      </CardHeader>
+      
+      <CardContent className="space-y-4">
+        <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           {displayLocations.length > 0 && displayLocations[0] !== 'United States' && (
-            <div className="flex items-center gap-1.5">
+            <div className="flex items-center gap-1">
               <MapPin className="h-4 w-4" />
               <span>
                 {displayLocations[0]}
@@ -167,100 +154,68 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
               </span>
             </div>
           )}
+          
           {internship.work_mode && (
             <Badge variant="outline" className="text-xs">
               {internship.work_mode}
             </Badge>
           )}
-          {internship.final_domain && (
-            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
-              {internship.final_domain}
-            </Badge>
+          
+          {internship.date_posted && (
+            <div className="flex items-center gap-1">
+              <Clock className="h-4 w-4" />
+              <span>Posted {formatDistanceToNow(new Date(internship.date_posted), { addSuffix: true })}</span>
+            </div>
           )}
         </div>
 
-        {/* Tech Stack */}
+        {displayDescription ? (
+          <p className="text-sm text-muted-foreground whitespace-pre-line line-clamp-4 leading-5">
+            {displayDescription}
+          </p>
+        ) : (
+          <p className="text-sm italic text-muted-foreground">Description loading…</p>
+        )}
+
         {internship.tech_stack && internship.tech_stack.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-4">
-            {internship.tech_stack.slice(0, 12).map((tech) => (
-              <Badge 
-                key={tech} 
-                variant="outline" 
-                className="rounded-full border px-3 py-1 text-xs font-normal"
-              >
+          <div className="flex flex-wrap gap-2">
+            {internship.tech_stack.slice(0, 8).map((tech) => (
+              <Badge key={tech} variant="outline" className="text-xs border-primary/20 bg-primary/5">
                 {tech}
               </Badge>
             ))}
-            {internship.tech_stack.length > 12 && (
-              <Badge 
-                variant="outline" 
-                className="rounded-full border px-3 py-1 text-xs font-normal"
-              >
-                +{internship.tech_stack.length - 12} more
+            {internship.tech_stack.length > 8 && (
+              <Badge variant="outline" className="text-xs">
+                +{internship.tech_stack.length - 8} more
               </Badge>
             )}
           </div>
         )}
 
-        {/* Description */}
-        <div className="mb-4">
-          {cleanDescription ? (
-            <p className="text-sm leading-relaxed line-clamp-4">
-              {cleanDescription}
-            </p>
-          ) : (
-            <p className="text-sm italic text-muted-foreground">Description loading…</p>
-          )}
-        </div>
-
-        {/* Additional metadata */}
-        <div className="flex flex-wrap items-center gap-2 mb-4">
-          {internship.visa_sponsorship === 'Yes' && (
-            <Badge variant="default">Visa Sponsorship</Badge>
-          )}
-          {internship.deadline && (
-            <Badge variant="destructive">
-              Deadline: {new Date(internship.deadline).toLocaleDateString()}
-            </Badge>
-          )}
-          {internship.date_posted && (
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="h-3 w-3" />
-              <span>Posted {formatDistanceToNow(new Date(internship.date_posted), { addSuffix: true })}</span>
-            </div>
-          )}
-        </div>
+        <div className="flex items-center justify-between pt-2 gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            {internship.visa_sponsorship === 'Yes' && (
+              <Badge variant="default">Visa Sponsorship</Badge>
+            )}
+            {internship.deadline && (
+              <Badge variant="destructive">
+                Deadline: {new Date(internship.deadline).toLocaleDateString()}
+              </Badge>
+            )}
+          </div>
           
-        {/* Actions */}
-        <div className="flex items-center gap-3">
-          <Button
-            onClick={handleApply}
-            size="lg"
-            className="gap-2"
-          >
-            <ExternalLink className="h-4 w-4" />
-            Apply Now
-          </Button>
-          {showEnrichButton && (
+          <div className="flex gap-2 shrink-0">
             <Button
-              onClick={handleEnrich}
-              variant="outline"
-              disabled={isEnriching}
+              onClick={() => {
+                window.open(internship.direct_link || internship.application_link, '_blank');
+                onApply(internship);
+              }}
               className="gap-2"
             >
-              {isEnriching ? (
-                <>
-                  <RefreshCw className="h-4 w-4 animate-spin" />
-                  Enriching...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-4 w-4" />
-                  Enrich
-                </>
-              )}
+              Apply Directly
+              <ExternalLink className="h-4 w-4" />
             </Button>
-          )}
+          </div>
         </div>
       </CardContent>
     </Card>

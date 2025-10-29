@@ -170,9 +170,8 @@ export default function EnrichDisplay() {
                           )}
                         </div>
                         
-                        <p className="text-sm">
-                          {item.summary_text.slice(0, 220)}
-                          {item.summary_text.length > 220 ? '...' : ''}
+                        <p className="text-sm whitespace-pre-line line-clamp-4 leading-5">
+                          {item.summary_text}
                         </p>
                         
                         {item.tech_stack.length > 0 && (
