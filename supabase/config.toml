@@ -47,3 +47,6 @@ verify_jwt = false
 
 [functions.send-welcome]
 verify_jwt = false
+
+[functions.curate-top-internships]
+verify_jwt = false

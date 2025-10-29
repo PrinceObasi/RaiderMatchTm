@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Sparkles, ArrowLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { CurateInternships } from "@/components/CurateInternships";
 
 interface EnrichmentResult {
   success: boolean;
@@ -116,6 +117,8 @@ export default function EnrichAdmin({ onBack }: { onBack: () => void }) {
       </Button>
 
       <div className="space-y-6">
+        <CurateInternships />
+        
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
