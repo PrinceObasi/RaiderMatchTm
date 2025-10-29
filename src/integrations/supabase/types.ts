@@ -107,36 +107,6 @@ export type Database = {
           },
         ]
       }
-      direct_link_cache: {
-        Row: {
-          created_at: string | null
-          direct_url: string
-          final_domain: string | null
-          id: string
-          is_direct: boolean | null
-          seen_at: string | null
-          simplify_url: string
-        }
-        Insert: {
-          created_at?: string | null
-          direct_url: string
-          final_domain?: string | null
-          id?: string
-          is_direct?: boolean | null
-          seen_at?: string | null
-          simplify_url: string
-        }
-        Update: {
-          created_at?: string | null
-          direct_url?: string
-          final_domain?: string | null
-          id?: string
-          is_direct?: boolean | null
-          seen_at?: string | null
-          simplify_url?: string
-        }
-        Relationships: []
-      }
       example_resumes: {
         Row: {
           company: string
