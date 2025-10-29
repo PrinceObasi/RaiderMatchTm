@@ -239,9 +239,8 @@ export default function EnrichAdmin({ onBack }: { onBack: () => void }) {
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm">
-                            {item.summary_text.slice(0, 220)}
-                            {item.summary_text.length > 220 ? '...' : ''}
+                          <p className="text-sm whitespace-pre-line line-clamp-4 leading-5">
+                            {item.summary_text}
                           </p>
                           {item.tech_stack.length > 0 && (
                             <div className="flex flex-wrap gap-1">
@@ -307,7 +306,7 @@ export default function EnrichAdmin({ onBack }: { onBack: () => void }) {
                         <CardDescription>{item.company}</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-2">
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-muted-foreground whitespace-pre-line line-clamp-4 leading-5">
                           {item.summary_text}
                         </p>
                         {item.tech_stack.length > 0 && (

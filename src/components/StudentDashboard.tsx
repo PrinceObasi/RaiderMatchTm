@@ -679,7 +679,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                               {/* Description */}
                               <div className="mt-3">
                                 {internship.summary_text ? (
-                                  <p className="text-sm whitespace-pre-line line-clamp-6">
+                                  <p className="text-sm whitespace-pre-line line-clamp-4 leading-5">
                                     {internship.summary_text}
                                   </p>
                                 ) : (
@@ -808,7 +808,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                   {/* Description from enriched data */}
                                   <div className="mt-3">
                                     {job.summary_text ? (
-                                      <p className="text-sm whitespace-pre-line line-clamp-6">
+                                      <p className="text-sm whitespace-pre-line line-clamp-4 leading-5">
                                         {job.summary_text}
                                       </p>
                                     ) : (
