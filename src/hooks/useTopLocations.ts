@@ -37,7 +37,7 @@ export function useTopLocations(limit = 15) {
       }
       return uniqueLocations;
     },
-    staleTime: 1000 * 60 * 60, // 1 hour
+    staleTime: 1000 * 30, // 30 seconds - refresh quickly to show new locations
     gcTime: 1000 * 60 * 60 * 24, // 24 hours
   });
 }
