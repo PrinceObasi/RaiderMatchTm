@@ -11,6 +11,7 @@ import { ApplicationList } from "./ApplicationList";
 import { ProfileWizard } from "./ProfileWizard";
 import { ProfileTab } from "./profile/ProfileTab";
 import { InternshipSearchContainer } from "./search/InternshipSearchContainer";
+import { InternshipCard } from "./InternshipCard";
 import { ExampleResumes } from "./ExampleResumes";
 import { MyApplications } from "./MyApplications";
 import { ApplicationToggle } from "./ApplicationToggle";
@@ -656,69 +657,12 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                     ) : (
                       <div className="space-y-4 sm:space-y-6">
                         {tabSearchResults.map((internship) => (
-                          <Card key={internship.id} className="border hover:shadow-md transition-smooth">
-                            <CardContent className="p-4 sm:p-6">
-                              <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
-                                <div className="flex-1">
-                                  <h3 className="text-lg sm:text-xl font-semibold leading-tight mb-1">{internship.role_title}</h3>
-                                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                                    <div className="flex items-center gap-1">
-                                      <Building className="h-4 w-4" />
-                                      {internship.company}
-                                    </div>
-                                    {internship.location && (
-                                      <div className="flex items-center gap-1">
-                                        <MapPin className="h-4 w-4" />
-                                        {internship.location}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Description */}
-                              <div className="mt-3">
-                                {internship.summary_text ? (
-                                  <p className="text-sm whitespace-pre-line line-clamp-6">
-                                    {internship.summary_text}
-                                  </p>
-                                ) : (
-                                  <p className="text-sm italic text-muted-foreground">
-                                    Description loading…
-                                  </p>
-                                )}
-                              </div>
-
-                              {/* Tech Stack */}
-                              {Array.isArray(internship.tech_stack) && internship.tech_stack.length > 0 && (
-                                <div className="mt-3 flex flex-wrap gap-1.5">
-                                  {internship.tech_stack.slice(0, 12).map((tech) => (
-                                    <span key={tech} className="rounded-full border px-2 py-0.5 text-xs">
-                                      {tech}
-                                    </span>
-                                  ))}
-                                  {internship.tech_stack.length > 12 && (
-                                    <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
-                                      +{internship.tech_stack.length - 12} more
-                                    </span>
-                                  )}
-                                </div>
-                              )}
-
-                              <div className="mt-4 flex flex-col sm:flex-row gap-2">
-                                <Button 
-                                  onClick={() => handleApply(internship.id, internship.application_link, true)}
-                                  className="w-full sm:w-auto h-11"
-                                  size="lg"
-                                  disabled={!internship.application_link}
-                                >
-                                  <ExternalLink className="h-4 w-4" />
-                                  Apply Now
-                                </Button>
-                                <ApplicationToggle internshipId={internship.id} />
-                              </div>
-                            </CardContent>
-                          </Card>
+                          <InternshipCard
+                            key={internship.id}
+                            internship={internship}
+                            onApply={(id, url) => handleApply(id, url, true)}
+                            showApplicationToggle={true}
+                          />
                         ))}
                       </div>
                     )}
