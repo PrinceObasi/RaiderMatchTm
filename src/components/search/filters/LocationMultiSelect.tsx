@@ -21,7 +21,7 @@ interface LocationMultiSelectProps {
 export function LocationMultiSelect({ value, onChange, name }: LocationMultiSelectProps) {
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
-  const { data: locationOptions, isLoading } = useTopLocations(20);
+  const { data: locationOptions, isLoading } = useTopLocations(30);
 
   const allLocations = locationOptions || ["Remote"];
   
