@@ -195,30 +195,18 @@ Role: ${roleTitle}
 Job Posting Content:
 ${cleanedContent}
 
-CRITICAL FORMATTING RULES:
-1. Return summary as EXACTLY 3-4 lines (newline-separated with \\n)
-2. Each line must be ≤100 characters
-3. Each line MUST include a concrete "build / do / learn" action verb
-4. NO marketing fluff (avoid: fast-paced, world-class, dynamic, innovative, cutting-edge, exciting)
-5. Total summary length: 180-350 characters
-
-TECH STACK RULES:
-1. Extract 3-12 REAL TECHNOLOGIES ONLY: languages, frameworks, DBs, cloud, tools
-2. EXCLUDE roles/domains (product management, research, computer vision) unless paired with concrete tech (pytorch for ML)
-3. EXCLUDE soft skills (communication, teamwork, leadership)
-4. Use lowercase canonical forms: python, java, c++, typescript, javascript, react, nodejs, postgresql, aws, docker, kubernetes, git
+INSTRUCTIONS:
+1. Write a 2-3 sentence description focusing on what the intern will BUILD, LEARN, and DO (not corporate history or fluff)
+2. Extract up to 12 key technologies as lowercase tags
+3. Keep it action-oriented and specific
 
 OUTPUT FORMAT (must match exactly):
-Description: [line 1 - what they'll BUILD (≤100 chars)]
-[line 2 - what they'll DO/LEARN (≤100 chars)]
-[line 3 - technical environment/impact (≤100 chars)]
+Description: [your 2-3 sentences here]
 Tech: {tag1, tag2, tag3, ...}
 
 Example output:
-Description: Build POS, mobile, and retail systems for 7-Eleven stores nationwide.
-Work across full SDLC—design, development, testing, and production deployment.
-Analyze system performance and write technical design documentation.
-Tech: {c++, postgresql, angular, rest, nodejs, android}`
+Description: Join 7-Eleven's technology team to build POS, mobile, and retail systems. Work across the full SDLC—design, development, testing, and deployment. Analyze performance and produce clear design docs.
+Tech: {c++, sqlserver, oracle, angular, jquery, bootstrap, rest, json, web api, wcf, nodejs, android}`
 
   try {
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -276,13 +264,10 @@ Tech: {c++, postgresql, angular, rest, nodejs, android}`
       .filter(t => t.length > 0)
       .slice(0, 12)
     
-    // Validate against canonical tech_tags
-    const validatedTechStack = await validateTechStack(tech_stack)
-    
     return {
       summary,
-      tech_stack: validatedTechStack,
-      confidence: (summary.length > 50 && validatedTechStack.length > 0) ? 90 : 50
+      tech_stack,
+      confidence: (summary.length > 50 && tech_stack.length > 0) ? 90 : 50
     }
   } catch (error) {
     console.error('AI enrichment error:', error)
@@ -291,41 +276,5 @@ Tech: {c++, postgresql, angular, rest, nodejs, android}`
       tech_stack: [],
       confidence: 0
     }
-  }
-}
-
-// Validate tech stack against canonical tags
-async function validateTechStack(techStack: string[]): Promise<string[]> {
-  try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
-    
-    // Fetch all canonical tags
-    const { data: canonicalTags, error } = await supabaseClient
-      .from('tech_tags')
-      .select('tag')
-    
-    if (error || !canonicalTags) {
-      console.error('Failed to fetch canonical tags:', error)
-      return techStack // Fallback to original if fetch fails
-    }
-    
-    const validTags = new Set(canonicalTags.map(t => t.tag.toLowerCase()))
-    
-    // Filter to only canonical tags
-    const validated = techStack.filter(tag => validTags.has(tag.toLowerCase()))
-    
-    // Log rejected tags
-    const rejected = techStack.filter(tag => !validTags.has(tag.toLowerCase()))
-    if (rejected.length > 0) {
-      console.log('Rejected non-canonical tags:', rejected)
-    }
-    
-    return validated
-  } catch (error) {
-    console.error('Tech stack validation error:', error)
-    return techStack // Fallback to original if validation fails
   }
 }

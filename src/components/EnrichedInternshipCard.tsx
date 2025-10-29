@@ -170,7 +170,7 @@ export function EnrichedInternshipCard({ internship, onApply, showEnrichButton =
         </div>
 
         {displayDescription ? (
-          <p className="text-sm text-muted-foreground whitespace-pre-line line-clamp-4 leading-5">
+          <p className="text-sm text-muted-foreground whitespace-pre-line line-clamp-4">
             {displayDescription}
           </p>
         ) : (

@@ -259,12 +259,10 @@ export type Database = {
           link_valid: boolean | null
           location: string | null
           locations: string[] | null
-          needs_review: boolean | null
           notes: string | null
           remote_flag: boolean | null
           requirements: string[] | null
           responsibilities: string[] | null
-          review_reason: string[] | null
           role_title: string | null
           salary_currency: string | null
           salary_max: number | null
@@ -275,7 +273,6 @@ export type Database = {
           source: string | null
           source_url: string | null
           sponsorship_flag: string | null
-          summary_line_count: number | null
           summary_text: string | null
           tech_stack: string[] | null
           updated_at: string | null
@@ -319,12 +316,10 @@ export type Database = {
           link_valid?: boolean | null
           location?: string | null
           locations?: string[] | null
-          needs_review?: boolean | null
           notes?: string | null
           remote_flag?: boolean | null
           requirements?: string[] | null
           responsibilities?: string[] | null
-          review_reason?: string[] | null
           role_title?: string | null
           salary_currency?: string | null
           salary_max?: number | null
@@ -335,7 +330,6 @@ export type Database = {
           source?: string | null
           source_url?: string | null
           sponsorship_flag?: string | null
-          summary_line_count?: number | null
           summary_text?: string | null
           tech_stack?: string[] | null
           updated_at?: string | null
@@ -379,12 +373,10 @@ export type Database = {
           link_valid?: boolean | null
           location?: string | null
           locations?: string[] | null
-          needs_review?: boolean | null
           notes?: string | null
           remote_flag?: boolean | null
           requirements?: string[] | null
           responsibilities?: string[] | null
-          review_reason?: string[] | null
           role_title?: string | null
           salary_currency?: string | null
           salary_max?: number | null
@@ -395,7 +387,6 @@ export type Database = {
           source?: string | null
           source_url?: string | null
           sponsorship_flag?: string | null
-          summary_line_count?: number | null
           summary_text?: string | null
           tech_stack?: string[] | null
           updated_at?: string | null
@@ -650,18 +641,6 @@ export type Database = {
         }
         Relationships: []
       }
-      tech_tags: {
-        Row: {
-          tag: string
-        }
-        Insert: {
-          tag: string
-        }
-        Update: {
-          tag?: string
-        }
-        Relationships: []
-      }
     }
     Views: {
       jobs_for_app: {
@@ -769,12 +748,10 @@ export type Database = {
           link_valid: boolean | null
           location: string | null
           locations: string[] | null
-          needs_review: boolean | null
           notes: string | null
           remote_flag: boolean | null
           requirements: string[] | null
           responsibilities: string[] | null
-          review_reason: string[] | null
           role_title: string | null
           salary_currency: string | null
           salary_max: number | null
@@ -785,7 +762,6 @@ export type Database = {
           source: string | null
           source_url: string | null
           sponsorship_flag: string | null
-          summary_line_count: number | null
           summary_text: string | null
           tech_stack: string[] | null
           updated_at: string | null
@@ -916,12 +892,10 @@ export type Database = {
           link_valid: boolean | null
           location: string | null
           locations: string[] | null
-          needs_review: boolean | null
           notes: string | null
           remote_flag: boolean | null
           requirements: string[] | null
           responsibilities: string[] | null
-          review_reason: string[] | null
           role_title: string | null
           salary_currency: string | null
           salary_max: number | null
@@ -932,7 +906,6 @@ export type Database = {
           source: string | null
           source_url: string | null
           sponsorship_flag: string | null
-          summary_line_count: number | null
           summary_text: string | null
           tech_stack: string[] | null
           updated_at: string | null
@@ -994,12 +967,10 @@ export type Database = {
           link_valid: boolean | null
           location: string | null
           locations: string[] | null
-          needs_review: boolean | null
           notes: string | null
           remote_flag: boolean | null
           requirements: string[] | null
           responsibilities: string[] | null
-          review_reason: string[] | null
           role_title: string | null
           salary_currency: string | null
           salary_max: number | null
@@ -1010,7 +981,6 @@ export type Database = {
           source: string | null
           source_url: string | null
           sponsorship_flag: string | null
-          summary_line_count: number | null
           summary_text: string | null
           tech_stack: string[] | null
           updated_at: string | null
