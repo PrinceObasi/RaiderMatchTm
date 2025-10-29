@@ -195,30 +195,21 @@ Role: ${roleTitle}
 Job Posting Content:
 ${cleanedContent}
 
-CRITICAL FORMATTING RULES:
-1. Return summary as EXACTLY 3-4 lines (newline-separated with \\n)
-2. Each line must be ≤100 characters
-3. Each line MUST include a concrete "build / do / learn" action verb
-4. NO marketing fluff (avoid: fast-paced, world-class, dynamic, innovative, cutting-edge, exciting)
-5. Total summary length: 180-350 characters
-
-TECH STACK RULES:
-1. Extract 3-12 REAL TECHNOLOGIES ONLY: languages, frameworks, DBs, cloud, tools
-2. EXCLUDE roles/domains (product management, research, computer vision) unless paired with concrete tech (pytorch for ML)
-3. EXCLUDE soft skills (communication, teamwork, leadership)
-4. Use lowercase canonical forms: python, java, c++, typescript, javascript, react, nodejs, postgresql, aws, docker, kubernetes, git
+INSTRUCTIONS:
+1. Write a 2-3 sentence description focusing on what the intern will BUILD, LEARN, and DO (not corporate history or fluff)
+2. Extract up to 12 REAL TECHNOLOGIES ONLY: programming languages, frameworks, databases, cloud platforms, and development tools
+3. EXCLUDE roles/domains like "product management", "research", "computer vision", "machine learning" unless accompanied by a concrete tech (e.g., "pytorch" for ML)
+4. EXCLUDE soft skills like "communication", "teamwork", "leadership"
+5. Use lowercase canonical forms: python, java, c++, typescript, javascript, react, nodejs, postgresql, aws, docker, kubernetes, git, etc.
+6. Keep it action-oriented and specific
 
 OUTPUT FORMAT (must match exactly):
-Description: [line 1 - what they'll BUILD (≤100 chars)]
-[line 2 - what they'll DO/LEARN (≤100 chars)]
-[line 3 - technical environment/impact (≤100 chars)]
+Description: [your 2-3 sentences here]
 Tech: {tag1, tag2, tag3, ...}
 
 Example output:
-Description: Build POS, mobile, and retail systems for 7-Eleven stores nationwide.
-Work across full SDLC—design, development, testing, and production deployment.
-Analyze system performance and write technical design documentation.
-Tech: {c++, postgresql, angular, rest, nodejs, android}`
+Description: Join 7-Eleven's technology team to build POS, mobile, and retail systems. Work across the full SDLC—design, development, testing, and deployment. Analyze performance and produce clear design docs.
+Tech: {c++, postgresql, angular, bootstrap, rest, nodejs, android}`
 
   try {
     const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {

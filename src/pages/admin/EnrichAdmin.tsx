@@ -39,20 +39,6 @@ interface DisplayEnrichResult {
   }>;
 }
 
-interface ReEnrichResult {
-  success: boolean;
-  processed: number;
-  successful: number;
-  failed: number;
-  details: Array<{
-    id: string;
-    company: string;
-    role: string;
-    success: boolean;
-    error?: string;
-  }>;
-}
-
 const getWorkModeBadgeColor = (mode: string | null) => {
   if (!mode) return 'secondary';
   if (mode === 'remote') return 'default';
@@ -71,11 +57,6 @@ export default function EnrichAdmin({ onBack }: { onBack: () => void }) {
   const [force, setForce] = useState(false);
   const [isDisplayEnriching, setIsDisplayEnriching] = useState(false);
   const [displayResult, setDisplayResult] = useState<DisplayEnrichResult | null>(null);
-
-  // Re-enrichment states
-  const [batchSize, setBatchSize] = useState(20);
-  const [isReEnriching, setIsReEnriching] = useState(false);
-  const [reEnrichResult, setReEnrichResult] = useState<ReEnrichResult | null>(null);
 
   const handleEnrich = async () => {
     setIsEnriching(true);
@@ -120,34 +101,6 @@ export default function EnrichAdmin({ onBack }: { onBack: () => void }) {
       toast({ title: 'Display Enrichment Failed', description: error.message, variant: 'destructive' });
     } finally {
       setIsDisplayEnriching(false);
-    }
-  };
-
-  const handleReEnrich = async () => {
-    setIsReEnriching(true);
-    setReEnrichResult(null);
-    
-    try {
-      const { data, error } = await supabase.functions.invoke('re-enrich-flagged', {
-        body: { batch_size: batchSize }
-      });
-      
-      if (error) throw error;
-      
-      setReEnrichResult(data as ReEnrichResult);
-      toast({
-        title: 'Re-enrichment Complete',
-        description: `${data.successful} successful, ${data.failed} failed out of ${data.processed} processed`,
-      });
-    } catch (error: any) {
-      console.error('Re-enrichment error:', error);
-      toast({
-        title: 'Re-enrichment Failed',
-        description: error.message,
-        variant: 'destructive'
-      });
-    } finally {
-      setIsReEnriching(false);
     }
   };
 
@@ -286,8 +239,9 @@ export default function EnrichAdmin({ onBack }: { onBack: () => void }) {
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm whitespace-pre-line line-clamp-4 leading-5">
-                            {item.summary_text}
+                          <p className="text-sm">
+                            {item.summary_text.slice(0, 220)}
+                            {item.summary_text.length > 220 ? '...' : ''}
                           </p>
                           {item.tech_stack.length > 0 && (
                             <div className="flex flex-wrap gap-1">
@@ -306,98 +260,6 @@ export default function EnrichAdmin({ onBack }: { onBack: () => void }) {
                         </div>
                       </Card>
                     ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-        {/* Re-enrichment Tool */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Re-enrich Flagged Postings</CardTitle>
-            <CardDescription>
-              Re-process the 1,757 internships that were flagged for quality issues (line count, length, fluff, etc.)
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="batch_size">Batch Size (postings per run)</Label>
-              <Input
-                id="batch_size"
-                type="number"
-                value={batchSize}
-                onChange={(e) => setBatchSize(parseInt(e.target.value))}
-                min={1}
-                max={100}
-              />
-              <p className="text-xs text-muted-foreground">
-                Recommended: 10-20 postings per batch to avoid timeouts
-              </p>
-            </div>
-            
-            <Button 
-              onClick={handleReEnrich} 
-              disabled={isReEnriching} 
-              className="w-full"
-              variant="default"
-            >
-              {isReEnriching ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Re-enriching...
-                </>
-              ) : (
-                'Run Re-enrichment Batch'
-              )}
-            </Button>
-
-            {reEnrichResult && (
-              <div className="space-y-4 pt-4 border-t">
-                <div className="grid grid-cols-3 gap-4">
-                  <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-lg">
-                    <div className="text-3xl font-bold text-green-600 dark:text-green-400">{reEnrichResult.successful}</div>
-                    <div className="text-sm text-muted-foreground">Successful</div>
-                  </div>
-                  <div className="text-center p-4 bg-red-50 dark:bg-red-950 rounded-lg">
-                    <div className="text-3xl font-bold text-red-600 dark:text-red-400">{reEnrichResult.failed}</div>
-                    <div className="text-sm text-muted-foreground">Failed</div>
-                  </div>
-                  <div className="text-center p-4 bg-blue-50 dark:bg-blue-950 rounded-lg">
-                    <div className="text-3xl font-bold text-blue-600 dark:text-blue-400">{reEnrichResult.processed}</div>
-                    <div className="text-sm text-muted-foreground">Processed</div>
-                  </div>
-                </div>
-
-                {reEnrichResult.details.length > 0 && (
-                  <div className="space-y-2">
-                    <h3 className="font-semibold text-sm">Results</h3>
-                    <div className="max-h-64 overflow-y-auto space-y-2">
-                      {reEnrichResult.details.map((item) => (
-                        <div 
-                          key={item.id} 
-                          className={`p-3 rounded-lg text-sm ${
-                            item.success 
-                              ? 'bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800' 
-                              : 'bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between">
-                            <div>
-                              <p className="font-medium">{item.company}</p>
-                              <p className="text-xs text-muted-foreground">{item.role}</p>
-                            </div>
-                            <Badge variant={item.success ? "default" : "destructive"} className="text-xs">
-                              {item.success ? '✓' : '✗'}
-                            </Badge>
-                          </div>
-                          {item.error && (
-                            <p className="text-xs text-red-600 dark:text-red-400 mt-1">{item.error}</p>
-                          )}
-                        </div>
-                      ))}
-                    </div>
                   </div>
                 )}
               </div>
@@ -445,7 +307,7 @@ export default function EnrichAdmin({ onBack }: { onBack: () => void }) {
                         <CardDescription>{item.company}</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-2">
-                        <p className="text-sm text-muted-foreground whitespace-pre-line line-clamp-4 leading-5">
+                        <p className="text-sm text-muted-foreground">
                           {item.summary_text}
                         </p>
                         {item.tech_stack.length > 0 && (
