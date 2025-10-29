@@ -25,9 +25,9 @@ export function LocationMultiSelect({ value, onChange, name }: LocationMultiSele
 
   const allLocations = locationOptions || ["Remote"];
   
-  // Get all unique Texas cities from the data
-  const texasCities = useMemo(() => {
-    return allLocations.filter(loc => loc.includes(", TX"));
+  // Get Texas option from the data
+  const texasOption = useMemo(() => {
+    return allLocations.filter(loc => loc === "Texas" || loc === "Austin, Texas");
   }, [allLocations]);
 
   const filteredOptions = allLocations.filter((location) =>
@@ -43,7 +43,7 @@ export function LocationMultiSelect({ value, onChange, name }: LocationMultiSele
   };
 
   const selectTexasOnly = () => {
-    onChange(texasCities);
+    onChange(texasOption);
   };
 
   const selectAll = () => {
