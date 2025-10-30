@@ -40,6 +40,7 @@ import { renderSafeHTML } from "@/lib/sanitize";
 import { toExplanation } from "@/lib/jobCoaching";
 import { useDropzone } from "react-dropzone";
 import { OnboardingSurvey } from "./OnboardingSurvey";
+import { ensureStudentProfile } from "@/lib/ensureProfile";
 
 interface Job {
   id: string;
@@ -115,6 +116,9 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     const init = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
+      
+      // Ensure student profile exists before querying
+      await ensureStudentProfile();
       
       const { data: s, error } = await supabase
         .from('students')

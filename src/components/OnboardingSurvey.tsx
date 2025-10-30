@@ -79,8 +79,8 @@ export function OnboardingSurvey({ open, onComplete, userId }: OnboardingSurveyP
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && !isSubmitting && onComplete()}>
-      <DialogContent className="sm:max-w-md">
+    <Dialog open={open} modal={true}>
+      <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
         <DialogHeader>
           <DialogTitle>Welcome to RaiderMatch!</DialogTitle>
           <DialogDescription>
