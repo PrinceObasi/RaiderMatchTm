@@ -28,7 +28,9 @@ export function useInternshipSearch(params: NormalizedParams | null, enabled = t
             application_link,
             created_at,
             summary_text,
-            tech_stack
+            tech_stack,
+            salary_min,
+            salary_max
           `);
 
         // Apply filters

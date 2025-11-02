@@ -27,4 +27,6 @@ export interface InternshipSearchResult {
   created_at: string | null;
   summary_text: string | null;
   tech_stack: string[] | null;
+  salary_min: number | null;
+  salary_max: number | null;
 }

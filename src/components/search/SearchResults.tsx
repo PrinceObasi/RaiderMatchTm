@@ -1,9 +1,10 @@
 import React from "react";
-import { Building, AlertCircle, ExternalLink, MapPin } from "lucide-react";
+import { Building, AlertCircle, ExternalLink, MapPin, DollarSign } from "lucide-react";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { InternshipSearchResult } from "./types";
 import { ApplicationToggle } from "@/components/ApplicationToggle";
 
@@ -148,15 +149,31 @@ export function SearchResults({
 
             {/* Description */}
             <div className="mt-3">
-              {internship.summary_text ? (
-                <p className="text-sm whitespace-pre-line leading-6 line-clamp-4">
-                  {internship.summary_text.replace(/\b(Apply( now)?|Click here to apply)[\s\S]*$/i, '').replace(/\s+/g, ' ').trim()}
-                </p>
-              ) : (
-                <p className="text-sm italic text-muted-foreground">
-                  Description loading…
-                </p>
-              )}
+              <div className="flex items-start gap-2">
+                <div className="flex-1">
+                  {internship.summary_text ? (
+                    <p className="text-sm whitespace-pre-line leading-6 line-clamp-4">
+                      {internship.summary_text.replace(/\b(Apply( now)?|Click here to apply)[\s\S]*$/i, '').replace(/\s+/g, ' ').trim()}
+                    </p>
+                  ) : (
+                    <p className="text-sm italic text-muted-foreground">
+                      Description loading…
+                    </p>
+                  )}
+                </div>
+                {(internship.salary_min || internship.salary_max) && (
+                  <Badge variant="secondary" className="shrink-0 flex items-center gap-1">
+                    <DollarSign className="h-3 w-3" />
+                    <span className="text-xs">
+                      {internship.salary_min && internship.salary_max
+                        ? `${Math.round(internship.salary_min / 1000)}k-${Math.round(internship.salary_max / 1000)}k`
+                        : internship.salary_min
+                        ? `${Math.round(internship.salary_min / 1000)}k+`
+                        : `${Math.round(internship.salary_max / 1000)}k`}
+                    </span>
+                  </Badge>
+                )}
+              </div>
             </div>
 
             {/* Tech Stack */}
