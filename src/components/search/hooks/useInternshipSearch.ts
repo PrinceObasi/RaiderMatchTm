@@ -30,7 +30,8 @@ export function useInternshipSearch(params: NormalizedParams | null, enabled = t
             summary_text,
             tech_stack,
             salary_min,
-            salary_max
+            salary_max,
+            salary_currency
           `);
 
         // Apply filters

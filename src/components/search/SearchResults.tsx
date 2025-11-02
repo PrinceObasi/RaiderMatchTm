@@ -170,6 +170,7 @@ export function SearchResults({
                         : internship.salary_min
                         ? `${Math.round(internship.salary_min / 1000)}k+`
                         : `${Math.round(internship.salary_max / 1000)}k`}
+                      {internship.salary_currency && internship.salary_currency !== 'USD' ? ` ${internship.salary_currency}` : ''}
                     </span>
                   </Badge>
                 )}
