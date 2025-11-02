@@ -74,6 +74,13 @@ export type Database = {
             foreignKeyName: "applications_internship_id_fkey"
             columns: ["internship_id"]
             isOneToOne: false
+            referencedRelation: "active_internships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "applications_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
             referencedRelation: "internships"
             referencedColumns: ["id"]
           },
@@ -169,6 +176,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "feedback_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "active_internships"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "feedback_internship_id_fkey"
             columns: ["internship_id"]
@@ -378,6 +392,13 @@ export type Database = {
             foreignKeyName: "internships_duplicate_of_fkey"
             columns: ["duplicate_of"]
             isOneToOne: false
+            referencedRelation: "active_internships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "internships_duplicate_of_fkey"
+            columns: ["duplicate_of"]
+            isOneToOne: false
             referencedRelation: "internships"
             referencedColumns: ["id"]
           },
@@ -420,6 +441,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "job_events_internship_id_fkey"
+            columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "active_internships"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "job_events_internship_id_fkey"
             columns: ["internship_id"]
@@ -634,6 +662,81 @@ export type Database = {
       }
     }
     Views: {
+      active_internships: {
+        Row: {
+          application_link: string | null
+          company: string | null
+          created_at: string | null
+          date_posted: string | null
+          deadline: string | null
+          description_text: string | null
+          direct_link: string | null
+          enriched_at: string | null
+          id: string | null
+          location: string | null
+          remote_flag: boolean | null
+          role_title: string | null
+          salary_max: number | null
+          salary_min: number | null
+          source: string | null
+          summary_text: string | null
+          tech_stack: string[] | null
+          updated_at: string | null
+          visa_sponsorship:
+            | Database["public"]["Enums"]["visa_sponsorship_status"]
+            | null
+          work_mode: string | null
+        }
+        Insert: {
+          application_link?: string | null
+          company?: string | null
+          created_at?: string | null
+          date_posted?: string | null
+          deadline?: string | null
+          description_text?: string | null
+          direct_link?: string | null
+          enriched_at?: string | null
+          id?: string | null
+          location?: string | null
+          remote_flag?: boolean | null
+          role_title?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          source?: string | null
+          summary_text?: string | null
+          tech_stack?: string[] | null
+          updated_at?: string | null
+          visa_sponsorship?:
+            | Database["public"]["Enums"]["visa_sponsorship_status"]
+            | null
+          work_mode?: string | null
+        }
+        Update: {
+          application_link?: string | null
+          company?: string | null
+          created_at?: string | null
+          date_posted?: string | null
+          deadline?: string | null
+          description_text?: string | null
+          direct_link?: string | null
+          enriched_at?: string | null
+          id?: string | null
+          location?: string | null
+          remote_flag?: boolean | null
+          role_title?: string | null
+          salary_max?: number | null
+          salary_min?: number | null
+          source?: string | null
+          summary_text?: string | null
+          tech_stack?: string[] | null
+          updated_at?: string | null
+          visa_sponsorship?:
+            | Database["public"]["Enums"]["visa_sponsorship_status"]
+            | null
+          work_mode?: string | null
+        }
+        Relationships: []
+      }
       jobs_for_app: {
         Row: {
           application_url: string | null
