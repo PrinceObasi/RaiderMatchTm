@@ -8,6 +8,7 @@ import { ProjectsSection } from "./ProjectsSection";
 import { EducationSection } from "./EducationSection";
 import { TechnicalSkillsSection } from "./TechnicalSkillsSection";
 import { Loader2, Save } from "lucide-react";
+import ResumeUploadParser from "./ResumeUploadParser";
 
 interface ProfileData {
   gpa: number | null;
@@ -153,6 +154,16 @@ export function ProfileTab() {
           )}
         </Button>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Upload Resume</CardTitle>
+          <CardDescription>Upload your resume to auto-fill profile information</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ResumeUploadParser onProfileUpdate={loadProfile} />
+        </CardContent>
+      </Card>
 
       <EducationSection
         gpa={profileData.gpa}
