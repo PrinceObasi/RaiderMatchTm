@@ -3,11 +3,11 @@ import { useDropzone } from "react-dropzone";
 import { supabase } from "@/integrations/supabase/client";
 import { GlobalWorkerOptions, getDocument } from "pdfjs-dist";
 import type { TextContent } from "pdfjs-dist/types/src/display/api";
-import pdfWorker from "pdfjs-dist/build/pdf.worker.min.js?url";
 // @ts-ignore
 import mammoth from "mammoth/mammoth.browser";
 
-GlobalWorkerOptions.workerSrc = pdfWorker;
+// Use CDN for pdf.js worker to avoid Vite build issues
+GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
 
 const SKILL_DICT = [
   "java","python","c","c++","c#","javascript","typescript","react","next.js","node",
