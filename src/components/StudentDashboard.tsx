@@ -196,6 +196,20 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
 
       if (error) throw error;
 
+      // Reload student data to get the updated profile information
+      const { data: { user: currentUser } } = await supabase.auth.getUser();
+      if (currentUser) {
+        const { data: updatedStudent } = await supabase
+          .from('students')
+          .select('*')
+          .eq('user_id', currentUser.id)
+          .single();
+        
+        if (updatedStudent) {
+          setStudent(updatedStudent);
+        }
+      }
+
       // Extract keywords from parsed data for matching
       if (data?.skills && data.skills.length > 0) {
         const allText = data.skills.join(' ') + ' ' + (data.text || '');

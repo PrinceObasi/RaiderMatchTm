@@ -77,7 +77,208 @@ async function parseResume(text: string): Promise<ResumeParseResult> {
     }
   }
 
+  // Extract work experience
+  result.work_experience = parseWorkExperience(text)
+
+  // Extract projects
+  result.projects = parseProjects(text)
+
   return result
+}
+
+// Parse work experience from resume text
+function parseWorkExperience(text: string): WorkExperience[] {
+  const experiences: WorkExperience[] = []
+  const lines = text.split('\n')
+  
+  // Look for experience section
+  const experienceKeywords = ['experience', 'employment', 'work history', 'professional experience']
+  let inExperienceSection = false
+  let currentExperience: Partial<WorkExperience> | null = null
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    const lowerLine = line.toLowerCase()
+    
+    // Check if we're entering experience section
+    if (experienceKeywords.some(kw => lowerLine.includes(kw) && lowerLine.length < 50)) {
+      inExperienceSection = true
+      continue
+    }
+    
+    // Exit if we hit another major section
+    if (inExperienceSection && (lowerLine.match(/^(education|projects|skills|certifications)/))) {
+      break
+    }
+    
+    if (inExperienceSection && line.length > 5) {
+      // Look for date ranges (e.g., "Jan 2023 - Present", "2022-2023")
+      const dateMatch = line.match(/(\d{4}|\w{3,9}\s+\d{4})\s*[-–—]\s*(present|current|\d{4}|\w{3,9}\s+\d{4})/i)
+      
+      if (dateMatch) {
+        // Save previous experience if exists
+        if (currentExperience?.company && currentExperience?.position) {
+          experiences.push({
+            company: currentExperience.company,
+            position: currentExperience.position,
+            start_date: currentExperience.start_date || '',
+            end_date: currentExperience.end_date || null,
+            description: currentExperience.description || '',
+            current: currentExperience.current || false
+          })
+        }
+        
+        // Start new experience
+        const isCurrent = dateMatch[2].toLowerCase().match(/present|current/)
+        currentExperience = {
+          start_date: dateMatch[1],
+          end_date: isCurrent ? null : dateMatch[2],
+          current: !!isCurrent,
+          description: ''
+        }
+        
+        // Try to extract position and company from the same line or nearby
+        const beforeDate = line.substring(0, dateMatch.index).trim()
+        const parts = beforeDate.split(/[,|–—]/).map(p => p.trim()).filter(p => p.length > 0)
+        
+        if (parts.length >= 2) {
+          currentExperience.position = parts[0]
+          currentExperience.company = parts[1]
+        } else if (parts.length === 1) {
+          currentExperience.position = parts[0]
+          // Look for company in previous line
+          if (i > 0) {
+            const prevLine = lines[i - 1].trim()
+            if (prevLine.length > 0 && prevLine.length < 100) {
+              currentExperience.company = prevLine
+            }
+          }
+        }
+      } else if (currentExperience) {
+        // Add to description if we're in an experience block
+        if (line.startsWith('-') || line.startsWith('•') || line.match(/^[a-z]/i)) {
+          currentExperience.description += (currentExperience.description ? ' ' : '') + line.replace(/^[-•]\s*/, '')
+        } else if (!currentExperience.company && line.length < 100) {
+          // Might be company name
+          currentExperience.company = line
+        }
+      }
+    }
+  }
+  
+  // Add last experience
+  if (currentExperience?.company && currentExperience?.position) {
+    experiences.push({
+      company: currentExperience.company,
+      position: currentExperience.position,
+      start_date: currentExperience.start_date || '',
+      end_date: currentExperience.end_date || null,
+      description: currentExperience.description || '',
+      current: currentExperience.current || false
+    })
+  }
+  
+  return experiences
+}
+
+// Parse projects from resume text
+function parseProjects(text: string): Project[] {
+  const projects: Project[] = []
+  const lines = text.split('\n')
+  
+  // Look for projects section
+  const projectKeywords = ['projects', 'personal projects', 'academic projects', 'portfolio']
+  let inProjectSection = false
+  let currentProject: Partial<Project> | null = null
+  
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim()
+    const lowerLine = line.toLowerCase()
+    
+    // Check if we're entering projects section
+    if (projectKeywords.some(kw => lowerLine.includes(kw) && lowerLine.length < 50)) {
+      inProjectSection = true
+      continue
+    }
+    
+    // Exit if we hit another major section
+    if (inProjectSection && lowerLine.match(/^(education|experience|skills|certifications)/)) {
+      break
+    }
+    
+    if (inProjectSection && line.length > 3) {
+      // Look for URLs (likely project links)
+      const urlMatch = line.match(/(https?:\/\/[^\s]+|github\.com\/[^\s]+)/i)
+      
+      // Look for date patterns
+      const dateMatch = line.match(/(\d{4}|\w{3,9}\s+\d{4})\s*[-–—]\s*(present|current|\d{4}|\w{3,9}\s+\d{4})/i)
+      
+      // New project starts with a title (usually bold or at start of line)
+      if (line.match(/^[A-Z]/) && !line.startsWith('-') && !line.startsWith('•') && line.length < 100) {
+        // Save previous project
+        if (currentProject?.title) {
+          projects.push({
+            title: currentProject.title,
+            description: currentProject.description || '',
+            tech_stack: currentProject.tech_stack || [],
+            url: currentProject.url || null,
+            start_date: currentProject.start_date || '',
+            end_date: currentProject.end_date || null
+          })
+        }
+        
+        currentProject = {
+          title: line.replace(/[:|–—]\s*$/, '').trim(),
+          description: '',
+          tech_stack: [],
+          url: null,
+          start_date: '',
+          end_date: null
+        }
+      } else if (currentProject) {
+        // Extract URL
+        if (urlMatch) {
+          currentProject.url = urlMatch[0]
+        }
+        
+        // Extract dates
+        if (dateMatch) {
+          currentProject.start_date = dateMatch[1]
+          const isCurrent = dateMatch[2].toLowerCase().match(/present|current/)
+          currentProject.end_date = isCurrent ? null : dateMatch[2]
+        }
+        
+        // Look for tech stack (usually in parentheses or after "Technologies:" or "Tech stack:")
+        const techMatch = line.match(/(?:technologies?|tech stack|built with|using)[:\s]+([^.]+)/i)
+        if (techMatch) {
+          const techs = techMatch[1].split(/[,;]/).map(t => t.trim()).filter(t => t.length > 0)
+          currentProject.tech_stack = [...(currentProject.tech_stack || []), ...techs]
+        }
+        
+        // Add to description
+        if (line.startsWith('-') || line.startsWith('•') || (!urlMatch && !dateMatch && !techMatch)) {
+          const cleanLine = line.replace(/^[-•]\s*/, '')
+          if (cleanLine.length > 0) {
+            currentProject.description += (currentProject.description ? ' ' : '') + cleanLine
+          }
+        }
+      }
+    }
+  }
+  
+  // Add last project
+  if (currentProject?.title) {
+    projects.push({
+      title: currentProject.title,
+      description: currentProject.description || '',
+      tech_stack: currentProject.tech_stack || [],
+      url: currentProject.url || null,
+      start_date: currentProject.start_date || '',
+      end_date: currentProject.end_date || null
+    })
+  }
+  
+  return projects
 }
 
 // Extract skills from text
