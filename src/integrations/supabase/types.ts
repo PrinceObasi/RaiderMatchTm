@@ -575,30 +575,23 @@ export type Database = {
           biggest_challenge: string | null
           class_year: Database["public"]["Enums"]["class_year"] | null
           created_at: string
-          degree: string | null
           email: string
           github: string | null
           gpa: number | null
-          grad_month: number | null
           graduation_year: number | null
           has_prev_intern: boolean | null
           id: string
           is_international: boolean | null
-          linkedin_url: string | null
-          location_city: string | null
-          location_state: string | null
           major: string | null
           name: string
           onboarding_completed: boolean | null
           phone: string | null
-          portfolio_url: string | null
           project_depth: number | null
           projects: Json | null
           resume_uploaded: boolean | null
           resume_url: string | null
           skills: string[] | null
           sms_opt_in: boolean | null
-          university: string | null
           updated_at: string
           user_id: string
           work_experience: Json | null
@@ -607,30 +600,23 @@ export type Database = {
           biggest_challenge?: string | null
           class_year?: Database["public"]["Enums"]["class_year"] | null
           created_at?: string
-          degree?: string | null
           email: string
           github?: string | null
           gpa?: number | null
-          grad_month?: number | null
           graduation_year?: number | null
           has_prev_intern?: boolean | null
           id?: string
           is_international?: boolean | null
-          linkedin_url?: string | null
-          location_city?: string | null
-          location_state?: string | null
           major?: string | null
           name: string
           onboarding_completed?: boolean | null
           phone?: string | null
-          portfolio_url?: string | null
           project_depth?: number | null
           projects?: Json | null
           resume_uploaded?: boolean | null
           resume_url?: string | null
           skills?: string[] | null
           sms_opt_in?: boolean | null
-          university?: string | null
           updated_at?: string
           user_id: string
           work_experience?: Json | null
@@ -639,30 +625,23 @@ export type Database = {
           biggest_challenge?: string | null
           class_year?: Database["public"]["Enums"]["class_year"] | null
           created_at?: string
-          degree?: string | null
           email?: string
           github?: string | null
           gpa?: number | null
-          grad_month?: number | null
           graduation_year?: number | null
           has_prev_intern?: boolean | null
           id?: string
           is_international?: boolean | null
-          linkedin_url?: string | null
-          location_city?: string | null
-          location_state?: string | null
           major?: string | null
           name?: string
           onboarding_completed?: boolean | null
           phone?: string | null
-          portfolio_url?: string | null
           project_depth?: number | null
           projects?: Json | null
           resume_uploaded?: boolean | null
           resume_url?: string | null
           skills?: string[] | null
           sms_opt_in?: boolean | null
-          university?: string | null
           updated_at?: string
           user_id?: string
           work_experience?: Json | null
