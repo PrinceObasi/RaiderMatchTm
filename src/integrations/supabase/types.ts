@@ -955,6 +955,7 @@ export type Database = {
           title: string
         }[]
       }
+      norm_text: { Args: { t: string }; Returns: string }
       normalize_keywords: { Args: { raw: string[] }; Returns: string[] }
       random_internships: {
         Args: { limit_count?: number }
