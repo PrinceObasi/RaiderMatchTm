@@ -1,8 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
-import { supabase } from '@/integrations/supabase/client';
+import { useMemo } from 'react';
+import { useAllInternships } from './useAllInternships';
 import { NormalizedParams, InternshipSearchResult } from '../types';
 
 export function useInternshipSearch(params: NormalizedParams | null, enabled = true) {
+  const { data: all, isLoading, error, isFetching } = useAllInternships();
+
   const queryParams = params ?? {
     q: null,
     locations: null,
@@ -12,76 +14,71 @@ export function useInternshipSearch(params: NormalizedParams | null, enabled = t
     offset_count: 0,
   };
 
-  return useQuery({
-    queryKey: ['internships/search', queryParams],
-    queryFn: async (): Promise<InternshipSearchResult[]> => {
-      // ✅ Single base query from active_internships
-      let query = supabase.from('active_internships').select('*');
+  const filtered = useMemo(() => {
+    if (!all || !enabled) return [];
 
-      // 🔍 Build OR conditions (text search + locations)
-      const orConditions: string[] = [];
-      
-      const q = queryParams.q?.trim();
-      if (q && q.length > 0) {
-        orConditions.push(
-          `company.ilike.%${q}%`,
-          `role_title.ilike.%${q}%`,
-          `location.ilike.%${q}%`,
-          `summary_text.ilike.%${q}%`
-        );
+    const q = queryParams.q?.trim().toLowerCase() || '';
+    const locations = queryParams.locations || [];
+    const visa = queryParams.visa;
+    const stacks = queryParams.stacks || [];
+
+    return all.filter((row) => {
+      // 🔍 Text search filter
+      if (q) {
+        const haystack = [
+          row.company || '',
+          row.role_title || '',
+          row.location || '',
+          row.summary_text || '',
+        ]
+          .join(' ')
+          .toLowerCase();
+
+        if (!haystack.includes(q)) {
+          return false;
+        }
       }
 
-      // 📍 Location filter - only apply if no text search
-      if (queryParams.locations && queryParams.locations.length > 0 && !q) {
-        const locConds = queryParams.locations
-          .filter((loc) => loc && loc.trim().length > 0)
-          .map((loc) => `location.ilike.%${loc.trim()}%`);
-        orConditions.push(...locConds);
-      }
-
-      // Apply all OR conditions in a single call
-      if (orConditions.length > 0) {
-        query = query.or(orConditions.join(','));
-      }
-
-      // 📍 Apply location filter as AND condition if text search exists
-      if (q && queryParams.locations && queryParams.locations.length > 0) {
-        const locConds = queryParams.locations
-          .filter((loc) => loc && loc.trim().length > 0)
-          .map((loc) => `location.ilike.%${loc.trim()}%`)
-          .join(',');
-        if (locConds.length > 0) {
-          query = query.or(locConds);
+      // 📍 Location filter
+      if (locations.length > 0) {
+        const rowLoc = (row.location || '').toLowerCase();
+        const matchesAnyLocation = locations.some((loc) => {
+          const locLower = loc.trim().toLowerCase();
+          return rowLoc.includes(locLower);
+        });
+        if (!matchesAnyLocation) {
+          return false;
         }
       }
 
       // 🎓 Visa sponsorship filter
-      if (queryParams.visa !== 'any') {
-        const visaValue = queryParams.visa === 'yes' ? 'Yes' : 'No';
-        query = query.eq('visa_sponsorship', visaValue);
+      if (visa !== 'any') {
+        const expectedValue = visa === 'yes' ? 'Yes' : 'No';
+        const rowVisa = (row as any).visa_sponsorship;
+        if (rowVisa !== expectedValue) {
+          return false;
+        }
       }
 
       // 🧱 Tech stack filter
-      if (queryParams.stacks && queryParams.stacks.length > 0) {
-        query = query.overlaps('tech_stack', queryParams.stacks);
+      if (stacks.length > 0) {
+        const rowStacks = (row.tech_stack || []).map((s) => s.toLowerCase());
+        const matchesAnyStack = stacks.some((stack) =>
+          rowStacks.includes(stack.toLowerCase())
+        );
+        if (!matchesAnyStack) {
+          return false;
+        }
       }
 
-      // ⏱ Ordering and pagination
-      query = query
-        .order('date_posted', { ascending: false, nullsFirst: false })
-        .range(queryParams.offset_count, queryParams.offset_count + queryParams.limit_count - 1);
+      return true;
+    });
+  }, [all, enabled, queryParams.q, queryParams.locations, queryParams.visa, queryParams.stacks]);
 
-      const { data, error } = await query;
-
-      if (error) {
-        console.error('Search query failed:', error);
-        throw error;
-      }
-
-      return (data ?? []) as unknown as InternshipSearchResult[];
-    },
-    staleTime: 30_000,
-    placeholderData: (previousData) => previousData,
-    enabled,
-  });
+  return {
+    data: filtered,
+    isLoading,
+    error,
+    isFetching,
+  };
 }
