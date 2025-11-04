@@ -1,10 +1,11 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect, useMemo } from "react";
 import { SearchForm } from "./SearchForm";
 import { SearchResults } from "./SearchResults";
 import { useInternshipSearch } from "./hooks/useInternshipSearch";
 import { normalizeFilters } from "./utils/normalizeFilters";
 import { FilterFormData, NormalizedParams } from "./types";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 interface InternshipSearchContainerProps {
   onApply?: (internshipId: string, applicationUrl: string) => void;
@@ -16,28 +17,64 @@ interface InternshipSearchContainerProps {
 }
 
 export function InternshipSearchContainer({ onApply, className, showResultsInTab = false, onSearchResults, onRefresh, refreshCount = 0 }: InternshipSearchContainerProps) {
+  const PAGE_SIZE = 10;
+  
   const [params, setParams] = useState<NormalizedParams>({
     q: null,
     locations: null,
     visa: 'any',
     stacks: null,
-    limit_count: 10,
+    limit_count: 50,
     offset_count: 0,
   });
-  const [page, setPage] = useState(0);
   const [hasFilters, setHasFilters] = useState(false);
   
-  const limit = 10;
-  const currentParams = { ...params, offset_count: (page + refreshCount) * limit };
+  const { data: internships = [], isLoading, isFetching, error } = useInternshipSearch(params);
   
-  const { data: results = [], isLoading, isFetching, error } = useInternshipSearch(currentParams);
+  // Shuffled results state
+  const [shuffled, setShuffled] = useState<typeof internships>([]);
+  const [startIndex, setStartIndex] = useState(0);
+  
+  // Shuffle whenever search results change
+  useEffect(() => {
+    if (!internships || internships.length === 0) {
+      setShuffled([]);
+      setStartIndex(0);
+      return;
+    }
+
+    const arr = [...internships];
+
+    // Fisher–Yates shuffle
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+
+    setShuffled(arr);
+    setStartIndex(0);
+  }, [internships]);
+  
+  // Compute visible results with wrap-around
+  const visible = useMemo(() => {
+    if (!shuffled || shuffled.length === 0) return [];
+
+    const result = [];
+    const n = shuffled.length;
+
+    for (let i = 0; i < Math.min(PAGE_SIZE, n); i++) {
+      result.push(shuffled[(startIndex + i) % n]);
+    }
+
+    return result;
+  }, [shuffled, startIndex, PAGE_SIZE]);
 
   // Pass results back to parent when showResultsInTab is true
   React.useEffect(() => {
     if (showResultsInTab && onSearchResults) {
-      onSearchResults(results, isLoading || isFetching, true); // Always show results now
+      onSearchResults(visible, isLoading || isFetching, true);
     }
-  }, [results, isLoading, isFetching, showResultsInTab, onSearchResults]);
+  }, [visible, isLoading, isFetching, showResultsInTab, onSearchResults]);
 
   // Show error toast when query fails
   React.useEffect(() => {
@@ -48,9 +85,8 @@ export function InternshipSearchContainer({ onApply, className, showResultsInTab
 
   const handleApply = useCallback((formData: FilterFormData) => {
     console.debug("Apply filters", formData);
-    const normalized = normalizeFilters(formData, { limit_count: limit, offset_count: 0 });
+    const normalized = normalizeFilters(formData, { limit_count: 50, offset_count: 0 });
     setParams(normalized);
-    setPage(0); // Reset pagination on new search
     
     // Check if any filters are applied
     const hasActiveFilters = !!(
@@ -69,12 +105,21 @@ export function InternshipSearchContainer({ onApply, className, showResultsInTab
       locations: null,
       visa: 'any',
       stacks: null,
-      limit_count: limit,
+      limit_count: 50,
       offset_count: 0,
     });
-    setPage(0);
     setHasFilters(false);
   }, []);
+  
+  const handleShowDifferent = useCallback(() => {
+    if (!shuffled || shuffled.length === 0) return;
+
+    setStartIndex((prev) => {
+      const n = shuffled.length;
+      if (n <= PAGE_SIZE) return 0; // nothing to rotate, everything is already visible
+      return (prev + PAGE_SIZE) % n;
+    });
+  }, [shuffled, PAGE_SIZE]);
 
   const handleApplyToInternship = useCallback((internshipId: string, applicationUrl: string) => {
     // 1️⃣ OPEN IMMEDIATELY (synchronous) - prevents popup blocking  
@@ -140,32 +185,26 @@ export function InternshipSearchContainer({ onApply, className, showResultsInTab
         {/* Results */}
         <div>
           <SearchResults
-            results={results}
+            results={visible}
             isLoading={isLoading}
             isFetching={isFetching}
             error={error}
             onApply={handleApplyToInternship}
-            resultCount={results.length}
+            resultCount={shuffled.length}
           />
           
-          {/* Simple pagination - can be enhanced later */}
-          {results.length === limit && (
-            <div className="flex justify-center gap-2 mt-6">
-              <button
-                onClick={() => setPage(p => Math.max(0, p - 1))}
-                disabled={page === 0 || isLoading}
-                className="px-4 py-2 border rounded disabled:opacity-50 hover:bg-accent"
+          {/* Show different results button */}
+          {shuffled.length > PAGE_SIZE && (
+            <div className="flex justify-center mt-6">
+              <Button
+                type="button"
+                onClick={handleShowDifferent}
+                disabled={isLoading}
+                variant="outline"
+                className="rounded-xl"
               >
-                Previous
-              </button>
-              <span className="px-4 py-2">Page {page + 1}</span>
-              <button
-                onClick={() => setPage(p => p + 1)}
-                disabled={results.length < limit || isLoading}
-                className="px-4 py-2 border rounded disabled:opacity-50 hover:bg-accent"
-              >
-                Next
-              </button>
+                Show different results
+              </Button>
             </div>
           )}
         </div>
