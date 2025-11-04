@@ -100,7 +100,7 @@ export function LocationMultiSelect({ value, onChange, name }: LocationMultiSele
               value={searchValue}
               onValueChange={setSearchValue}
             />
-            <CommandList>
+            <CommandList className="max-h-[400px] overflow-y-auto">
               {filteredOptions.length === 0 ? (
                 <CommandEmpty>No locations found.</CommandEmpty>
               ) : (
