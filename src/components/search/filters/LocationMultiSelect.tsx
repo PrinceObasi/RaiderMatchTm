@@ -106,29 +106,15 @@ export function LocationMultiSelect({ value, onChange, name }: LocationMultiSele
               ) : (
                 <CommandGroup>
                   <div className="flex flex-col gap-2 p-2 border-b">
-                    <div className="flex gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        type="button"
-                        onClick={selectTexasOnly}
-                        className="h-7 text-xs flex-1"
-                      >
-                        <Badge variant="secondary" className="mr-1 h-4 px-1 text-[10px]">
-                          Quick
-                        </Badge>
-                        Texas Only
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        type="button"
-                        onClick={clearAll}
-                        className="h-7 text-xs"
-                      >
-                        Clear All
-                      </Button>
-                    </div>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      type="button"
+                      onClick={clearAll}
+                      className="h-7 text-xs w-full"
+                    >
+                      Clear All
+                    </Button>
                   </div>
                   {filteredOptions.map((location) => (
                     <div
