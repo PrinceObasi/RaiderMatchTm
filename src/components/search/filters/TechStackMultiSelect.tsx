@@ -10,10 +10,24 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 
-const COMMON_TECH_STACK = [
-  "JavaScript", "TypeScript", "React", "Node.js", "Python", "Java", 
-  "C++", "C#", "Swift", "Kotlin", "Go", "Ruby", "PHP", "SQL",
-  "AWS", "Azure", "Docker", "Kubernetes", "Git", "MongoDB", "PostgreSQL"
+const POPULAR_TECHS = [
+  { tag: 'python', label: 'Python' },
+  { tag: 'javascript', label: 'JavaScript' },
+  { tag: 'java', label: 'Java' },
+  { tag: 'c++', label: 'C++' },
+  { tag: 'c#', label: 'C#' },
+  { tag: 'go', label: 'Go' },
+  { tag: 'react', label: 'React' },
+  { tag: 'node.js', label: 'Node.js' },
+  { tag: 'typescript', label: 'TypeScript' },
+  { tag: 'sql', label: 'SQL' },
+  { tag: 'git', label: 'Git' },
+  { tag: 'aws', label: 'AWS' },
+  { tag: 'docker', label: 'Docker' },
+  { tag: 'kubernetes', label: 'Kubernetes' },
+  { tag: 'linux', label: 'Linux' },
+  { tag: 'tensorflow', label: 'TensorFlow' },
+  { tag: 'pytorch', label: 'PyTorch' },
 ];
 
 interface TechStackMultiSelectProps {
@@ -110,20 +124,19 @@ export function TechStackMultiSelect({ value, onChange, name }: TechStackMultiSe
                 Popular Technologies
               </Label>
               <div className="flex flex-wrap gap-1">
-                {COMMON_TECH_STACK
-                  .filter(tech => !value.map(v => v.toLowerCase()).includes(tech.toLowerCase()))
-                  .slice(0, 12)
+                {POPULAR_TECHS
+                  .filter(tech => !value.map(v => v.toLowerCase()).includes(tech.tag.toLowerCase()))
                   .map((tech) => (
                     <Button
-                      key={tech}
+                      key={tech.tag}
                       type="button"
                       variant="ghost"
                       size="sm"
-                      onClick={() => addTech(tech)}
+                      onClick={() => addTech(tech.tag)}
                       className="h-6 text-xs hover:bg-primary hover:text-primary-foreground"
                       tabIndex={0}
                     >
-                      {tech}
+                      {tech.label}
                     </Button>
                   ))}
               </div>
