@@ -9,8 +9,22 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
-import { useTopLocations } from "@/hooks/useTopLocations";
 import { Badge } from "@/components/ui/badge";
+
+const QUICK_LOCATIONS = [
+  'Remote',
+  'New York, NY',
+  'San Francisco, CA',
+  'Austin, TX',
+  'Boston, MA',
+  'Seattle, WA',
+  'Atlanta, GA',
+  'Mountain View, CA',
+  'Pittsburgh, PA',
+  'Chicago, IL',
+  'San Jose, CA',
+  'Salt Lake City, UT',
+];
 
 interface LocationMultiSelectProps {
   value: string[];
@@ -21,9 +35,8 @@ interface LocationMultiSelectProps {
 export function LocationMultiSelect({ value, onChange, name }: LocationMultiSelectProps) {
   const [open, setOpen] = useState(false);
   const [searchValue, setSearchValue] = useState("");
-  const { data: locationOptions, isLoading } = useTopLocations(15);
 
-  const allLocations = locationOptions || ["Remote"];
+  const allLocations = QUICK_LOCATIONS;
   
   // Get all unique Texas cities from the data
   const texasCities = useMemo(() => {
