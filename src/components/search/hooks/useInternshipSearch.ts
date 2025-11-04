@@ -15,71 +15,60 @@ export function useInternshipSearch(params: NormalizedParams | null, enabled = t
   return useQuery({
     queryKey: ['internships/search', queryParams],
     queryFn: async (): Promise<InternshipSearchResult[]> => {
-      console.debug('Querying active_internships with params:', queryParams);
-      
-      try {
-        // ✅ Single base query from active_internships
-        let query = supabase
-          .from('active_internships')
-          .select('*');
+      // ✅ Single base query from active_internships
+      let query = supabase.from('active_internships').select('*');
 
-        // 🔍 Text search across multiple fields
-        const searchTerm = queryParams.q?.trim();
-        if (searchTerm && searchTerm.length > 0) {
-          query = query.or(
-            [
-              `company.ilike.%${searchTerm}%`,
-              `role_title.ilike.%${searchTerm}%`,
-              `location.ilike.%${searchTerm}%`,
-              `summary_text.ilike.%${searchTerm}%`,
-            ].join(',')
-          );
+      // 🔍 Text search across multiple fields
+      const q = queryParams.q?.trim();
+      if (q && q.length > 0) {
+        query = query.or(
+          [
+            `company.ilike.%${q}%`,
+            `role_title.ilike.%${q}%`,
+            `location.ilike.%${q}%`,
+            `summary_text.ilike.%${q}%`,
+          ].join(',')
+        );
+      }
+
+      // 📍 Location filter
+      if (queryParams.locations && queryParams.locations.length > 0) {
+        const locConds = queryParams.locations
+          .filter((loc) => loc && loc.trim().length > 0)
+          .map((loc) => `location.ilike.%${loc.trim()}%`)
+          .join(',');
+        if (locConds.length > 0) {
+          query = query.or(locConds);
         }
+      }
 
-        // 📍 Locations filter
-        if (queryParams.locations && queryParams.locations.length > 0) {
-          const locConds = queryParams.locations
-            .filter(Boolean)
-            .map((loc) => `location.ilike.%${loc.trim()}%`)
-            .join(',');
-          if (locConds.length > 0) {
-            query = query.or(locConds);
-          }
-        }
+      // 🎓 Visa sponsorship filter
+      if (queryParams.visa !== 'any') {
+        const visaValue = queryParams.visa === 'yes' ? 'Yes' : 'No';
+        query = query.eq('visa_sponsorship', visaValue);
+      }
 
-        // 🎓 Visa sponsorship filter
-        if (queryParams.visa !== 'any') {
-          const visaValue = queryParams.visa === 'yes' ? 'Yes' : 'No';
-          query = query.eq('visa_sponsorship', visaValue);
-        }
+      // 🧱 Tech stack filter
+      if (queryParams.stacks && queryParams.stacks.length > 0) {
+        query = query.overlaps('tech_stack', queryParams.stacks);
+      }
 
-        // 🧱 Tech stack filter
-        if (queryParams.stacks && queryParams.stacks.length > 0) {
-          query = query.overlaps('tech_stack', queryParams.stacks);
-        }
+      // ⏱ Ordering and pagination
+      query = query
+        .order('date_posted', { ascending: false, nullsFirst: false })
+        .range(queryParams.offset_count, queryParams.offset_count + queryParams.limit_count - 1);
 
-        // ⏱ Pagination and ordering
-        query = query
-          .order('date_posted', { ascending: false, nullsFirst: false })
-          .range(queryParams.offset_count, queryParams.offset_count + queryParams.limit_count - 1);
+      const { data, error } = await query;
 
-        const { data, error } = await query;
-        
-        if (error) {
-          console.warn('Active internships query failed:', error);
-          throw error;
-        }
-        
-        console.debug('Active internships query returned:', { count: data?.length });
-        
-        return (data ?? []) as unknown as InternshipSearchResult[];
-      } catch (error) {
-        console.warn('Internships search failed:', error);
+      if (error) {
+        console.error('Search query failed:', error);
         throw error;
       }
+
+      return (data ?? []) as unknown as InternshipSearchResult[];
     },
     staleTime: 30_000,
-    placeholderData: (previousData) => previousData, // Updated from keepPreviousData
+    placeholderData: (previousData) => previousData,
     enabled,
   });
 }
