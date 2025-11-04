@@ -18,21 +18,34 @@ export function useInternshipSearch(params: NormalizedParams | null, enabled = t
       // ✅ Single base query from active_internships
       let query = supabase.from('active_internships').select('*');
 
-      // 🔍 Text search across multiple fields
+      // 🔍 Build OR conditions (text search + locations)
+      const orConditions: string[] = [];
+      
       const q = queryParams.q?.trim();
       if (q && q.length > 0) {
-        query = query.or(
-          [
-            `company.ilike.%${q}%`,
-            `role_title.ilike.%${q}%`,
-            `location.ilike.%${q}%`,
-            `summary_text.ilike.%${q}%`,
-          ].join(',')
+        orConditions.push(
+          `company.ilike.%${q}%`,
+          `role_title.ilike.%${q}%`,
+          `location.ilike.%${q}%`,
+          `summary_text.ilike.%${q}%`
         );
       }
 
-      // 📍 Location filter
-      if (queryParams.locations && queryParams.locations.length > 0) {
+      // 📍 Location filter - only apply if no text search
+      if (queryParams.locations && queryParams.locations.length > 0 && !q) {
+        const locConds = queryParams.locations
+          .filter((loc) => loc && loc.trim().length > 0)
+          .map((loc) => `location.ilike.%${loc.trim()}%`);
+        orConditions.push(...locConds);
+      }
+
+      // Apply all OR conditions in a single call
+      if (orConditions.length > 0) {
+        query = query.or(orConditions.join(','));
+      }
+
+      // 📍 Apply location filter as AND condition if text search exists
+      if (q && queryParams.locations && queryParams.locations.length > 0) {
         const locConds = queryParams.locations
           .filter((loc) => loc && loc.trim().length > 0)
           .map((loc) => `location.ilike.%${loc.trim()}%`)
