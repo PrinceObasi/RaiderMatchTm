@@ -11,6 +11,7 @@ interface MatchedInternship {
   description_text: string | null;
   tech_stack: string[] | null;
   match_count: number;
+  matched_tags: string[] | null;
   application_link: string;
   direct_link: string;
   link_type: string;
@@ -40,10 +41,11 @@ export function useMatches(limit = 50) {
         throw error;
       }
 
-      // Ensure match_count is present, default to 0 if missing
+      // Ensure match_count and matched_tags are present
       return (data || []).map((item: any) => ({
         ...item,
-        match_count: item.match_count ?? 0
+        match_count: item.match_count ?? 0,
+        matched_tags: item.matched_tags ?? []
       }));
     },
     staleTime: 5 * 60 * 1000, // 5 minutes

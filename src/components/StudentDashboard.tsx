@@ -766,11 +766,17 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                     </Button>
                   </CardHeader>
                   <CardContent>
-                    {matches.length === 0 ? (
+                    {isMatching ? (
+                      <div className="text-center py-12">
+                        <RefreshCw className="h-8 w-8 mx-auto mb-4 animate-spin text-primary" />
+                        <p className="text-lg mb-2">Finding your matches...</p>
+                        <p className="text-muted-foreground">Analyzing your skills and preferences</p>
+                      </div>
+                    ) : matches.length === 0 ? (
                       <div className="text-center py-12 text-muted-foreground">
                         <Target className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                        <p className="text-lg mb-2">No roles yet</p>
-                        <p>Upload your resume to get personalized internship matches!</p>
+                        <p className="text-lg mb-2">No matches yet</p>
+                        <p>Upload your resume so we can detect your skills and find roles for you.</p>
                       </div>
                     ) : (
                       <div className="space-y-4 sm:space-y-6">
@@ -785,31 +791,41 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                         <Building className="h-4 w-4" />
                                         {job.company}
                                       </div>
-                                      <div className="flex items-center gap-1">
-                                        <MapPin className="h-4 w-4" />
-                                        {job.location || 'Location TBD'}
-                                      </div>
+                                      {job.location && (
+                                        <div className="flex items-center gap-1">
+                                          <MapPin className="h-4 w-4" />
+                                          {job.location}
+                                        </div>
+                                      )}
                                     </div>
                                   </div>
-                                   <div className="flex items-center gap-4 sm:flex-col sm:text-right">
-                                     <Popover>
-                                       <PopoverTrigger className="inline-flex items-center gap-1 text-sm text-muted-foreground underline-offset-2 hover:underline">
-                                         Job insights
-                                       </PopoverTrigger>
-                                       <PopoverContent className="w-72 sm:w-96 text-sm">
-                                         <ul className="list-disc pl-4 space-y-1">
-                                            <li>Match based on your profile skills</li>
-                                         </ul>
-                                       </PopoverContent>
-                                     </Popover>
-                                   </div>
                                 </div>
+
+                                {/* Match indicator */}
+                                {job.match_count > 0 && job.matched_tags && job.matched_tags.length > 0 && (
+                                  <div className="mt-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <Badge variant="default" className="bg-primary/20 text-primary hover:bg-primary/30">
+                                        Matches {job.match_count} of your skills
+                                      </Badge>
+                                    </div>
+                                    <div className="flex flex-wrap gap-1.5">
+                                      {job.matched_tags.map((tag) => (
+                                        <span key={tag} className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-md font-medium">
+                                          {tag}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+
                                   {/* Tech Stack from matched internship */}
                                   {job.tech_stack && job.tech_stack.length > 0 && (
-                                    <div className="mt-3 mb-4">
+                                    <div className="mt-3">
+                                      <p className="text-xs text-muted-foreground mb-2">Required skills:</p>
                                       <div className="flex flex-wrap gap-2">
                                         {job.tech_stack.slice(0, 8).map((tech) => (
-                                          <Badge key={tech} variant="outline" className="text-xs border-primary/20 bg-primary/5">
+                                          <Badge key={tech} variant="outline" className="text-xs">
                                             {tech}
                                           </Badge>
                                         ))}
