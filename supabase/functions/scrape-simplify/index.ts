@@ -30,8 +30,22 @@ serve(async (req) => {
     const html = await response.text()
     console.log(`Fetched ${html.length} characters of HTML`)
     
+    // Extract only Software Engineering section
+    const startMarker = '### Software Engineering'
+    const endMarker = '### Product Management'
+    const startIdx = html.indexOf(startMarker)
+    const endIdx = html.indexOf(endMarker)
+    
+    let sweOnly = html
+    if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
+      sweOnly = html.slice(startIdx, endIdx)
+      console.log(`Sliced to SWE section: ${sweOnly.length} characters (${startIdx} to ${endIdx})`)
+    } else {
+      console.warn('Could not find SWE section markers, parsing full README')
+    }
+    
     // Parse HTML table rows - each <tr> spans multiple lines
-    const rows = html.split('<tr>').slice(1); // Skip first split (before first <tr>)
+    const rows = sweOnly.split('<tr>').slice(1); // Skip first split (before first <tr>)
     console.log(`Found ${rows.length} table rows`)
     
     const internships = [];
