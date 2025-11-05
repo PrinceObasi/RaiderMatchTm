@@ -94,11 +94,31 @@ serve(async (req) => {
       confidence: enrichmentData.confidence 
     })
 
-    // Fail if enrichment confidence is too low
+    // Archive if enrichment confidence is too low
     if (enrichmentData.confidence === 0) {
+      console.log(`Low confidence enrichment for ${id}, archiving`)
+      
+      const { error: archiveError } = await supabaseClient
+        .from('internships')
+        .update({
+          is_active: false,
+          archived_at: new Date().toISOString(),
+          notes: `Enrichment failed: ${enrichmentData.summary}`,
+          enrichment_confidence: 0
+        })
+        .eq('id', id)
+      
+      if (archiveError) {
+        console.error('Archive error:', archiveError)
+      }
+      
       return new Response(
-        JSON.stringify({ error: enrichmentData.summary }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ 
+          ok: false, 
+          archived: !archiveError,
+          reason: enrichmentData.summary 
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 

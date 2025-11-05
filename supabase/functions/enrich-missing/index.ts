@@ -57,23 +57,27 @@ serve(async (req) => {
         })
 
         if (response.error) {
-          console.log(`Enrichment failed for ${internship.id}, deleting internship`)
+          console.log(`Enrichment failed for ${internship.id}, archiving internship`)
           
-          // Delete failed internship
-          const { error: deleteError } = await supabaseClient
+          // Archive failed internship instead of deleting
+          const { error: archiveError } = await supabaseClient
             .from('internships')
-            .delete()
+            .update({
+              is_active: false,
+              archived_at: new Date().toISOString(),
+              notes: `Enrichment failed: ${response.error.message}`
+            })
             .eq('id', internship.id)
           
-          if (deleteError) {
-            console.error(`Failed to delete internship ${internship.id}:`, deleteError)
+          if (archiveError) {
+            console.error(`Failed to archive internship ${internship.id}:`, archiveError)
           }
           
           results.push({
             id: internship.id,
             success: false,
             error: response.error.message,
-            deleted: !deleteError
+            archived: !archiveError
           })
         } else {
           results.push({
@@ -92,21 +96,25 @@ serve(async (req) => {
       } catch (error) {
         console.error(`Error processing ${internship.id}:`, error)
         
-        // Delete internship on exception too
-        const { error: deleteError } = await supabaseClient
+        // Archive internship on exception instead of deleting
+        const { error: archiveError } = await supabaseClient
           .from('internships')
-          .delete()
+          .update({
+            is_active: false,
+            archived_at: new Date().toISOString(),
+            notes: `Enrichment error: ${error instanceof Error ? error.message : 'Unknown error'}`
+          })
           .eq('id', internship.id)
         
-        if (deleteError) {
-          console.error(`Failed to delete internship ${internship.id}:`, deleteError)
+        if (archiveError) {
+          console.error(`Failed to archive internship ${internship.id}:`, archiveError)
         }
         
         results.push({
           id: internship.id,
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',
-          deleted: !deleteError
+          archived: !archiveError
         })
       }
     }
