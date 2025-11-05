@@ -27,21 +27,73 @@ serve(async (req) => {
       throw new Error(`Failed to fetch SimplifyJobs data: ${response.status}`)
     }
 
-    const html = await response.text()
-    console.log(`Fetched ${html.length} characters of HTML`)
+    const markdown = await response.text()
+    console.log(`Fetched ${markdown.length} characters from raw README`)
     
     // Extract only Software Engineering section
-    const startMarker = '### Software Engineering'
-    const endMarker = '### Product Management'
-    const startIdx = html.indexOf(startMarker)
-    const endIdx = html.indexOf(endMarker)
+    // Try multiple possible heading formats
+    const possibleStarts = [
+      '## 💻 Software Engineering Internship Roles',
+      '## Software Engineering Internship Roles',
+      '💻 Software Engineering',
+      '## 💻 Software Engineering'
+    ]
     
-    let sweOnly = html
+    const possibleEnds = [
+      '## 📱 Product Management Internship Roles',
+      '## Product Management Internship Roles',
+      '📱 Product Management',
+      '## 📱 Product Management'
+    ]
+    
+    let startIdx = -1
+    let startMarker = ''
+    for (const marker of possibleStarts) {
+      startIdx = markdown.indexOf(marker)
+      if (startIdx !== -1) {
+        startMarker = marker
+        console.log(`✓ Found start marker: "${marker}" at position ${startIdx}`)
+        break
+      }
+    }
+    
+    let endIdx = -1
+    let endMarker = ''
+    for (const marker of possibleEnds) {
+      endIdx = markdown.indexOf(marker, startIdx + 1) // Search after start
+      if (endIdx !== -1) {
+        endMarker = marker
+        console.log(`✓ Found end marker: "${marker}" at position ${endIdx}`)
+        break
+      }
+    }
+    
+    // Debug: Show what we found if not found
+    if (startIdx === -1) {
+      console.warn('⚠️ Start marker not found, trying fallback patterns...')
+      console.log('Content around position 5000-6000:', markdown.substring(5000, 6000))
+    }
+    
+    // Additional debug: show content AFTER the end marker to verify boundary
+    if (endIdx !== -1) {
+      console.log('Content right after end marker (next 500 chars):', markdown.substring(endIdx, endIdx + 500))
+    }
+    
+    let sweOnly = markdown
     if (startIdx !== -1 && endIdx !== -1 && endIdx > startIdx) {
-      sweOnly = html.slice(startIdx, endIdx)
-      console.log(`Sliced to SWE section: ${sweOnly.length} characters (${startIdx} to ${endIdx})`)
+      sweOnly = markdown.slice(startIdx, endIdx)
+      console.log(`✓ Sliced to SWE-only section: ${sweOnly.length} characters`)
+      
+      // Debug: Check if slice contains non-SWE keywords
+      const hasProduct = sweOnly.toLowerCase().includes('product manager')
+      const hasData = sweOnly.toLowerCase().includes('data scientist')
+      const hasQuant = sweOnly.toLowerCase().includes('quantitative')
+      console.log(`DEBUG - Section contains: Product Manager: ${hasProduct}, Data Scientist: ${hasData}, Quant: ${hasQuant}`)
+      
+      console.log(`Preview:`, sweOnly.substring(0, 300).replace(/\n/g, ' '))
     } else {
-      console.warn('Could not find SWE section markers, parsing full README')
+      console.warn('⚠️ Could not find SWE section markers, parsing full README')
+      console.warn(`Start found: ${startIdx !== -1}, End found: ${endIdx !== -1}`)
     }
     
     // Parse HTML table rows - each <tr> spans multiple lines
