@@ -12,11 +12,10 @@ interface InternshipSearchContainerProps {
   className?: string;
   showResultsInTab?: boolean;
   onSearchResults?: (results: any[], isLoading: boolean, hasSearched: boolean) => void;
-  onRefresh?: () => void;
-  refreshCount?: number;
+  onShowDifferent?: (handler: () => void) => void;
 }
 
-export function InternshipSearchContainer({ onApply, className, showResultsInTab = false, onSearchResults, onRefresh, refreshCount = 0 }: InternshipSearchContainerProps) {
+export function InternshipSearchContainer({ onApply, className, showResultsInTab = false, onSearchResults, onShowDifferent }: InternshipSearchContainerProps) {
   const PAGE_SIZE = 10;
   
   const [params, setParams] = useState<NormalizedParams>({
@@ -69,12 +68,29 @@ export function InternshipSearchContainer({ onApply, className, showResultsInTab
     return result;
   }, [shuffled, startIndex, PAGE_SIZE]);
 
+  const handleShowDifferent = useCallback(() => {
+    if (!shuffled || shuffled.length === 0) return;
+
+    setStartIndex((prev) => {
+      const n = shuffled.length;
+      if (n <= PAGE_SIZE) return 0; // nothing to rotate, everything is already visible
+      return (prev + PAGE_SIZE) % n;
+    });
+  }, [shuffled, PAGE_SIZE]);
+
   // Pass results back to parent when showResultsInTab is true
   React.useEffect(() => {
     if (showResultsInTab && onSearchResults) {
       onSearchResults(visible, isLoading || isFetching, true);
     }
   }, [visible, isLoading, isFetching, showResultsInTab, onSearchResults]);
+
+  // Pass the pagination handler to parent when showResultsInTab is true
+  React.useEffect(() => {
+    if (showResultsInTab && onShowDifferent) {
+      onShowDifferent(handleShowDifferent);
+    }
+  }, [showResultsInTab, onShowDifferent, handleShowDifferent]);
 
   // Show error toast when query fails
   React.useEffect(() => {
@@ -110,16 +126,6 @@ export function InternshipSearchContainer({ onApply, className, showResultsInTab
     });
     setHasFilters(false);
   }, []);
-  
-  const handleShowDifferent = useCallback(() => {
-    if (!shuffled || shuffled.length === 0) return;
-
-    setStartIndex((prev) => {
-      const n = shuffled.length;
-      if (n <= PAGE_SIZE) return 0; // nothing to rotate, everything is already visible
-      return (prev + PAGE_SIZE) % n;
-    });
-  }, [shuffled, PAGE_SIZE]);
 
   const handleApplyToInternship = useCallback((internshipId: string, applicationUrl: string) => {
     // 1️⃣ OPEN IMMEDIATELY (synchronous) - prevents popup blocking  

@@ -92,7 +92,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [showProfileWizard, setShowProfileWizard] = useState(false);
   const [tabSearchResults, setTabSearchResults] = useState<any[]>([]);
   const [tabIsSearching, setTabIsSearching] = useState(false);
-  const [refreshCount, setRefreshCount] = useState(0);
+  const [searchShowDifferent, setSearchShowDifferent] = useState<(() => void) | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   
   // Client-side pagination for Matches tab
@@ -106,13 +106,19 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     setTabIsSearching(isLoading);
   }, []);
 
+  const handleSearchShowDifferent = useCallback((handler: () => void) => {
+    setSearchShowDifferent(() => handler);
+  }, []);
+
   const handleRefreshSearch = useCallback(() => {
-    setRefreshCount(prev => prev + 1);
-    toast({
-      title: "Refreshing search",
-      description: "Loading next set of internships...",
-    });
-  }, [toast]);
+    if (searchShowDifferent) {
+      searchShowDifferent();
+      toast({
+        title: "Showing different results",
+        description: "Cycling through search results...",
+      });
+    }
+  }, [searchShowDifferent, toast]);
 
   // Remove the loadMatches function since we're using the hook
 
@@ -641,8 +647,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                   onApply={(id, url) => handleApply(id, url, true)} 
                   showResultsInTab={true} 
                   onSearchResults={handleSearchResults}
-                  onRefresh={handleRefreshSearch}
-                  refreshCount={refreshCount}
+                  onShowDifferent={handleSearchShowDifferent}
                 />
               </CardContent>
             </Card>
