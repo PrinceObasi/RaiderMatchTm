@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -92,6 +92,11 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [tabIsSearching, setTabIsSearching] = useState(false);
   const [refreshCount, setRefreshCount] = useState(0);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  
+  // Client-side pagination for Matches tab
+  const PAGE_SIZE = 10;
+  const [page, setPage] = useState(0);
+  
   const { toast } = useToast();
   
   const handleSearchResults = useCallback((results: any[], isLoading: boolean) => {
@@ -274,12 +279,34 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     }
   };
 
-  const handleRefreshMatches = async () => {
-    await refetchMatches();
-    toast({
-      title: "Refreshing matches",
-      description: "Loading fresh personalized matches...",
-    });
+  // Calculate pagination for Matches
+  const totalPages = Math.max(1, Math.ceil((matches?.length ?? 0) / PAGE_SIZE));
+  const visibleMatches = useMemo(
+    () => (matches ?? []).slice(page * PAGE_SIZE, page * PAGE_SIZE + PAGE_SIZE),
+    [matches, page]
+  );
+
+  // Reset page when matches change
+  useEffect(() => {
+    setPage(0);
+  }, [matches]);
+
+  const handleRefreshMatches = () => {
+    if (!matches || matches.length <= PAGE_SIZE) {
+      // If we have only one page or less, refetch from backend
+      refetchMatches();
+      toast({
+        title: "Refreshing matches",
+        description: "Loading fresh personalized matches...",
+      });
+    } else {
+      // Cycle through pages
+      setPage(prev => (prev + 1) % totalPages);
+      toast({
+        title: "Showing different results",
+        description: `Page ${((page + 1) % totalPages) + 1} of ${totalPages}`,
+      });
+    }
   };
 
   const handleApply = async (id: string, applyUrl: string, isInternship: boolean = false) => {
@@ -780,7 +807,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                       </div>
                     ) : (
                       <div className="space-y-4 sm:space-y-6">
-                         {matches.map((job) => (
+                         {visibleMatches.map((job) => (
                             <Card key={job.id} className="border hover:shadow-md transition-smooth">
                                <CardContent className="p-4 sm:p-6">
                                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
