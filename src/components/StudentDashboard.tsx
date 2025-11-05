@@ -94,7 +94,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [showOnboarding, setShowOnboarding] = useState(false);
   
   // Client-side pagination for Matches tab
-  const PAGE_SIZE = 10;
+  const PAGE_SIZE = 5;
   const [page, setPage] = useState(0);
   
   const { toast } = useToast();
