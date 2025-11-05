@@ -100,7 +100,51 @@ serve(async (req) => {
     const rows = sweOnly.split('<tr>').slice(1); // Skip first split (before first <tr>)
     console.log(`Found ${rows.length} table rows`)
     
+    // Define SWE filtering keywords
+    const NON_SWE_KEYWORDS = [
+      'product manager',
+      'product management',
+      'product intern',
+      'data scientist',
+      'data science intern',
+      'data analyst',
+      'quantitative researcher',
+      'quant researcher',
+      'quantitative analyst',
+      'trading analyst',
+      'hardware engineer',
+      'electrical engineer',
+      'firmware engineer',
+      'analog engineer',
+      'rf engineer',
+      'mechanical engineer',
+    ];
+
+    const SWE_KEYWORDS = [
+      'software engineer',
+      'software engineering',
+      'swe',
+      'full stack',
+      'full-stack',
+      'frontend engineer',
+      'front end engineer',
+      'backend engineer',
+      'back end engineer',
+      'web engineer',
+      'mobile engineer',
+      'ios engineer',
+      'android engineer',
+      'platform engineer',
+      'infrastructure engineer',
+      'devops engineer',
+      'site reliability',
+      'sre',
+      'ml engineer',
+      'machine learning engineer',
+    ];
+
     const internships = [];
+    let skippedNonSwe = 0;
 
     for (const row of rows) {
       // Skip header rows
@@ -119,6 +163,16 @@ serve(async (req) => {
       // Role is in second <td> (index 1)
       const roleHtml = tdMatches[1][1];
       const roleText = roleHtml.replace(/<[^>]+>/g, '').trim();
+      
+      // Filter out non-SWE roles
+      const titleLower = roleText.toLowerCase();
+      const isNonSwe = NON_SWE_KEYWORDS.some(kw => titleLower.includes(kw));
+      const hasSweKeyword = SWE_KEYWORDS.some(kw => titleLower.includes(kw));
+      
+      if (isNonSwe || !hasSweKeyword) {
+        skippedNonSwe++;
+        continue;
+      }
       
       // Location is in third <td> (index 2)  
       const locationHtml = tdMatches[2][1];
@@ -159,7 +213,7 @@ serve(async (req) => {
       });
     }
 
-    console.log(`Parsed ${internships.length} internships`)
+    console.log(`Parsed ${internships.length} SWE internships, skipped ${skippedNonSwe} non-SWE roles`)
     
     if (internships.length === 0) {
       console.warn('No internships parsed - table format may have changed')
@@ -167,7 +221,8 @@ serve(async (req) => {
         JSON.stringify({
           success: false,
           error: 'No internships found - README format may have changed',
-          total_parsed: 0
+          total_parsed: 0,
+          skipped_non_swe: skippedNonSwe
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
       )
@@ -254,8 +309,9 @@ serve(async (req) => {
     return new Response(
       JSON.stringify({
         success: true,
-        source: 'SimplifyJobs GitHub (HTML format)',
+        source: 'SimplifyJobs GitHub (SWE roles only)',
         total_parsed: internships.length,
+        skipped_non_swe: skippedNonSwe,
         inserted,
         skipped,
         errors: errors.slice(0, 5),
