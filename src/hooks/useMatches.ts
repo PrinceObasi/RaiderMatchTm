@@ -6,39 +6,58 @@ interface MatchedInternship {
   company: string;
   role_title: string | null;
   location: string | null;
-  application_link: string;
-  created_at: string | null;
+  work_mode: string | null;
   summary_text: string | null;
+  description_text: string | null;
   tech_stack: string[] | null;
+  match_count: number;
+  application_link: string;
+  direct_link: string;
+  link_type: string;
+  date_posted: string;
+  deadline: string;
+  visa_sponsorship: 'Yes' | 'No' | 'Unspecified';
 }
 
-export function useMatches(limit = 10, offset = 0) {
+export function useMatches(limit = 50) {
   return useQuery({
-    queryKey: ['matches', limit, offset],
+    queryKey: ['matches', limit],
     queryFn: async (): Promise<MatchedInternship[]> => {
-      const { data, error } = await supabase
-        .from('internships')
-        .select(`
-          id,
-          company,
-          role_title,
-          location,
-          application_link,
-          created_at,
-          summary_text,
-          tech_stack
-        `)
-        .eq('is_texas', true)
-        .not('role_title', 'ilike', '%phd%')
-        .order('created_at', { ascending: false })
-        .range(offset, offset + limit - 1);
+      // Get current user's student ID
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error('User not authenticated');
+      }
+
+      // Get student record to find student ID
+      const { data: student, error: studentError } = await supabase
+        .from('students')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (studentError || !student) {
+        console.error('Error fetching student:', studentError);
+        throw new Error('Student profile not found');
+      }
+
+      // Call the intelligent matching function
+      const { data, error } = await supabase.rpc('match_internships_for_user', {
+        p_user_id: student.id,
+        p_limit: limit
+      });
 
       if (error) {
         console.error('Error fetching matches:', error);
         throw error;
       }
 
-      return data || [];
+      // Ensure match_count is present, default to 0 if missing
+      return (data || []).map((item: any) => ({
+        ...item,
+        match_count: item.match_count ?? 0
+      }));
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: true,

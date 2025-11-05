@@ -82,10 +82,8 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [matchesOffset, setMatchesOffset] = useState(0);
-  
-  // Use the new matches hook instead of local state
-  const { data: matches = [], isLoading: isMatching, refetch: refetchMatches } = useMatches(10, matchesOffset);
+  // Use the intelligent matching hook
+  const { data: matches = [], isLoading: isMatching, refetch: refetchMatches } = useMatches(50);
   
   const [student, setStudent] = useState<any>(null);
   const [resumeAnalyzed, setResumeAnalyzed] = useState(false);
@@ -277,10 +275,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   };
 
   const handleRefreshMatches = async () => {
-    setMatchesOffset(prev => prev + 10);
+    await refetchMatches();
     toast({
-      title: "Loading next matches",
-      description: "Showing the next 10 internships...",
+      title: "Refreshing matches",
+      description: "Loading fresh personalized matches...",
     });
   };
 

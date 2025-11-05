@@ -281,21 +281,48 @@ function parseProjects(text: string): Project[] {
   return projects
 }
 
+// Map extracted skills to canonical tech_tags
+async function mapToCanonicalTags(supabase: any, extractedSkills: string[]): Promise<string[]> {
+  // Fetch canonical tech_tags from database
+  const { data: techTags, error } = await supabase
+    .from('tech_tags')
+    .select('tag')
+  
+  if (error || !techTags) {
+    console.error('Error fetching tech_tags:', error)
+    return []
+  }
+  
+  const canonicalTags = new Set(techTags.map((t: { tag: string }) => t.tag.toLowerCase()))
+  const mappedTags = new Set<string>()
+  
+  // Map extracted skills to canonical tags
+  extractedSkills.forEach(skill => {
+    const lowerSkill = skill.toLowerCase()
+    
+    // Check if skill exists in canonical list
+    if (canonicalTags.has(lowerSkill)) {
+      mappedTags.add(lowerSkill)
+    }
+  })
+  
+  return Array.from(mappedTags)
+}
+
 // Extract skills from text
 async function parseResumeSkills(text: string): Promise<string[]> {
   const skillsSet = new Set<string>()
   
   // Common tech skills to look for
   const techSkills = [
-    'JavaScript', 'TypeScript', 'React', 'Angular', 'Vue', 'Node.js', 'Express',
-    'Python', 'Java', 'C++', 'C#', 'PHP', 'Ruby', 'Go', 'Rust', 'Swift',
-    'HTML', 'CSS', 'SQL', 'MongoDB', 'PostgreSQL', 'MySQL', 'Redis',
-    'AWS', 'Azure', 'GCP', 'Docker', 'Kubernetes', 'Git', 'Linux',
-    'Machine Learning', 'AI', 'Data Science', 'TensorFlow', 'PyTorch',
-    'REST APIs', 'GraphQL', 'Microservices', 'CI/CD', 'Agile', 'Scrum',
-    'Figma', 'Adobe Creative Suite', 'Photoshop', 'Illustrator',
-    'Network Security', 'Cybersecurity', 'Penetration Testing', 'SIEM',
-    'Tableau', 'Power BI', 'R', 'Statistics', 'Analytics'
+    'javascript', 'typescript', 'react', 'angular', 'vue', 'node.js', 'express',
+    'python', 'java', 'c++', 'c#', 'php', 'ruby', 'go', 'rust', 'swift',
+    'html', 'css', 'sql', 'mongodb', 'postgresql', 'mysql', 'redis',
+    'aws', 'azure', 'gcp', 'docker', 'kubernetes', 'git', 'linux',
+    'tensorflow', 'pytorch', 'scikit-learn', 'pandas', 'numpy',
+    'graphql', 'rest', 'ci/cd', 'jenkins', 'terraform',
+    'figma', 'tailwind', 'bootstrap', 'sass', 'webpack',
+    'spring', 'django', 'flask', 'fastapi', 'next.js', 'vue.js'
   ]
   
   const lowerText = text.toLowerCase()
@@ -303,7 +330,7 @@ async function parseResumeSkills(text: string): Promise<string[]> {
   // Look for skills in the text
   techSkills.forEach(skill => {
     if (lowerText.includes(skill.toLowerCase())) {
-      skillsSet.add(skill)
+      skillsSet.add(skill.toLowerCase())
     }
   })
   
@@ -316,22 +343,26 @@ async function parseResumeSkills(text: string): Promise<string[]> {
     /\bc\+\+\b/gi,
     /\bc#\b/gi,
     /\bnode\.?js\b/gi,
-    /\breact\.?js\b/gi
+    /\breact\.?js\b/gi,
+    /\bvue\.?js\b/gi,
+    /\bnext\.?js\b/gi
   ]
   
   programmingPatterns.forEach(pattern => {
     const matches = text.match(pattern)
     if (matches) {
       matches.forEach(match => {
-        const normalized = match.replace(/[^\w\+#]/g, '').toLowerCase()
-        if (normalized === 'javascript' || normalized === 'js') skillsSet.add('JavaScript')
-        else if (normalized === 'typescript' || normalized === 'ts') skillsSet.add('TypeScript')
-        else if (normalized === 'python') skillsSet.add('Python')
-        else if (normalized === 'java') skillsSet.add('Java')
-        else if (normalized === 'c++') skillsSet.add('C++')
-        else if (normalized === 'c#') skillsSet.add('C#')
-        else if (normalized.includes('node')) skillsSet.add('Node.js')
-        else if (normalized.includes('react')) skillsSet.add('React')
+        const normalized = match.replace(/[^\w\+#.]/g, '').toLowerCase()
+        if (normalized === 'javascript' || normalized === 'js') skillsSet.add('javascript')
+        else if (normalized === 'typescript' || normalized === 'ts') skillsSet.add('typescript')
+        else if (normalized === 'python') skillsSet.add('python')
+        else if (normalized === 'java') skillsSet.add('java')
+        else if (normalized === 'c++') skillsSet.add('c++')
+        else if (normalized === 'c#') skillsSet.add('c#')
+        else if (normalized.includes('node')) skillsSet.add('node.js')
+        else if (normalized.includes('react')) skillsSet.add('react')
+        else if (normalized.includes('vue')) skillsSet.add('vue.js')
+        else if (normalized.includes('next')) skillsSet.add('next.js')
       })
     }
   })
@@ -424,8 +455,12 @@ Deno.serve(async (req) => {
     
     // Parse comprehensive resume information
     const parsedData = await parseResume(extractedText)
+    
+    // Map skills to canonical tech_tags
+    const canonicalTechStack = await mapToCanonicalTags(supabase, parsedData.skills)
 
     console.log('Extracted data:', parsedData)
+    console.log('Canonical tech_stack:', canonicalTechStack)
 
     // Upload file to Supabase Storage with standardized path
     const fileName = `${user.id}/resume.pdf`
@@ -452,7 +487,9 @@ Deno.serve(async (req) => {
     // Update student record with all parsed information
     const updateData: any = {
       skills: parsedData.skills,
-      resume_url: urlData.publicUrl
+      tech_stack: canonicalTechStack,  // Store canonical tags for matching
+      resume_url: urlData.publicUrl,
+      resume_uploaded: true
     }
     
     if (parsedData.gpa !== undefined) updateData.gpa = parsedData.gpa
