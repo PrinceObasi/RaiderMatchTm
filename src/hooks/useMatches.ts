@@ -23,28 +23,15 @@ export function useMatches(limit = 50) {
   return useQuery({
     queryKey: ['matches', limit],
     queryFn: async (): Promise<MatchedInternship[]> => {
-      // Get current user's student ID
       const { data: { user } } = await supabase.auth.getUser();
       
       if (!user) {
         throw new Error('User not authenticated');
       }
 
-      // Get student record to find student ID
-      const { data: student, error: studentError } = await supabase
-        .from('students')
-        .select('id')
-        .eq('user_id', user.id)
-        .single();
-
-      if (studentError || !student) {
-        console.error('Error fetching student:', studentError);
-        throw new Error('Student profile not found');
-      }
-
       // Call the intelligent matching function
       const { data, error } = await supabase.rpc('match_internships_for_user', {
-        p_user_id: student.id,
+        p_user_id: user.id,
         p_limit: limit
       });
 
