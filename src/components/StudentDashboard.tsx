@@ -210,6 +210,8 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
         
         if (updatedStudent) {
           setStudent(updatedStudent);
+          // Refetch matches immediately after tech_stack is updated
+          refetchMatches();
         }
       }
 
