@@ -8,16 +8,18 @@ interface MatchedInternship {
   location: string | null;
   work_mode: string | null;
   summary_text: string | null;
-  description_text: string | null;
+  description_text?: string | null;
   tech_stack: string[] | null;
   match_count: number;
   matched_tags: string[] | null;
   application_link: string;
-  direct_link: string;
-  link_type: string;
-  date_posted: string;
-  deadline: string;
-  visa_sponsorship: 'Yes' | 'No' | 'Unspecified';
+  direct_link?: string;
+  link_type?: string;
+  date_posted?: string;
+  deadline?: string;
+  visa_sponsorship?: 'Yes' | 'No' | 'Unspecified';
+  // Allow any other fields from internships table
+  [key: string]: any;
 }
 
 export function useMatches(limit = 50) {
@@ -30,23 +32,49 @@ export function useMatches(limit = 50) {
         throw new Error('User not authenticated');
       }
 
-      // Call the intelligent matching function
-      const { data, error } = await supabase.rpc('match_internships_for_user', {
+      // Call the intelligent matching function to get matched internship IDs
+      const { data: matchData, error: matchError } = await supabase.rpc('match_internships_for_user', {
         p_user_id: user.id,
         p_limit: limit
       });
 
-      if (error) {
-        console.error('Error fetching matches:', error);
-        throw error;
+      if (matchError) {
+        console.error('Error fetching matches:', matchError);
+        throw matchError;
       }
 
-      // Ensure match_count and matched_tags are present
-      return (data || []).map((item: any) => ({
-        ...item,
-        match_count: item.match_count ?? 0,
-        matched_tags: item.matched_tags ?? []
-      }));
+      if (!matchData || matchData.length === 0) {
+        return [];
+      }
+
+      // Get full internship details for matched IDs
+      const internshipIds = matchData.map((m: any) => m.id);
+      const { data: internships, error: internshipsError } = await supabase
+        .from('internships')
+        .select('*')
+        .in('id', internshipIds);
+
+      if (internshipsError) {
+        console.error('Error fetching internship details:', internshipsError);
+        throw internshipsError;
+      }
+
+      // Merge match data with full internship details
+      return (matchData || []).map((match: any) => {
+        const internship = internships?.find((i) => i.id === match.id);
+        return {
+          ...internship,
+          match_count: match.match_count ?? 0,
+          matched_tags: match.matched_tags ?? [],
+          // Keep the matched fields from RPC
+          role_title: match.role_title || internship?.role_title,
+          company: match.company || internship?.company,
+          location: match.location || internship?.location,
+          work_mode: match.work_mode || internship?.work_mode,
+          summary_text: match.summary_text || internship?.summary_text,
+          tech_stack: match.tech_stack || internship?.tech_stack,
+        };
+      });
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
     enabled: true,
