@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -79,6 +80,7 @@ interface StudentDashboardProps {
 }
 
 export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardProps) {
+  const queryClient = useQueryClient();
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -211,7 +213,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
         if (updatedStudent) {
           setStudent(updatedStudent);
           // Refetch matches immediately after tech_stack is updated
-          refetchMatches();
+          await queryClient.invalidateQueries({ queryKey: ["matches", currentUser.id] });
         }
       }
 
@@ -239,7 +241,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
               if (response.ok) {
                 console.log('Profile keywords updated successfully');
                 // Refetch matches to get updated results
-                refetchMatches();
+                const { data: { user: u } } = await supabase.auth.getUser();
+                if (u) {
+                  await queryClient.invalidateQueries({ queryKey: ["matches", u.id] });
+                }
               } else {
                 console.warn('Failed to update profile keywords:', await response.text());
               }
@@ -458,7 +463,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
               if (response.ok) {
                 console.log('Profile keywords updated successfully');
                 // Refetch matches to get updated results
-                refetchMatches();
+                const { data: { user: u } } = await supabase.auth.getUser();
+                if (u) {
+                  await queryClient.invalidateQueries({ queryKey: ["matches", u.id] });
+                }
               } else {
                 console.warn('Failed to update profile keywords:', await response.text());
               }

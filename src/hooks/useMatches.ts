@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
 interface MatchedInternship {
@@ -23,18 +24,22 @@ interface MatchedInternship {
 }
 
 export function useMatches(limit = 50) {
+  const [userId, setUserId] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => setUserId(user?.id ?? null));
+  }, []);
+
   return useQuery({
-    queryKey: ['matches', limit],
+    queryKey: ['matches', userId],
     queryFn: async (): Promise<MatchedInternship[]> => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
+      if (!userId) {
         throw new Error('User not authenticated');
       }
 
       // Call the intelligent matching function to get matched internship IDs
       const { data: matchData, error: matchError } = await supabase.rpc('match_internships_for_user', {
-        p_user_id: user.id,
+        p_user_id: userId,
         p_limit: limit
       });
 
@@ -77,6 +82,6 @@ export function useMatches(limit = 50) {
       });
     },
     staleTime: 5 * 60 * 1000, // 5 minutes
-    enabled: true,
+    enabled: !!userId,
   });
 }
