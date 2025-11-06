@@ -6,6 +6,10 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
+function sleep(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms))
+}
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -18,18 +22,14 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    const body = await req.json().catch(() => ({}))
+    const limit: number = body.limit ?? 30
+
     console.log('Starting batch enrichment process')
 
-    // Get internships that haven't been enriched
-    // Only process active internships that haven't failed 3+ times
+    // Use the SQL function to get candidates (already filters active + < 3 attempts)
     const { data: internships, error: fetchError } = await supabaseClient
-      .from('internships')
-      .select('id, application_link, enrichment_attempts')
-      .eq('is_active', true)
-      .not('application_link', 'is', null)
-      .or('summary_text.is.null,description_text.is.null,tech_stack.is.null')
-      .lt('enrichment_attempts', 3)
-      .limit(30) // Process 30 internships per batch
+      .rpc('get_internships_needing_enrichment', { p_limit: limit })
 
     if (fetchError) {
       console.error('Fetch error:', fetchError)
@@ -49,9 +49,14 @@ serve(async (req) => {
     console.log(`Processing ${internships.length} internships`)
 
     // Process each internship
-    const results = []
+    let processed = 0
+    let archived = 0
+    let aiErrors = 0
+    let enriched = 0
     
     for (const internship of internships) {
+      processed += 1
+      
       try {
         console.log(`Processing internship ${internship.id}`)
         
@@ -59,51 +64,38 @@ serve(async (req) => {
           body: { id: internship.id }
         })
 
-        if (response.error || !response.data?.ok) {
-          console.log(`Enrichment failed for ${internship.id}: ${response.error?.message || response.data?.reason}`)
-          
-          results.push({
-            id: internship.id,
-            success: false,
-            error: response.error?.message || response.data?.reason || 'Unknown error',
-            archived: response.data?.archived || false
-          })
+        if (response.error) {
+          console.log(`HTTP error for ${internship.id}: ${response.error.message}`)
+          aiErrors += 1
+        } else if (response.data?.archived) {
+          console.log(`Archived ${internship.id} as job closed`)
+          archived += 1
+        } else if (response.data?.ok) {
+          console.log(`Successfully enriched ${internship.id}`)
+          enriched += 1
         } else {
-          results.push({
-            id: internship.id,
-            company: response.data?.company,
-            role: response.data?.role,
-            summary: response.data?.summary,
-            tech_stack: response.data?.tech_stack,
-            success: true,
-            error: null
-          })
+          console.log(`AI error for ${internship.id}: ${response.data?.reason}`)
+          aiErrors += 1
         }
 
-        // Add small delay to avoid overwhelming external servers
-        await new Promise(resolve => setTimeout(resolve, 2000))
+        // 2-second delay to avoid overwhelming ATS/AI
+        await sleep(2000)
       } catch (error) {
         console.error(`Error processing ${internship.id}:`, error)
-        
-        results.push({
-          id: internship.id,
-          success: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-          archived: false
-        })
+        aiErrors += 1
+        await sleep(2000)
       }
     }
-
-    const successCount = results.filter(r => r.success).length
     
-    console.log(`Batch complete: ${successCount}/${results.length} successful`)
+    console.log(`Batch complete: ${enriched} enriched, ${archived} archived, ${aiErrors} errors`)
     
     return new Response(
       JSON.stringify({
-        processed: results.length,
-        successful: successCount,
-        failed: results.length - successCount,
-        results
+        status: 'completed',
+        processed,
+        enriched,
+        archived,
+        ai_errors: aiErrors
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     )

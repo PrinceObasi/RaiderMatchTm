@@ -9,6 +9,17 @@ const corsHeaders = {
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')
 
+// Dead job detection
+const DEAD_JOB_STATUSES = new Set([404, 410])
+const DEAD_JOB_PHRASES = [
+  'posting is no longer available',
+  'this job is no longer available',
+  'job not found',
+  'this position has been filled',
+  'position has been filled',
+  'no longer accepting applications'
+]
+
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
@@ -32,10 +43,10 @@ serve(async (req) => {
 
     console.log(`Starting enrichment for internship ${id}`)
 
-    // Get the internship record with company and role_title
+    // Get the internship record
     const { data: internship, error: fetchError } = await supabaseClient
       .from('internships')
-      .select('application_link, company, role_title')
+      .select('application_link, company, role_title, enrichment_attempts, summary_text, tech_stack')
       .eq('id', id)
       .single()
 
@@ -44,6 +55,17 @@ serve(async (req) => {
       return new Response(
         JSON.stringify({ error: 'Internship not found' }),
         { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
+    const attempts = (internship.enrichment_attempts ?? 0) + 1
+
+    // If already enriched, skip
+    const alreadyEnriched = internship.summary_text && internship.tech_stack && internship.tech_stack.length > 0
+    if (alreadyEnriched) {
+      return new Response(
+        JSON.stringify({ ok: true, status: 'already_enriched' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
@@ -74,8 +96,8 @@ serve(async (req) => {
       clearTimeout(timeoutId)
       httpStatus = response.status
 
-      // Check if job is closed/dead (404, 410)
-      if (httpStatus === 404 || httpStatus === 410) {
+      // CATEGORY 1: Dead job by HTTP status (404, 410)
+      if (DEAD_JOB_STATUSES.has(httpStatus)) {
         console.log(`Job page returned ${httpStatus}, archiving as closed`)
         
         const { error: archiveError } = await supabaseClient
@@ -84,6 +106,7 @@ serve(async (req) => {
             is_active: false,
             archived_at: new Date().toISOString(),
             enrichment_confidence: 0,
+            enrichment_attempts: attempts,
             notes: 'job_closed'
           })
           .eq('id', id)
@@ -105,18 +128,9 @@ serve(async (req) => {
       html = await response.text()
       console.log(`Successfully fetched HTML, length: ${html.length}`)
       
-      // Check for dead job phrases in HTML
-      const deadJobPhrases = [
-        'posting is no longer available',
-        'this job is no longer available',
-        'job not found',
-        'this position has been filled',
-        'position has been filled',
-        'no longer accepting applications'
-      ]
-      
+      // CATEGORY 1: Dead job by body phrases
       const htmlLower = html.toLowerCase()
-      const isDead = deadJobPhrases.some(phrase => htmlLower.includes(phrase))
+      const isDead = DEAD_JOB_PHRASES.some(phrase => htmlLower.includes(phrase))
       
       if (isDead) {
         console.log(`Job page contains "closed" phrase, archiving`)
@@ -127,6 +141,7 @@ serve(async (req) => {
             is_active: false,
             archived_at: new Date().toISOString(),
             enrichment_confidence: 0,
+            enrichment_attempts: attempts,
             notes: 'job_closed'
           })
           .eq('id', id)
@@ -145,18 +160,12 @@ serve(async (req) => {
       clearTimeout(timeoutId)
       console.error('Fetch error:', fetchError)
       
-      // Increment enrichment_attempts for fetch failures (AI/pipeline errors)
-      const { data: current } = await supabaseClient
-        .from('internships')
-        .select('enrichment_attempts')
-        .eq('id', id)
-        .single()
-      
+      // CATEGORY 2: AI/Pipeline error - increment attempts, don't archive
       await supabaseClient
         .from('internships')
         .update({
           enrichment_confidence: 0,
-          enrichment_attempts: (current?.enrichment_attempts ?? 0) + 1,
+          enrichment_attempts: attempts,
           notes: `ai_error: fetch failed - ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`
         })
         .eq('id', id)
@@ -179,21 +188,15 @@ serve(async (req) => {
       confidence: enrichmentData.confidence 
     })
 
-    // Increment attempts if enrichment confidence is too low (AI failure, not dead job)
+    // CATEGORY 2: AI error - low confidence means AI couldn't parse properly
     if (enrichmentData.confidence === 0) {
       console.log(`Low confidence enrichment for ${id}, incrementing attempts`)
-      
-      const { data: current } = await supabaseClient
-        .from('internships')
-        .select('enrichment_attempts')
-        .eq('id', id)
-        .single()
       
       const { error: updateError } = await supabaseClient
         .from('internships')
         .update({
           enrichment_confidence: 0,
-          enrichment_attempts: (current?.enrichment_attempts ?? 0) + 1,
+          enrichment_attempts: attempts,
           notes: `ai_error: ${enrichmentData.summary}`
         })
         .eq('id', id)
@@ -212,7 +215,7 @@ serve(async (req) => {
       )
     }
 
-    // Update the database
+    // Update the database with successful enrichment
     const { error: updateError } = await supabaseClient
       .from('internships')
       .update({
@@ -220,6 +223,7 @@ serve(async (req) => {
         summary_text: enrichmentData.summary,
         tech_stack: enrichmentData.tech_stack,
         enrichment_confidence: enrichmentData.confidence,
+        enrichment_attempts: attempts,
         enriched_at: new Date().toISOString()
       })
       .eq('id', id)
