@@ -61,6 +61,8 @@ serve(async (req) => {
     const timeoutId = setTimeout(() => controller.abort(), 10000) // 10s timeout
 
     let html: string
+    let httpStatus: number
+    
     try {
       const response = await fetch(internship.application_link, {
         headers: {
@@ -70,6 +72,31 @@ serve(async (req) => {
       })
 
       clearTimeout(timeoutId)
+      httpStatus = response.status
+
+      // Check if job is closed/dead (404, 410)
+      if (httpStatus === 404 || httpStatus === 410) {
+        console.log(`Job page returned ${httpStatus}, archiving as closed`)
+        
+        const { error: archiveError } = await supabaseClient
+          .from('internships')
+          .update({
+            is_active: false,
+            archived_at: new Date().toISOString(),
+            enrichment_confidence: 0,
+            notes: 'job_closed'
+          })
+          .eq('id', id)
+        
+        return new Response(
+          JSON.stringify({ 
+            ok: false, 
+            archived: !archiveError,
+            reason: `Job page returned ${httpStatus}` 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
 
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`)
@@ -77,11 +104,69 @@ serve(async (req) => {
 
       html = await response.text()
       console.log(`Successfully fetched HTML, length: ${html.length}`)
+      
+      // Check for dead job phrases in HTML
+      const deadJobPhrases = [
+        'posting is no longer available',
+        'this job is no longer available',
+        'job not found',
+        'this position has been filled',
+        'position has been filled',
+        'no longer accepting applications'
+      ]
+      
+      const htmlLower = html.toLowerCase()
+      const isDead = deadJobPhrases.some(phrase => htmlLower.includes(phrase))
+      
+      if (isDead) {
+        console.log(`Job page contains "closed" phrase, archiving`)
+        
+        const { error: archiveError } = await supabaseClient
+          .from('internships')
+          .update({
+            is_active: false,
+            archived_at: new Date().toISOString(),
+            enrichment_confidence: 0,
+            notes: 'job_closed'
+          })
+          .eq('id', id)
+        
+        return new Response(
+          JSON.stringify({ 
+            ok: false, 
+            archived: !archiveError,
+            reason: 'Job posting no longer available' 
+          }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      
     } catch (fetchError) {
       clearTimeout(timeoutId)
       console.error('Fetch error:', fetchError)
+      
+      // Increment enrichment_attempts for fetch failures (AI/pipeline errors)
+      const { data: current } = await supabaseClient
+        .from('internships')
+        .select('enrichment_attempts')
+        .eq('id', id)
+        .single()
+      
+      await supabaseClient
+        .from('internships')
+        .update({
+          enrichment_confidence: 0,
+          enrichment_attempts: (current?.enrichment_attempts ?? 0) + 1,
+          notes: `ai_error: fetch failed - ${fetchError instanceof Error ? fetchError.message : 'Unknown error'}`
+        })
+        .eq('id', id)
+      
       return new Response(
-        JSON.stringify({ error: 'Failed to fetch job page' }),
+        JSON.stringify({ 
+          ok: false, 
+          archived: false,
+          reason: 'Failed to fetch job page' 
+        }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -94,28 +179,33 @@ serve(async (req) => {
       confidence: enrichmentData.confidence 
     })
 
-    // Archive if enrichment confidence is too low
+    // Increment attempts if enrichment confidence is too low (AI failure, not dead job)
     if (enrichmentData.confidence === 0) {
-      console.log(`Low confidence enrichment for ${id}, archiving`)
+      console.log(`Low confidence enrichment for ${id}, incrementing attempts`)
       
-      const { error: archiveError } = await supabaseClient
+      const { data: current } = await supabaseClient
+        .from('internships')
+        .select('enrichment_attempts')
+        .eq('id', id)
+        .single()
+      
+      const { error: updateError } = await supabaseClient
         .from('internships')
         .update({
-          is_active: false,
-          archived_at: new Date().toISOString(),
-          notes: `Enrichment failed: ${enrichmentData.summary}`,
-          enrichment_confidence: 0
+          enrichment_confidence: 0,
+          enrichment_attempts: (current?.enrichment_attempts ?? 0) + 1,
+          notes: `ai_error: ${enrichmentData.summary}`
         })
         .eq('id', id)
       
-      if (archiveError) {
-        console.error('Archive error:', archiveError)
+      if (updateError) {
+        console.error('Update error:', updateError)
       }
       
       return new Response(
         JSON.stringify({ 
           ok: false, 
-          archived: !archiveError,
+          archived: false,
           reason: enrichmentData.summary 
         }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -21,11 +21,14 @@ serve(async (req) => {
     console.log('Starting batch enrichment process')
 
     // Get internships that haven't been enriched
+    // Only process active internships that haven't failed 3+ times
     const { data: internships, error: fetchError } = await supabaseClient
       .from('internships')
-      .select('id, application_link')
-      .is('summary_text', null)
+      .select('id, application_link, enrichment_attempts')
+      .eq('is_active', true)
       .not('application_link', 'is', null)
+      .or('summary_text.is.null,description_text.is.null,tech_stack.is.null')
+      .lt('enrichment_attempts', 3)
       .limit(30) // Process 30 internships per batch
 
     if (fetchError) {
@@ -56,28 +59,14 @@ serve(async (req) => {
           body: { id: internship.id }
         })
 
-        if (response.error) {
-          console.log(`Enrichment failed for ${internship.id}, archiving internship`)
-          
-          // Archive failed internship instead of deleting
-          const { error: archiveError } = await supabaseClient
-            .from('internships')
-            .update({
-              is_active: false,
-              archived_at: new Date().toISOString(),
-              notes: `Enrichment failed: ${response.error.message}`
-            })
-            .eq('id', internship.id)
-          
-          if (archiveError) {
-            console.error(`Failed to archive internship ${internship.id}:`, archiveError)
-          }
+        if (response.error || !response.data?.ok) {
+          console.log(`Enrichment failed for ${internship.id}: ${response.error?.message || response.data?.reason}`)
           
           results.push({
             id: internship.id,
             success: false,
-            error: response.error.message,
-            archived: !archiveError
+            error: response.error?.message || response.data?.reason || 'Unknown error',
+            archived: response.data?.archived || false
           })
         } else {
           results.push({
@@ -96,25 +85,11 @@ serve(async (req) => {
       } catch (error) {
         console.error(`Error processing ${internship.id}:`, error)
         
-        // Archive internship on exception instead of deleting
-        const { error: archiveError } = await supabaseClient
-          .from('internships')
-          .update({
-            is_active: false,
-            archived_at: new Date().toISOString(),
-            notes: `Enrichment error: ${error instanceof Error ? error.message : 'Unknown error'}`
-          })
-          .eq('id', internship.id)
-        
-        if (archiveError) {
-          console.error(`Failed to archive internship ${internship.id}:`, archiveError)
-        }
-        
         results.push({
           id: internship.id,
           success: false,
           error: error instanceof Error ? error.message : 'Unknown error',
-          archived: !archiveError
+          archived: false
         })
       }
     }
