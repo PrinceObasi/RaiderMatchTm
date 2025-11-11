@@ -514,6 +514,7 @@ export type Database = {
           class_year: Database["public"]["Enums"]["class_year"] | null
           created_at: string
           degree: string | null
+          devpost_url: string | null
           email: string
           github: string | null
           gpa: number | null
@@ -522,6 +523,8 @@ export type Database = {
           has_prev_intern: boolean | null
           id: string
           is_international: boolean | null
+          kaggle_url: string | null
+          leetcode_url: string | null
           linkedin_url: string | null
           location_city: string | null
           location_state: string | null
@@ -547,6 +550,7 @@ export type Database = {
           class_year?: Database["public"]["Enums"]["class_year"] | null
           created_at?: string
           degree?: string | null
+          devpost_url?: string | null
           email: string
           github?: string | null
           gpa?: number | null
@@ -555,6 +559,8 @@ export type Database = {
           has_prev_intern?: boolean | null
           id?: string
           is_international?: boolean | null
+          kaggle_url?: string | null
+          leetcode_url?: string | null
           linkedin_url?: string | null
           location_city?: string | null
           location_state?: string | null
@@ -580,6 +586,7 @@ export type Database = {
           class_year?: Database["public"]["Enums"]["class_year"] | null
           created_at?: string
           degree?: string | null
+          devpost_url?: string | null
           email?: string
           github?: string | null
           gpa?: number | null
@@ -588,6 +595,8 @@ export type Database = {
           has_prev_intern?: boolean | null
           id?: string
           is_international?: boolean | null
+          kaggle_url?: string | null
+          leetcode_url?: string | null
           linkedin_url?: string | null
           location_city?: string | null
           location_state?: string | null
