@@ -468,9 +468,7 @@ export type Database = {
         Row: {
           created_at: string | null
           id: string
-          open_to_any_location: boolean | null
           preferred_company_stages: string[] | null
-          preferred_locations: string[] | null
           preferred_roles: string[] | null
           preferred_work_mode: string | null
           student_id: string
@@ -481,9 +479,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           id?: string
-          open_to_any_location?: boolean | null
           preferred_company_stages?: string[] | null
-          preferred_locations?: string[] | null
           preferred_roles?: string[] | null
           preferred_work_mode?: string | null
           student_id: string
@@ -494,9 +490,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           id?: string
-          open_to_any_location?: boolean | null
           preferred_company_stages?: string[] | null
-          preferred_locations?: string[] | null
           preferred_roles?: string[] | null
           preferred_work_mode?: string | null
           student_id?: string

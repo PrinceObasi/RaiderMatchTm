@@ -21,8 +21,6 @@ interface SettingsProps {
 
 interface MatchPreferences {
   preferred_roles: string[];
-  preferred_locations: string[];
-  open_to_any_location: boolean;
   preferred_work_mode: string;
   preferred_company_stages: string[];
   tech_interests: string[];
@@ -39,8 +37,6 @@ export function Settings({ userType, onAccountDeleted, onBack }: SettingsProps) 
   
   const [preferences, setPreferences] = useState<MatchPreferences>({
     preferred_roles: [],
-    preferred_locations: [],
-    open_to_any_location: false,
     preferred_work_mode: 'no_preference',
     preferred_company_stages: [],
     tech_interests: [],
@@ -85,8 +81,6 @@ export function Settings({ userType, onAccountDeleted, onBack }: SettingsProps) 
         const prefs = data as any;
         setPreferences({
           preferred_roles: prefs.preferred_roles || [],
-          preferred_locations: prefs.preferred_locations || [],
-          open_to_any_location: prefs.open_to_any_location || false,
           preferred_work_mode: prefs.preferred_work_mode || 'no_preference',
           preferred_company_stages: prefs.preferred_company_stages || [],
           tech_interests: prefs.tech_interests || [],
@@ -294,56 +288,6 @@ export function Settings({ userType, onAccountDeleted, onBack }: SettingsProps) 
                             </label>
                           </div>
                         ))}
-                      </div>
-                    </div>
-
-                    {/* Preferred Locations */}
-                    <div className="space-y-3">
-                      <Label>Preferred Locations</Label>
-                      <div className="space-y-3">
-                        <div className="flex items-center space-x-2">
-                          <Switch
-                            id="any-location"
-                            checked={preferences.open_to_any_location}
-                            onCheckedChange={(checked) => {
-                              setPreferences({
-                                ...preferences,
-                                open_to_any_location: checked
-                              });
-                            }}
-                          />
-                          <label
-                            htmlFor="any-location"
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                          >
-                            Open to any location
-                          </label>
-                        </div>
-                        
-                        {!preferences.open_to_any_location && (
-                          <div className="grid grid-cols-2 gap-3 pl-1">
-                            {['Austin, TX', 'Dallas, TX', 'Houston, TX', 'San Antonio, TX', 'Remote (USA)'].map((location) => (
-                              <div key={location} className="flex items-center space-x-2">
-                                <Checkbox
-                                  id={`location-${location}`}
-                                  checked={preferences.preferred_locations.includes(location)}
-                                  onCheckedChange={() => {
-                                    setPreferences({
-                                      ...preferences,
-                                      preferred_locations: toggleArrayValue(preferences.preferred_locations, location)
-                                    });
-                                  }}
-                                />
-                                <label
-                                  htmlFor={`location-${location}`}
-                                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                                >
-                                  {location}
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                        )}
                       </div>
                     </div>
 
