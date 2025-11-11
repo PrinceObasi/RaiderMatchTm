@@ -25,25 +25,9 @@ export async function getSignupsByYearAndStatus() {
 
 // b) Top 10 internships by apply_click count
 export async function getTopInternshipsByApplyClicks(limit = 10) {
-  const { data: events, error } = await supabase
-    .from('job_events')
-    .select('internship_id, internships(company, role_title)')
-    .eq('event_type', 'apply_click');
-  
-  if (error) throw error;
-  
-  const grouped = events?.reduce((acc: any, event) => {
-    const id = event.internship_id;
-    if (!acc[id]) {
-      acc[id] = { internship_id: id, count: 0, internship: event.internships };
-    }
-    acc[id].count++;
-    return acc;
-  }, {});
-  
-  return Object.values(grouped || {})
-    .sort((a: any, b: any) => b.count - a.count)
-    .slice(0, limit);
+  // Note: This requires a job_events table to be created
+  // Disabled until table is available
+  return [];
 }
 
 // c) Ratio of international vs. domestic users
@@ -94,22 +78,9 @@ export async function trackJobEvent(
   internshipId: string,
   eventType: 'view' | 'apply_click' | 'save'
 ) {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) return null;
-  
-  const { data, error } = await supabase
-    .from('job_events')
-    .insert({
-      user_id: user.id,
-      internship_id: internshipId,
-      event_type: eventType
-    })
-    .select()
-    .single();
-  
-  if (error) console.error('Error tracking event:', error);
-  return data;
+  // Note: This requires a job_events table to be created
+  // Disabled until table is available
+  return null;
 }
 
 // Submit feedback
@@ -118,21 +89,7 @@ export async function submitFeedback(
   feedbackType: 'thumbs_up' | 'thumbs_down' | 'bug' | 'feature_request',
   text?: string
 ) {
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  if (!user) return null;
-  
-  const { data, error } = await supabase
-    .from('feedback')
-    .insert({
-      user_id: user.id,
-      internship_id: internshipId,
-      feedback_type: feedbackType,
-      text: text || null
-    })
-    .select()
-    .single();
-  
-  if (error) console.error('Error submitting feedback:', error);
-  return data;
+  // Note: This requires a feedback table to be created
+  // Disabled until table is available
+  return null;
 }

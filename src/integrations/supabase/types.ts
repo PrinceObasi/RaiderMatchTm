@@ -81,14 +81,7 @@ export type Database = {
             foreignKeyName: "applications_internship_id_fkey"
             columns: ["internship_id"]
             isOneToOne: false
-            referencedRelation: "active_internships_city_norm"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "applications_internship_id_fkey"
-            columns: ["internship_id"]
-            isOneToOne: false
-            referencedRelation: "active_internships_normalized"
+            referencedRelation: "enriched_active_internships"
             referencedColumns: ["id"]
           },
           {
@@ -96,13 +89,6 @@ export type Database = {
             columns: ["internship_id"]
             isOneToOne: false
             referencedRelation: "internships"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "applications_internship_id_fkey"
-            columns: ["internship_id"]
-            isOneToOne: false
-            referencedRelation: "jobs_for_app"
             referencedColumns: ["id"]
           },
           {
@@ -163,76 +149,6 @@ export type Database = {
           student_name?: string
         }
         Relationships: []
-      }
-      feedback: {
-        Row: {
-          created_at: string
-          feedback_type: string
-          id: number
-          internship_id: string | null
-          text: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          feedback_type: string
-          id?: number
-          internship_id?: string | null
-          text?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          feedback_type?: string
-          id?: number
-          internship_id?: string | null
-          text?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "feedback_internship_id_fkey"
-            columns: ["internship_id"]
-            isOneToOne: false
-            referencedRelation: "active_internships"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feedback_internship_id_fkey"
-            columns: ["internship_id"]
-            isOneToOne: false
-            referencedRelation: "active_internships_city_norm"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feedback_internship_id_fkey"
-            columns: ["internship_id"]
-            isOneToOne: false
-            referencedRelation: "active_internships_normalized"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feedback_internship_id_fkey"
-            columns: ["internship_id"]
-            isOneToOne: false
-            referencedRelation: "internships"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feedback_internship_id_fkey"
-            columns: ["internship_id"]
-            isOneToOne: false
-            referencedRelation: "jobs_for_app"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "feedback_internship_id_fkey"
-            columns: ["internship_id"]
-            isOneToOne: false
-            referencedRelation: "ux_internships"
-            referencedColumns: ["id"]
-          },
-        ]
       }
       internships: {
         Row: {
@@ -430,14 +346,7 @@ export type Database = {
             foreignKeyName: "internships_duplicate_of_fkey"
             columns: ["duplicate_of"]
             isOneToOne: false
-            referencedRelation: "active_internships_city_norm"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "internships_duplicate_of_fkey"
-            columns: ["duplicate_of"]
-            isOneToOne: false
-            referencedRelation: "active_internships_normalized"
+            referencedRelation: "enriched_active_internships"
             referencedColumns: ["id"]
           },
           {
@@ -450,80 +359,6 @@ export type Database = {
           {
             foreignKeyName: "internships_duplicate_of_fkey"
             columns: ["duplicate_of"]
-            isOneToOne: false
-            referencedRelation: "jobs_for_app"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "internships_duplicate_of_fkey"
-            columns: ["duplicate_of"]
-            isOneToOne: false
-            referencedRelation: "ux_internships"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      job_events: {
-        Row: {
-          created_at: string
-          event_type: string
-          id: number
-          internship_id: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          event_type: string
-          id?: number
-          internship_id?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          event_type?: string
-          id?: number
-          internship_id?: string | null
-          user_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "job_events_internship_id_fkey"
-            columns: ["internship_id"]
-            isOneToOne: false
-            referencedRelation: "active_internships"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "job_events_internship_id_fkey"
-            columns: ["internship_id"]
-            isOneToOne: false
-            referencedRelation: "active_internships_city_norm"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "job_events_internship_id_fkey"
-            columns: ["internship_id"]
-            isOneToOne: false
-            referencedRelation: "active_internships_normalized"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "job_events_internship_id_fkey"
-            columns: ["internship_id"]
-            isOneToOne: false
-            referencedRelation: "internships"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "job_events_internship_id_fkey"
-            columns: ["internship_id"]
-            isOneToOne: false
-            referencedRelation: "jobs_for_app"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "job_events_internship_id_fkey"
-            columns: ["internship_id"]
             isOneToOne: false
             referencedRelation: "ux_internships"
             referencedColumns: ["id"]
@@ -629,6 +464,56 @@ export type Database = {
         }
         Relationships: []
       }
+      student_preferences: {
+        Row: {
+          created_at: string | null
+          id: string
+          open_to_any_location: boolean | null
+          preferred_company_stages: string[] | null
+          preferred_locations: string[] | null
+          preferred_roles: string[] | null
+          preferred_work_mode: string | null
+          student_id: string
+          tech_interests: string[] | null
+          updated_at: string | null
+          work_authorization: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          open_to_any_location?: boolean | null
+          preferred_company_stages?: string[] | null
+          preferred_locations?: string[] | null
+          preferred_roles?: string[] | null
+          preferred_work_mode?: string | null
+          student_id: string
+          tech_interests?: string[] | null
+          updated_at?: string | null
+          work_authorization?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          open_to_any_location?: boolean | null
+          preferred_company_stages?: string[] | null
+          preferred_locations?: string[] | null
+          preferred_roles?: string[] | null
+          preferred_work_mode?: string | null
+          student_id?: string
+          tech_interests?: string[] | null
+          updated_at?: string | null
+          work_authorization?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_preferences_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: true
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           biggest_challenge: string | null
@@ -728,18 +613,6 @@ export type Database = {
           updated_at?: string
           user_id?: string
           work_experience?: Json | null
-        }
-        Relationships: []
-      }
-      tech_tags: {
-        Row: {
-          tag: string
-        }
-        Insert: {
-          tag: string
-        }
-        Update: {
-          tag?: string
         }
         Relationships: []
       }
@@ -944,14 +817,7 @@ export type Database = {
             foreignKeyName: "internships_duplicate_of_fkey"
             columns: ["duplicate_of"]
             isOneToOne: false
-            referencedRelation: "active_internships_city_norm"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "internships_duplicate_of_fkey"
-            columns: ["duplicate_of"]
-            isOneToOne: false
-            referencedRelation: "active_internships_normalized"
+            referencedRelation: "enriched_active_internships"
             referencedColumns: ["id"]
           },
           {
@@ -965,129 +831,12 @@ export type Database = {
             foreignKeyName: "internships_duplicate_of_fkey"
             columns: ["duplicate_of"]
             isOneToOne: false
-            referencedRelation: "jobs_for_app"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "internships_duplicate_of_fkey"
-            columns: ["duplicate_of"]
-            isOneToOne: false
             referencedRelation: "ux_internships"
             referencedColumns: ["id"]
           },
         ]
       }
-      active_internships_city_norm: {
-        Row: {
-          application_link: string | null
-          apply_url: string | null
-          archived_at: string | null
-          category: string | null
-          city_norm: string | null
-          company: string | null
-          core_requirements: string[] | null
-          created_at: string | null
-          date_posted: string | null
-          deadline: string | null
-          description_html: string | null
-          description_text: string | null
-          direct_link: string | null
-          direct_url: string | null
-          duplicate_of: string | null
-          employment_type: string | null
-          enriched_at: string | null
-          enrichment_confidence: number | null
-          extraction_attempts: number | null
-          final_domain: string | null
-          id: string | null
-          is_active: boolean | null
-          is_direct: boolean | null
-          is_texas: boolean | null
-          jd_raw: string | null
-          jd_summary: string | null
-          job_keywords: string[] | null
-          last_checked_utc: string | null
-          last_validated_at: string | null
-          last_verified_at: string | null
-          link_extracted_at: string | null
-          link_resolved_at: string | null
-          link_type: string | null
-          link_valid: boolean | null
-          loc_text: string | null
-          location: string | null
-          locations: string[] | null
-          needs_review: boolean | null
-          notes: string | null
-          remote_flag: boolean | null
-          requirements: string[] | null
-          responsibilities: string[] | null
-          review_reason: string[] | null
-          role_title: string | null
-          salary_currency: string | null
-          salary_max: number | null
-          salary_min: number | null
-          salary_period: string | null
-          scrape_source: string | null
-          search_tsv: unknown
-          source: string | null
-          source_url: string | null
-          sponsorship_flag: string | null
-          summary_line_count: number | null
-          summary_text: string | null
-          tech_stack: string[] | null
-          updated_at: string | null
-          validation_message: string | null
-          visa_sponsorship:
-            | Database["public"]["Enums"]["visa_sponsorship_status"]
-            | null
-          work_mode: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "internships_duplicate_of_fkey"
-            columns: ["duplicate_of"]
-            isOneToOne: false
-            referencedRelation: "active_internships"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "internships_duplicate_of_fkey"
-            columns: ["duplicate_of"]
-            isOneToOne: false
-            referencedRelation: "active_internships_city_norm"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "internships_duplicate_of_fkey"
-            columns: ["duplicate_of"]
-            isOneToOne: false
-            referencedRelation: "active_internships_normalized"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "internships_duplicate_of_fkey"
-            columns: ["duplicate_of"]
-            isOneToOne: false
-            referencedRelation: "internships"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "internships_duplicate_of_fkey"
-            columns: ["duplicate_of"]
-            isOneToOne: false
-            referencedRelation: "jobs_for_app"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "internships_duplicate_of_fkey"
-            columns: ["duplicate_of"]
-            isOneToOne: false
-            referencedRelation: "ux_internships"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      active_internships_normalized: {
+      enriched_active_internships: {
         Row: {
           application_link: string | null
           apply_url: string | null
@@ -1123,7 +872,6 @@ export type Database = {
           link_type: string | null
           link_valid: boolean | null
           location: string | null
-          location_norm: string | null
           locations: string[] | null
           needs_review: boolean | null
           notes: string | null
@@ -1186,7 +934,6 @@ export type Database = {
           link_type?: string | null
           link_valid?: boolean | null
           location?: string | null
-          location_norm?: never
           locations?: string[] | null
           needs_review?: boolean | null
           notes?: string | null
@@ -1249,7 +996,6 @@ export type Database = {
           link_type?: string | null
           link_valid?: boolean | null
           location?: string | null
-          location_norm?: never
           locations?: string[] | null
           needs_review?: boolean | null
           notes?: string | null
@@ -1289,14 +1035,7 @@ export type Database = {
             foreignKeyName: "internships_duplicate_of_fkey"
             columns: ["duplicate_of"]
             isOneToOne: false
-            referencedRelation: "active_internships_city_norm"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "internships_duplicate_of_fkey"
-            columns: ["duplicate_of"]
-            isOneToOne: false
-            referencedRelation: "active_internships_normalized"
+            referencedRelation: "enriched_active_internships"
             referencedColumns: ["id"]
           },
           {
@@ -1310,38 +1049,10 @@ export type Database = {
             foreignKeyName: "internships_duplicate_of_fkey"
             columns: ["duplicate_of"]
             isOneToOne: false
-            referencedRelation: "jobs_for_app"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "internships_duplicate_of_fkey"
-            columns: ["duplicate_of"]
-            isOneToOne: false
             referencedRelation: "ux_internships"
             referencedColumns: ["id"]
           },
         ]
-      }
-      jobs_for_app: {
-        Row: {
-          application_url: string | null
-          city: string | null
-          closes_at: string | null
-          company: string | null
-          created_at: string | null
-          description: string | null
-          id: string | null
-          is_active: boolean | null
-          opens_at: string | null
-          skills: string[] | null
-          title: string | null
-          type: string | null
-          updated_at: string | null
-          visa_sponsorship:
-            | Database["public"]["Enums"]["visa_sponsorship_status"]
-            | null
-        }
-        Relationships: []
       }
       ux_internships: {
         Row: {
