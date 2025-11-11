@@ -10,8 +10,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Settings2, Trash2, AlertTriangle, Shield, ArrowLeft, Key, Briefcase, Save, FileText, Upload, Link as LinkIcon } from "lucide-react";
-import { useDropzone } from 'react-dropzone';
+import { Settings2, Trash2, AlertTriangle, Shield, ArrowLeft, Key, Briefcase, Save, Link as LinkIcon } from "lucide-react";
 import { ChangePasswordForm } from "@/components/auth/ChangePasswordForm";
 
 interface SettingsProps {
@@ -29,14 +28,9 @@ interface MatchPreferences {
 }
 
 interface StudentProfile {
-  resume_url: string | null;
   linkedin_url: string | null;
   github: string | null;
   portfolio_url: string | null;
-  leetcode_url: string | null;
-  kaggle_url: string | null;
-  devpost_url: string | null;
-  updated_at: string;
 }
 
 export function Settings({ userType, onAccountDeleted, onBack }: SettingsProps) {
@@ -56,16 +50,10 @@ export function Settings({ userType, onAccountDeleted, onBack }: SettingsProps) 
   });
 
   const [profile, setProfile] = useState<StudentProfile>({
-    resume_url: null,
     linkedin_url: null,
     github: null,
-    portfolio_url: null,
-    leetcode_url: null,
-    kaggle_url: null,
-    devpost_url: null,
-    updated_at: ''
+    portfolio_url: null
   });
-  const [isUploadingResume, setIsUploadingResume] = useState(false);
   const [isSavingProfile, setIsSavingProfile] = useState(false);
   
   const { toast } = useToast();
@@ -173,97 +161,22 @@ export function Settings({ userType, onAccountDeleted, onBack }: SettingsProps) 
 
       const { data: student, error } = await supabase
         .from('students')
-        .select('resume_url, linkedin_url, github, portfolio_url, leetcode_url, kaggle_url, devpost_url, updated_at')
+        .select('linkedin_url, github, portfolio_url')
         .eq('user_id', user.id)
         .single();
 
       if (error) throw error;
       if (student) {
         setProfile({
-          resume_url: student.resume_url,
           linkedin_url: student.linkedin_url,
           github: student.github,
-          portfolio_url: student.portfolio_url,
-          leetcode_url: student.leetcode_url,
-          kaggle_url: student.kaggle_url,
-          devpost_url: student.devpost_url,
-          updated_at: student.updated_at
+          portfolio_url: student.portfolio_url
         });
       }
     } catch (error) {
       console.error('Error loading profile:', error);
     }
   };
-
-  const handleResumeUpload = async (files: File[]) => {
-    const file = files[0];
-    if (!file) return;
-
-    if (file.type !== 'application/pdf') {
-      toast({
-        title: "Invalid file type",
-        description: "Please upload a PDF file.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    if (file.size > 5 * 1024 * 1024) {
-      toast({
-        title: "File too large",
-        description: "Resume must be less than 5MB.",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setIsUploadingResume(true);
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) throw new Error('Not authenticated');
-
-      const fileName = `${user.id}-${Date.now()}.pdf`;
-      const { error: uploadError } = await supabase.storage
-        .from('resumes')
-        .upload(fileName, file, { upsert: true });
-
-      if (uploadError) throw uploadError;
-
-      const { data: { publicUrl } } = supabase.storage
-        .from('resumes')
-        .getPublicUrl(fileName);
-
-      const { error: updateError } = await supabase
-        .from('students')
-        .update({ resume_url: publicUrl })
-        .eq('user_id', user.id);
-
-      if (updateError) throw updateError;
-
-      setProfile({ ...profile, resume_url: publicUrl });
-      
-      toast({
-        title: "Resume uploaded",
-        description: "Your resume has been uploaded successfully.",
-      });
-    } catch (error) {
-      console.error('Error uploading resume:', error);
-      toast({
-        title: "Upload failed",
-        description: "Failed to upload resume. Please try again.",
-        variant: "destructive"
-      });
-    } finally {
-      setIsUploadingResume(false);
-    }
-  };
-
-  const { getRootProps, getInputProps, isDragActive } = useDropzone({
-    onDrop: handleResumeUpload,
-    accept: { 'application/pdf': ['.pdf'] },
-    maxFiles: 1,
-    disabled: isUploadingResume
-  });
 
   const handleSaveProfile = async () => {
     setIsSavingProfile(true);
@@ -276,10 +189,7 @@ export function Settings({ userType, onAccountDeleted, onBack }: SettingsProps) 
         .update({
           linkedin_url: profile.linkedin_url || null,
           github: profile.github || null,
-          portfolio_url: profile.portfolio_url || null,
-          leetcode_url: profile.leetcode_url || null,
-          kaggle_url: profile.kaggle_url || null,
-          devpost_url: profile.devpost_url || null
+          portfolio_url: profile.portfolio_url || null
         })
         .eq('user_id', user.id);
 
@@ -289,9 +199,6 @@ export function Settings({ userType, onAccountDeleted, onBack }: SettingsProps) 
         title: "Profile updated",
         description: "Your links have been saved successfully.",
       });
-
-      // Reload to get updated timestamp
-      await loadProfile();
     } catch (error) {
       console.error('Error saving profile:', error);
       toast({
@@ -419,68 +326,15 @@ export function Settings({ userType, onAccountDeleted, onBack }: SettingsProps) 
             <Card className="card-shadow">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <FileText className="h-5 w-5" />
-                  Resume & Links
+                  <LinkIcon className="h-5 w-5" />
+                  Professional Links
                 </CardTitle>
                 <p className="text-sm text-muted-foreground mt-1">
                   What employers see when reviewing your profile
                 </p>
               </CardHeader>
               <CardContent className="space-y-6">
-                {/* Resume Upload */}
-                <div className="space-y-3">
-                  <Label>Resume</Label>
-                  <div
-                    {...getRootProps()}
-                    className={`border-2 border-dashed rounded-lg p-6 text-center cursor-pointer transition-colors ${
-                      isDragActive
-                        ? 'border-primary bg-primary/5'
-                        : 'border-border hover:border-primary/50'
-                    } ${isUploadingResume ? 'opacity-50 cursor-not-allowed' : ''}`}
-                  >
-                    <input {...getInputProps()} />
-                    <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
-                    <p className="text-sm font-medium">
-                      {isUploadingResume
-                        ? 'Uploading...'
-                        : profile.resume_url
-                        ? 'Drop to replace resume'
-                        : 'Drop your resume here or click to browse'}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      PDF only, max 5MB
-                    </p>
-                  </div>
-                  {profile.resume_url && (
-                    <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-                      <div className="flex items-center gap-2">
-                        <FileText className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium">Resume uploaded</span>
-                      </div>
-                      <a
-                        href={profile.resume_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-sm text-primary hover:underline"
-                      >
-                        View
-                      </a>
-                    </div>
-                  )}
-                  {profile.updated_at && (
-                    <p className="text-xs text-muted-foreground">
-                      Last updated: {new Date(profile.updated_at).toLocaleDateString()}
-                    </p>
-                  )}
-                </div>
-
-                {/* Professional Links */}
-                <div className="space-y-4 pt-4 border-t">
-                  <div className="flex items-center gap-2 mb-2">
-                    <LinkIcon className="h-4 w-4 text-muted-foreground" />
-                    <Label>Professional Links</Label>
-                  </div>
-                  
+                <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="linkedin">LinkedIn</Label>
                     <Input
@@ -511,44 +365,6 @@ export function Settings({ userType, onAccountDeleted, onBack }: SettingsProps) 
                       placeholder="https://yourportfolio.com"
                       value={profile.portfolio_url || ''}
                       onChange={(e) => setProfile({ ...profile, portfolio_url: e.target.value })}
-                    />
-                  </div>
-                </div>
-
-                {/* Optional Links */}
-                <div className="space-y-4 pt-4 border-t">
-                  <Label className="text-muted-foreground">Optional Links</Label>
-                  
-                  <div className="space-y-2">
-                    <Label htmlFor="leetcode">LeetCode</Label>
-                    <Input
-                      id="leetcode"
-                      type="url"
-                      placeholder="https://leetcode.com/yourusername"
-                      value={profile.leetcode_url || ''}
-                      onChange={(e) => setProfile({ ...profile, leetcode_url: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="kaggle">Kaggle</Label>
-                    <Input
-                      id="kaggle"
-                      type="url"
-                      placeholder="https://kaggle.com/yourusername"
-                      value={profile.kaggle_url || ''}
-                      onChange={(e) => setProfile({ ...profile, kaggle_url: e.target.value })}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <Label htmlFor="devpost">Devpost</Label>
-                    <Input
-                      id="devpost"
-                      type="url"
-                      placeholder="https://devpost.com/yourusername"
-                      value={profile.devpost_url || ''}
-                      onChange={(e) => setProfile({ ...profile, devpost_url: e.target.value })}
                     />
                   </div>
                 </div>
