@@ -7,7 +7,7 @@ export function useAllInternships() {
     queryKey: ['internships-all'],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from('active_internships')
+        .from('enriched_active_internships' as any)
         .select('*')
         .order('date_posted', { ascending: false, nullsFirst: false });
 
