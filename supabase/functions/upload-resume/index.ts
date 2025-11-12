@@ -281,27 +281,37 @@ function parseProjects(text: string): Project[] {
   return projects
 }
 
-// Map extracted skills to canonical tech_tags
+// Map extracted skills to canonical tech_tags using skill_aliases
 async function mapToCanonicalTags(supabase: any, extractedSkills: string[]): Promise<string[]> {
-  // Fetch canonical tech_tags from database
-  const { data: techTags, error } = await supabase
-    .from('tech_tags')
-    .select('tag')
+  // Use skill_aliases table to normalize skills
+  const { data: aliases, error } = await supabase
+    .from('skill_aliases')
+    .select('alias, canonical')
   
-  if (error || !techTags) {
-    console.error('Error fetching tech_tags:', error)
-    return []
+  if (error) {
+    console.error('Error fetching skill_aliases:', error)
+    // If error, just return lowercased skills
+    return extractedSkills.map(s => s.toLowerCase().trim())
   }
   
-  const canonicalTags = new Set(techTags.map((t: { tag: string }) => t.tag.toLowerCase()))
+  const aliasMap = new Map<string, string>()
+  if (aliases) {
+    aliases.forEach((a: { alias: string; canonical: string }) => {
+      aliasMap.set(a.alias.toLowerCase(), a.canonical.toLowerCase())
+    })
+  }
+  
   const mappedTags = new Set<string>()
   
   // Map extracted skills to canonical tags
   extractedSkills.forEach(skill => {
-    const lowerSkill = skill.toLowerCase()
+    const lowerSkill = skill.toLowerCase().trim()
     
-    // Check if skill exists in canonical list
-    if (canonicalTags.has(lowerSkill)) {
+    // Check if there's an alias mapping
+    if (aliasMap.has(lowerSkill)) {
+      mappedTags.add(aliasMap.get(lowerSkill)!)
+    } else {
+      // Keep the skill as-is if no alias
       mappedTags.add(lowerSkill)
     }
   })
@@ -531,7 +541,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         ...parsedData,
-        resumeUrl: urlData.publicUrl,
+        resumePath: fileName,
         message: 'Resume uploaded and parsed successfully'
       }),
       { 
