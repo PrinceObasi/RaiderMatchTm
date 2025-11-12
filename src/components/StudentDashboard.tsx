@@ -886,7 +886,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                     ) : (
                       <div className="space-y-4 sm:space-y-6">
                          {visibleMatches.map((job) => (
-                            <Card key={job.id} className="border hover:shadow-md transition-smooth">
+                            <Card key={job.internship_id} className="border hover:shadow-md transition-smooth">
                                <CardContent className="p-4 sm:p-6">
                                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                                    <div className="flex-1">
@@ -906,16 +906,14 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                   </div>
                                 </div>
 
-                                {/* Match indicator */}
-                                {job.match_count > 0 && job.matched_tags && job.matched_tags.length > 0 && (
-                                  <div className="mt-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
-                                    <div className="flex items-center gap-2 mb-2">
-                                      <Badge variant="default" className="bg-primary/20 text-primary hover:bg-primary/30">
-                                        Matches {job.match_count} of your skills
-                                      </Badge>
-                                    </div>
+                                {/* Skills match section */}
+                                {job.overlap_count > 0 && job.tech_overlap && job.tech_overlap.length > 0 && (
+                                  <div className="mt-3 pt-3 border-t border-border/40">
+                                    <p className="text-xs text-muted-foreground mb-2">
+                                      Skills match: {job.overlap_count} overlapping skill{job.overlap_count > 1 ? 's' : ''} ({job.tech_overlap.slice(0, 4).join(', ')}{job.tech_overlap.length > 4 ? '...' : ''})
+                                    </p>
                                     <div className="flex flex-wrap gap-1.5">
-                                      {job.matched_tags.map((tag) => (
+                                      {job.tech_overlap.slice(0, 6).map((tag) => (
                                         <span key={tag} className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-md font-medium">
                                           {tag}
                                         </span>
@@ -958,7 +956,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                 
                                  <div className="mt-4 flex flex-col sm:flex-row gap-2">
                      <Button 
-                       onClick={() => handleApply(job.id, job.application_link, true)}
+                       onClick={() => handleApply(job.internship_id, job.application_link, true)}
                        className="w-full sm:w-auto h-11"
                        size="lg"
                        disabled={!job.application_link}
@@ -966,7 +964,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                     <ExternalLink className="h-4 w-4" />
                                     Apply Now
                                   </Button>
-                                  <ApplicationToggle internshipId={job.id} />
+                                  <ApplicationToggle internshipId={job.internship_id} />
                                 </div>
                             </CardContent>
                           </Card>

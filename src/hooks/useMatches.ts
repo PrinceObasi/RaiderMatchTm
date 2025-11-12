@@ -13,6 +13,7 @@ interface MatchedInternship {
   date_posted?: string;
   overlap_count: number;
   tech_overlap: string[];
+  tech_stack: string[];
   salary_min?: number | null;
   salary_max?: number | null;
   salary_currency?: string | null;

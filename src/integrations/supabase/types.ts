@@ -1324,6 +1324,7 @@ export type Database = {
           salary_min: number
           summary_text: string
           tech_overlap: string[]
+          tech_stack: string[]
           visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
           work_mode: string
         }[]
