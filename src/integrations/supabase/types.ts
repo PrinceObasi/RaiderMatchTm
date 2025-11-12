@@ -1309,6 +1309,25 @@ export type Database = {
           work_mode: string
         }[]
       }
+      match_internships_for_user_v2: {
+        Args: { p_user_id: string }
+        Returns: {
+          application_link: string
+          company: string
+          date_posted: string
+          internship_id: string
+          location: string
+          overlap_count: number
+          role_title: string
+          salary_currency: string
+          salary_max: number
+          salary_min: number
+          summary_text: string
+          tech_overlap: string[]
+          visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
+          work_mode: string
+        }[]
+      }
       match_jobs: {
         Args: { p_student_id: string }
         Returns: {
