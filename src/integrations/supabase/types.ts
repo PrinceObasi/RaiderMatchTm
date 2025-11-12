@@ -535,7 +535,6 @@ export type Database = {
           portfolio_url: string | null
           project_depth: number | null
           projects: Json | null
-          resume_path: string | null
           resume_uploaded: boolean | null
           resume_url: string | null
           skills: string[] | null
@@ -572,7 +571,6 @@ export type Database = {
           portfolio_url?: string | null
           project_depth?: number | null
           projects?: Json | null
-          resume_path?: string | null
           resume_uploaded?: boolean | null
           resume_url?: string | null
           skills?: string[] | null
@@ -609,7 +607,6 @@ export type Database = {
           portfolio_url?: string | null
           project_depth?: number | null
           projects?: Json | null
-          resume_path?: string | null
           resume_uploaded?: boolean | null
           resume_url?: string | null
           skills?: string[] | null
@@ -1306,26 +1303,6 @@ export type Database = {
           role_title: string
           summary_text: string
           tech_stack: string[]
-          work_mode: string
-        }[]
-      }
-      match_internships_for_user_v2: {
-        Args: { p_user_id: string }
-        Returns: {
-          application_link: string
-          company: string
-          date_posted: string
-          internship_id: string
-          location: string
-          overlap_count: number
-          role_title: string
-          salary_currency: string
-          salary_max: number
-          salary_min: number
-          summary_text: string
-          tech_overlap: string[]
-          tech_stack: string[]
-          visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
           work_mode: string
         }[]
       }

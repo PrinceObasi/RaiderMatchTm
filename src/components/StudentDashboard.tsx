@@ -185,12 +185,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
 
   const handleResumeUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    
-    if (!file || !allowedTypes.includes(file.type)) {
+    if (!file || file.type !== 'application/pdf') {
       toast({
         title: "Invalid file",
-        description: "Please upload a PDF or DOCX file.",
+        description: "Please upload a PDF file.",
         variant: "destructive"
       });
       return;
@@ -390,38 +388,14 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      // Get the current resume path
-      const { data: studentData } = await supabase
-        .from('students')
-        .select('resume_path')
-        .eq('user_id', user.id)
-        .single();
-
-      // Delete file from storage if it exists
-      if (studentData?.resume_path) {
-        const { error: storageError } = await supabase.storage
-          .from('resumes')
-          .remove([studentData.resume_path]);
-        
-        if (storageError) {
-          console.error('Storage delete error:', storageError);
-        }
-      }
-
-      // Update database to clear resume fields
       const { error } = await supabase
         .from('students')
-        .update({ 
-          resume_path: null,
-          resume_url: null, 
-          skills: [],
-          resume_uploaded: false
-        })
+        .update({ resume_url: null, skills: [] })
         .eq('user_id', user.id);
 
       if (error) throw error;
 
-      setStudent({ ...student, resume_path: null, resume_url: null, skills: [], resume_uploaded: false });
+      setStudent({ ...student, resume_url: null, skills: [] });
       setResumeAnalyzed(false);
       // Matches will automatically update via the hook
       
@@ -442,16 +416,6 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const onDrop = async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
-
-    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
-    if (!allowedTypes.includes(file.type)) {
-      toast({
-        title: "Invalid file",
-        description: "Please upload a PDF or DOCX file.",
-        variant: "destructive"
-      });
-      return;
-    }
 
     setResumeFile(file);
     setIsUploading(true);
@@ -626,7 +590,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                   </div>
 
                   {/* Resume Status */}
-                  {(student?.resume_path || student?.resume_url) && (
+                  {student?.resume_url && (
                     <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-primary" />
@@ -636,34 +600,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={async () => {
-                            try {
-                              const resumePath = student.resume_path || student.resume_url;
-                              if (!resumePath) return;
-                              
-                              // If it's a path (not URL), generate signed URL
-                              if (!resumePath.startsWith('http')) {
-                                const { data, error } = await supabase.storage
-                                  .from('resumes')
-                                  .createSignedUrl(resumePath, 3600); // 1 hour expiry
-                                
-                                if (error) throw error;
-                                if (data?.signedUrl) {
-                                  window.open(data.signedUrl, '_blank');
-                                }
-                              } else {
-                                // Legacy URL, open directly (with cache buster)
-                                window.open(`${resumePath}?v=${Date.now()}`, '_blank');
-                              }
-                            } catch (error) {
-                              console.error('Error viewing resume:', error);
-                              toast({
-                                title: "View failed",
-                                description: "Failed to open resume. Please try again.",
-                                variant: "destructive"
-                              });
-                            }
-                          }}
+                          onClick={() => window.open(student.resume_url, '_blank')}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -886,7 +823,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                     ) : (
                       <div className="space-y-4 sm:space-y-6">
                          {visibleMatches.map((job) => (
-                            <Card key={job.internship_id} className="border hover:shadow-md transition-smooth">
+                            <Card key={job.id} className="border hover:shadow-md transition-smooth">
                                <CardContent className="p-4 sm:p-6">
                                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-2">
                                    <div className="flex-1">
@@ -906,14 +843,16 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                   </div>
                                 </div>
 
-                                {/* Skills match section */}
-                                {job.overlap_count > 0 && job.tech_overlap && job.tech_overlap.length > 0 && (
-                                  <div className="mt-3 pt-3 border-t border-border/40">
-                                    <p className="text-xs text-muted-foreground mb-2">
-                                      Skills match: {job.overlap_count} overlapping skill{job.overlap_count > 1 ? 's' : ''} ({job.tech_overlap.slice(0, 4).join(', ')}{job.tech_overlap.length > 4 ? '...' : ''})
-                                    </p>
+                                {/* Match indicator */}
+                                {job.match_count > 0 && job.matched_tags && job.matched_tags.length > 0 && (
+                                  <div className="mt-3 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+                                    <div className="flex items-center gap-2 mb-2">
+                                      <Badge variant="default" className="bg-primary/20 text-primary hover:bg-primary/30">
+                                        Matches {job.match_count} of your skills
+                                      </Badge>
+                                    </div>
                                     <div className="flex flex-wrap gap-1.5">
-                                      {job.tech_overlap.slice(0, 6).map((tag) => (
+                                      {job.matched_tags.map((tag) => (
                                         <span key={tag} className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-md font-medium">
                                           {tag}
                                         </span>
@@ -956,7 +895,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                 
                                  <div className="mt-4 flex flex-col sm:flex-row gap-2">
                      <Button 
-                       onClick={() => handleApply(job.internship_id, job.application_link, true)}
+                       onClick={() => handleApply(job.id, job.application_link, true)}
                        className="w-full sm:w-auto h-11"
                        size="lg"
                        disabled={!job.application_link}
@@ -964,7 +903,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                                     <ExternalLink className="h-4 w-4" />
                                     Apply Now
                                   </Button>
-                                  <ApplicationToggle internshipId={job.internship_id} />
+                                  <ApplicationToggle internshipId={job.id} />
                                 </div>
                             </CardContent>
                           </Card>

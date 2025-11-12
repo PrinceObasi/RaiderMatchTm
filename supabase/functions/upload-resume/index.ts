@@ -281,37 +281,27 @@ function parseProjects(text: string): Project[] {
   return projects
 }
 
-// Map extracted skills to canonical tech_tags using skill_aliases
+// Map extracted skills to canonical tech_tags
 async function mapToCanonicalTags(supabase: any, extractedSkills: string[]): Promise<string[]> {
-  // Use skill_aliases table to normalize skills
-  const { data: aliases, error } = await supabase
-    .from('skill_aliases')
-    .select('alias, canonical')
+  // Fetch canonical tech_tags from database
+  const { data: techTags, error } = await supabase
+    .from('tech_tags')
+    .select('tag')
   
-  if (error) {
-    console.error('Error fetching skill_aliases:', error)
-    // If error, just return lowercased skills
-    return extractedSkills.map(s => s.toLowerCase().trim())
+  if (error || !techTags) {
+    console.error('Error fetching tech_tags:', error)
+    return []
   }
   
-  const aliasMap = new Map<string, string>()
-  if (aliases) {
-    aliases.forEach((a: { alias: string; canonical: string }) => {
-      aliasMap.set(a.alias.toLowerCase(), a.canonical.toLowerCase())
-    })
-  }
-  
+  const canonicalTags = new Set(techTags.map((t: { tag: string }) => t.tag.toLowerCase()))
   const mappedTags = new Set<string>()
   
   // Map extracted skills to canonical tags
   extractedSkills.forEach(skill => {
-    const lowerSkill = skill.toLowerCase().trim()
+    const lowerSkill = skill.toLowerCase()
     
-    // Check if there's an alias mapping
-    if (aliasMap.has(lowerSkill)) {
-      mappedTags.add(aliasMap.get(lowerSkill)!)
-    } else {
-      // Keep the skill as-is if no alias
+    // Check if skill exists in canonical list
+    if (canonicalTags.has(lowerSkill)) {
       mappedTags.add(lowerSkill)
     }
   })
@@ -441,11 +431,9 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Accept both PDF and DOCX
-    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document']
-    if (!allowedTypes.includes(file.type)) {
+    if (file.type !== 'application/pdf') {
       return new Response(
-        JSON.stringify({ error: 'Only PDF and DOCX files are allowed. Please convert .doc files to .docx or PDF.' }),
+        JSON.stringify({ error: 'Only PDF files are allowed' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -474,27 +462,13 @@ Deno.serve(async (req) => {
     console.log('Extracted data:', parsedData)
     console.log('Canonical tech_stack:', canonicalTechStack)
 
-    // Delete old resume if it exists
-    const { data: studentData } = await supabase
-      .from('students')
-      .select('resume_path')
-      .eq('user_id', user.id)
-      .single()
-    
-    if (studentData?.resume_path) {
-      await supabase.storage
-        .from('resumes')
-        .remove([studentData.resume_path])
-    }
-
-    // Upload file to Supabase Storage with unique timestamped path
-    const ext = file.type === 'application/pdf' ? 'pdf' : 'docx'
-    const fileName = `${user.id}/${Date.now()}.${ext}`
+    // Upload file to Supabase Storage with standardized path
+    const fileName = `${user.id}/resume.pdf`
     const { data: uploadData, error: uploadError } = await supabase.storage
       .from('resumes')
       .upload(fileName, arrayBuffer, {
-        contentType: file.type,
-        upsert: false
+        contentType: 'application/pdf',
+        upsert: true
       })
 
     if (uploadError) {
@@ -505,12 +479,16 @@ Deno.serve(async (req) => {
       )
     }
 
+    // Get the public URL
+    const { data: urlData } = supabase.storage
+      .from('resumes')
+      .getPublicUrl(fileName)
+
     // Update student record with all parsed information
     const updateData: any = {
       skills: parsedData.skills,
       tech_stack: canonicalTechStack,  // Store canonical tags for matching
-      resume_path: fileName,  // Store path, not URL
-      resume_url: null,  // Clear old URL field
+      resume_url: urlData.publicUrl,
       resume_uploaded: true
     }
     
@@ -541,7 +519,7 @@ Deno.serve(async (req) => {
       JSON.stringify({ 
         success: true, 
         ...parsedData,
-        resumePath: fileName,
+        resumeUrl: urlData.publicUrl,
         message: 'Resume uploaded and parsed successfully'
       }),
       { 
