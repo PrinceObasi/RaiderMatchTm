@@ -535,6 +535,7 @@ export type Database = {
           portfolio_url: string | null
           project_depth: number | null
           projects: Json | null
+          resume_path: string | null
           resume_uploaded: boolean | null
           resume_url: string | null
           skills: string[] | null
@@ -571,6 +572,7 @@ export type Database = {
           portfolio_url?: string | null
           project_depth?: number | null
           projects?: Json | null
+          resume_path?: string | null
           resume_uploaded?: boolean | null
           resume_url?: string | null
           skills?: string[] | null
@@ -607,6 +609,7 @@ export type Database = {
           portfolio_url?: string | null
           project_depth?: number | null
           projects?: Json | null
+          resume_path?: string | null
           resume_uploaded?: boolean | null
           resume_url?: string | null
           skills?: string[] | null

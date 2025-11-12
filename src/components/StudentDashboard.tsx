@@ -185,10 +185,12 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
 
   const handleResumeUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (!file || file.type !== 'application/pdf') {
+    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    
+    if (!file || !allowedTypes.includes(file.type)) {
       toast({
         title: "Invalid file",
-        description: "Please upload a PDF file.",
+        description: "Please upload a PDF or DOCX file.",
         variant: "destructive"
       });
       return;
@@ -388,14 +390,38 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Get the current resume path
+      const { data: studentData } = await supabase
+        .from('students')
+        .select('resume_path')
+        .eq('user_id', user.id)
+        .single();
+
+      // Delete file from storage if it exists
+      if (studentData?.resume_path) {
+        const { error: storageError } = await supabase.storage
+          .from('resumes')
+          .remove([studentData.resume_path]);
+        
+        if (storageError) {
+          console.error('Storage delete error:', storageError);
+        }
+      }
+
+      // Update database to clear resume fields
       const { error } = await supabase
         .from('students')
-        .update({ resume_url: null, skills: [] })
+        .update({ 
+          resume_path: null,
+          resume_url: null, 
+          skills: [],
+          resume_uploaded: false
+        })
         .eq('user_id', user.id);
 
       if (error) throw error;
 
-      setStudent({ ...student, resume_url: null, skills: [] });
+      setStudent({ ...student, resume_path: null, resume_url: null, skills: [], resume_uploaded: false });
       setResumeAnalyzed(false);
       // Matches will automatically update via the hook
       
@@ -416,6 +442,16 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const onDrop = async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (!file) return;
+
+    const allowedTypes = ['application/pdf', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+    if (!allowedTypes.includes(file.type)) {
+      toast({
+        title: "Invalid file",
+        description: "Please upload a PDF or DOCX file.",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setResumeFile(file);
     setIsUploading(true);
@@ -590,7 +626,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                   </div>
 
                   {/* Resume Status */}
-                  {student?.resume_url && (
+                  {(student?.resume_path || student?.resume_url) && (
                     <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
                       <div className="flex items-center gap-2">
                         <FileText className="h-4 w-4 text-primary" />
@@ -600,7 +636,34 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => window.open(student.resume_url, '_blank')}
+                          onClick={async () => {
+                            try {
+                              const resumePath = student.resume_path || student.resume_url;
+                              if (!resumePath) return;
+                              
+                              // If it's a path (not URL), generate signed URL
+                              if (!resumePath.startsWith('http')) {
+                                const { data, error } = await supabase.storage
+                                  .from('resumes')
+                                  .createSignedUrl(resumePath, 3600); // 1 hour expiry
+                                
+                                if (error) throw error;
+                                if (data?.signedUrl) {
+                                  window.open(data.signedUrl, '_blank');
+                                }
+                              } else {
+                                // Legacy URL, open directly (with cache buster)
+                                window.open(`${resumePath}?v=${Date.now()}`, '_blank');
+                              }
+                            } catch (error) {
+                              console.error('Error viewing resume:', error);
+                              toast({
+                                title: "View failed",
+                                description: "Failed to open resume. Please try again.",
+                                variant: "destructive"
+                              });
+                            }
+                          }}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
