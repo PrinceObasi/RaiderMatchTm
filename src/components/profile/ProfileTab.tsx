@@ -13,6 +13,7 @@ interface ProfileData {
   gpa: number | null;
   graduation_year: number | null;
   major: string | null;
+  class_year: 'freshman' | 'sophomore' | 'junior' | 'senior' | 'grad' | null;
   work_experience: WorkExperience[];
   projects: Project[];
   skills: string[];
@@ -44,6 +45,7 @@ export function ProfileTab() {
     gpa: null,
     graduation_year: null,
     major: null,
+    class_year: null,
     work_experience: [],
     projects: [],
     skills: []
@@ -60,7 +62,7 @@ export function ProfileTab() {
 
       const { data, error } = await supabase
         .from("students")
-        .select("gpa, graduation_year, major, work_experience, projects, skills")
+        .select("gpa, graduation_year, major, class_year, work_experience, projects, skills")
         .eq("user_id", user.id)
         .single();
 
@@ -71,6 +73,7 @@ export function ProfileTab() {
           gpa: data.gpa,
           graduation_year: data.graduation_year,
           major: data.major,
+          class_year: data.class_year,
           work_experience: (data.work_experience as unknown as WorkExperience[]) || [],
           projects: (data.projects as unknown as Project[]) || [],
           skills: data.skills || []
@@ -100,6 +103,7 @@ export function ProfileTab() {
           gpa: profileData.gpa,
           graduation_year: profileData.graduation_year,
           major: profileData.major,
+          class_year: profileData.class_year,
           work_experience: profileData.work_experience as any,
           projects: profileData.projects as any,
           skills: profileData.skills
@@ -158,6 +162,7 @@ export function ProfileTab() {
         gpa={profileData.gpa}
         graduationYear={profileData.graduation_year}
         major={profileData.major}
+        classYear={profileData.class_year}
         onChange={(field, value) => setProfileData(prev => ({ ...prev, [field]: value }))}
       />
 

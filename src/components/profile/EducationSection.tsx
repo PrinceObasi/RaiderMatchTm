@@ -7,10 +7,24 @@ interface EducationSectionProps {
   gpa: number | null;
   graduationYear: number | null;
   major: string | null;
+  classYear: 'freshman' | 'sophomore' | 'junior' | 'senior' | 'grad' | null;
   onChange: (field: string, value: any) => void;
 }
 
-export function EducationSection({ gpa, graduationYear, major, onChange }: EducationSectionProps) {
+export function EducationSection({ gpa, graduationYear, major, classYear, onChange }: EducationSectionProps) {
+  const formatClassYear = (year: string | null) => {
+    if (!year) return '';
+    return year.charAt(0).toUpperCase() + year.slice(1);
+  };
+
+  const displayText = classYear && graduationYear 
+    ? `${formatClassYear(classYear)} · Class of ${graduationYear}`
+    : graduationYear 
+    ? `Class of ${graduationYear}`
+    : classYear
+    ? formatClassYear(classYear)
+    : '';
+
   return (
     <Card>
       <CardHeader>
@@ -18,6 +32,9 @@ export function EducationSection({ gpa, graduationYear, major, onChange }: Educa
           <GraduationCap className="h-5 w-5" />
           Education
         </CardTitle>
+        {displayText && (
+          <p className="text-sm text-muted-foreground mt-1">{displayText}</p>
+        )}
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
