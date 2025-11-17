@@ -19,7 +19,9 @@ export async function ensureStudentProfile() {
       user_id: user.id,
       name,
       email: user.email,
-      is_international: !!meta.is_international
+      is_international: !!meta.is_international,
+      class_year: meta.student_year || null,
+      major: "Computer Science"
     });
   }
 }
