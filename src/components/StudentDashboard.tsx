@@ -20,7 +20,6 @@ import { useMatches } from "@/hooks/useMatches";
 import { extractKeywords } from "@/lib/extractKeywords";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useNavigate } from "react-router-dom";
 import { 
   Upload, 
   RefreshCw, 
@@ -82,7 +81,6 @@ interface StudentDashboardProps {
 }
 
 export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardProps) {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -98,6 +96,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [searchShowDifferent, setSearchShowDifferent] = useState<(() => void) | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [showSkillsPrompt, setShowSkillsPrompt] = useState(false);
+  const [activeTab, setActiveTab] = useState("search");
   
   // Client-side pagination for Matches tab
   const PAGE_SIZE = 5;
@@ -657,7 +656,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
 
           {/* Right Column: Main Content with Tabs */}
           <div>
-            <Tabs defaultValue="search" className="w-full">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <div className="flex gap-2 overflow-x-auto sm:overflow-visible px-1">
                 <TabsList className="flex shrink-0 gap-2">
                   <TabsTrigger value="search" className="shrink-0 flex items-center gap-2">
@@ -986,9 +985,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
             <Button
               onClick={() => {
                 setShowSkillsPrompt(false);
-                // Navigate to profile tab - since we're using Tabs, we just need to trigger tab change
-                // The Tabs component will handle the navigation
-                document.querySelector('[value="profile"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+                setActiveTab("profile");
               }}
             >
               Review skills
