@@ -19,7 +19,6 @@ import { ApplicationSchema } from "@/lib/schemas";
 import { useMatches } from "@/hooks/useMatches";
 import { extractKeywords } from "@/lib/extractKeywords";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { 
   Upload, 
   RefreshCw, 
@@ -95,8 +94,6 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [tabIsSearching, setTabIsSearching] = useState(false);
   const [searchShowDifferent, setSearchShowDifferent] = useState<(() => void) | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
-  const [showSkillsPrompt, setShowSkillsPrompt] = useState(false);
-  const [activeTab, setActiveTab] = useState("search");
   
   // Client-side pagination for Matches tab
   const PAGE_SIZE = 5;
@@ -278,8 +275,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
         setStudent(updatedStudent);
       }
 
-      // Show skills prompt modal instead of toast
-      setShowSkillsPrompt(true);
+      toast({
+        title: "Resume uploaded successfully!",
+        description: `Found ${data.skills?.length || 0} skills${data.gpa ? `, GPA: ${data.gpa}` : ''}${data.graduation_year ? `, Graduation: ${data.graduation_year}` : ''}. Your profile has been updated!`,
+      });
     } catch (error) {
       console.error('Upload error:', error);
       toast({
@@ -656,7 +655,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
 
           {/* Right Column: Main Content with Tabs */}
           <div>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <Tabs defaultValue="search" className="w-full">
               <div className="flex gap-2 overflow-x-auto sm:overflow-visible px-1">
                 <TabsList className="flex shrink-0 gap-2">
                   <TabsTrigger value="search" className="shrink-0 flex items-center gap-2">
@@ -967,32 +966,6 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
         }}
         userId={student?.user_id || ''}
       />
-
-      {/* Skills Confirmation Modal */}
-      <Dialog open={showSkillsPrompt} onOpenChange={setShowSkillsPrompt}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Boost your matches</DialogTitle>
-            <DialogDescription>
-              We've scanned your resume and found some skills. Review your skills in your profile 
-              so we only match you with roles that fit what you actually know.
-            </DialogDescription>
-          </DialogHeader>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowSkillsPrompt(false)}>
-              Maybe later
-            </Button>
-            <Button
-              onClick={() => {
-                setShowSkillsPrompt(false);
-                setActiveTab("profile");
-              }}
-            >
-              Review skills
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

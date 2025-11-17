@@ -427,32 +427,23 @@ export type Database = {
       }
       profiles: {
         Row: {
-          classification: string | null
           created_at: string
-          graduation_year: number | null
           id: string
           resume_keywords: string[] | null
-          selected_skills: string[] | null
           updated_at: string
           user_id: string
         }
         Insert: {
-          classification?: string | null
           created_at?: string
-          graduation_year?: number | null
           id?: string
           resume_keywords?: string[] | null
-          selected_skills?: string[] | null
           updated_at?: string
           user_id: string
         }
         Update: {
-          classification?: string | null
           created_at?: string
-          graduation_year?: number | null
           id?: string
           resume_keywords?: string[] | null
-          selected_skills?: string[] | null
           updated_at?: string
           user_id?: string
         }
@@ -1305,7 +1296,7 @@ export type Database = {
             }[]
           }
       match_internships_for_user: {
-        Args: { p_limit?: number; p_user_id: string }
+        Args: { p_limit: number; p_user_id: string }
         Returns: {
           company: string
           id: string
