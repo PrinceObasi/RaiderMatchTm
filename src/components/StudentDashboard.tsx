@@ -585,7 +585,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                       <div className="text-sm text-muted-foreground">
                         <span className="font-medium text-foreground">Click to upload</span> or drag and drop
                       </div>
-                      <p className="text-xs text-muted-foreground">PDF, DOC, DOCX (max 2MB)</p>
+                      <p className="text-xs text-muted-foreground">PDF files only (max 2MB)</p>
                     </div>
                   </div>
 
