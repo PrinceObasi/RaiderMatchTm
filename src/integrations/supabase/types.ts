@@ -427,21 +427,27 @@ export type Database = {
       }
       profiles: {
         Row: {
+          classification: string | null
           created_at: string
+          graduation_year: number | null
           id: string
           resume_keywords: string[] | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          classification?: string | null
           created_at?: string
+          graduation_year?: number | null
           id?: string
           resume_keywords?: string[] | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          classification?: string | null
           created_at?: string
+          graduation_year?: number | null
           id?: string
           resume_keywords?: string[] | null
           updated_at?: string
