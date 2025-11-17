@@ -60,23 +60,41 @@ export function ProfileTab() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
-      const { data, error } = await supabase
+      // Load from students table
+      const { data: studentData, error: studentError } = await supabase
         .from("students")
         .select("gpa, graduation_year, major, class_year, work_experience, projects, skills")
         .eq("user_id", user.id)
         .single();
 
-      if (error) throw error;
+      if (studentError) throw studentError;
 
-      if (data) {
+      // Load from profiles table to get resume_keywords and selected_skills
+      const { data: profileData, error: profileError } = await supabase
+        .from("profiles")
+        .select("resume_keywords, selected_skills")
+        .eq("user_id", user.id)
+        .single();
+
+      if (profileError) throw profileError;
+
+      // Merge resume_keywords and selected_skills for display
+      const combinedSkills = Array.from(
+        new Set([
+          ...(profileData?.resume_keywords || []),
+          ...(profileData?.selected_skills || []),
+        ])
+      );
+
+      if (studentData) {
         setProfileData({
-          gpa: data.gpa,
-          graduation_year: data.graduation_year,
-          major: data.major,
-          class_year: data.class_year,
-          work_experience: (data.work_experience as unknown as WorkExperience[]) || [],
-          projects: (data.projects as unknown as Project[]) || [],
-          skills: data.skills || []
+          gpa: studentData.gpa,
+          graduation_year: studentData.graduation_year,
+          major: studentData.major,
+          class_year: studentData.class_year,
+          work_experience: (studentData.work_experience as unknown as WorkExperience[]) || [],
+          projects: (studentData.projects as unknown as Project[]) || [],
+          skills: combinedSkills
         });
       }
     } catch (error) {
@@ -127,12 +145,13 @@ export function ProfileTab() {
 
       if (studentError) throw studentError;
 
-      // Update profiles table with classification and graduation_year
+      // Update profiles table with classification, graduation_year, and selected_skills
       const { error: profileError } = await supabase
         .from("profiles")
         .update({
           classification: classification,
-          graduation_year: profileData.graduation_year
+          graduation_year: profileData.graduation_year,
+          selected_skills: normalizedSkills  // Save confirmed skills separately
         })
         .eq("user_id", user.id);
 

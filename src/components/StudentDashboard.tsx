@@ -19,6 +19,8 @@ import { ApplicationSchema } from "@/lib/schemas";
 import { useMatches } from "@/hooks/useMatches";
 import { extractKeywords } from "@/lib/extractKeywords";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { useNavigate } from "react-router-dom";
 import { 
   Upload, 
   RefreshCw, 
@@ -80,6 +82,7 @@ interface StudentDashboardProps {
 }
 
 export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardProps) {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [resumeFile, setResumeFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -94,6 +97,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [tabIsSearching, setTabIsSearching] = useState(false);
   const [searchShowDifferent, setSearchShowDifferent] = useState<(() => void) | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [showSkillsPrompt, setShowSkillsPrompt] = useState(false);
   
   // Client-side pagination for Matches tab
   const PAGE_SIZE = 5;
@@ -275,10 +279,8 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
         setStudent(updatedStudent);
       }
 
-      toast({
-        title: "Resume analyzed – review your skills",
-        description: "We scanned your resume and found several technologies you've used. Go to your profile and confirm which skills you actually want RaiderMatch to use when matching you to internships.",
-      });
+      // Show skills prompt modal instead of toast
+      setShowSkillsPrompt(true);
     } catch (error) {
       console.error('Upload error:', error);
       toast({
@@ -966,6 +968,34 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
         }}
         userId={student?.user_id || ''}
       />
+
+      {/* Skills Confirmation Modal */}
+      <Dialog open={showSkillsPrompt} onOpenChange={setShowSkillsPrompt}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Boost your matches</DialogTitle>
+            <DialogDescription>
+              We've scanned your resume and found some skills. Review your skills in your profile 
+              so we only match you with roles that fit what you actually know.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowSkillsPrompt(false)}>
+              Maybe later
+            </Button>
+            <Button
+              onClick={() => {
+                setShowSkillsPrompt(false);
+                // Navigate to profile tab - since we're using Tabs, we just need to trigger tab change
+                // The Tabs component will handle the navigation
+                document.querySelector('[value="profile"]')?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+              }}
+            >
+              Review skills
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
