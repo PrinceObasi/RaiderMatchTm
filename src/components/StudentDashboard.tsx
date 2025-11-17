@@ -276,8 +276,8 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       }
 
       toast({
-        title: "Resume uploaded successfully!",
-        description: `Found ${data.skills?.length || 0} skills${data.gpa ? `, GPA: ${data.gpa}` : ''}${data.graduation_year ? `, Graduation: ${data.graduation_year}` : ''}. Your profile has been updated!`,
+        title: "Resume analyzed – review your skills",
+        description: "We scanned your resume and found several technologies you've used. Go to your profile and confirm which skills you actually want RaiderMatch to use when matching you to internships.",
       });
     } catch (error) {
       console.error('Upload error:', error);
