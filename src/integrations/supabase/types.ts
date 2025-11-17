@@ -432,6 +432,7 @@ export type Database = {
           graduation_year: number | null
           id: string
           resume_keywords: string[] | null
+          selected_skills: string[] | null
           updated_at: string
           user_id: string
         }
@@ -441,6 +442,7 @@ export type Database = {
           graduation_year?: number | null
           id?: string
           resume_keywords?: string[] | null
+          selected_skills?: string[] | null
           updated_at?: string
           user_id: string
         }
@@ -450,6 +452,7 @@ export type Database = {
           graduation_year?: number | null
           id?: string
           resume_keywords?: string[] | null
+          selected_skills?: string[] | null
           updated_at?: string
           user_id?: string
         }
