@@ -106,7 +106,13 @@ export function ProfileTab() {
         )
       );
 
-      const { error } = await supabase
+      // Map class_year to classification
+      const classification = profileData.class_year ? 
+        profileData.class_year.charAt(0).toUpperCase() + profileData.class_year.slice(1) : 
+        null;
+
+      // Update students table
+      const { error: studentError } = await supabase
         .from("students")
         .update({
           gpa: profileData.gpa,
@@ -119,7 +125,18 @@ export function ProfileTab() {
         })
         .eq("user_id", user.id);
 
-      if (error) throw error;
+      if (studentError) throw studentError;
+
+      // Update profiles table with classification and graduation_year
+      const { error: profileError } = await supabase
+        .from("profiles")
+        .update({
+          classification: classification,
+          graduation_year: profileData.graduation_year
+        })
+        .eq("user_id", user.id);
+
+      if (profileError) throw profileError;
 
       toast({
         title: "Success",
