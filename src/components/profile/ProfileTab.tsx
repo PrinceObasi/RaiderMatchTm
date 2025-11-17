@@ -97,6 +97,15 @@ export function ProfileTab() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
 
+      // Normalize skills: lowercase, trim, remove duplicates
+      const normalizedSkills = Array.from(
+        new Set(
+          profileData.skills.map(skill => 
+            skill.toLowerCase().trim()
+          ).filter(skill => skill.length > 0)
+        )
+      );
+
       const { error } = await supabase
         .from("students")
         .update({
@@ -106,7 +115,7 @@ export function ProfileTab() {
           class_year: profileData.class_year,
           work_experience: profileData.work_experience as any,
           projects: profileData.projects as any,
-          skills: profileData.skills
+          skills: normalizedSkills
         })
         .eq("user_id", user.id);
 

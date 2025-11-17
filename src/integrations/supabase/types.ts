@@ -1296,7 +1296,7 @@ export type Database = {
             }[]
           }
       match_internships_for_user: {
-        Args: { p_limit: number; p_user_id: string }
+        Args: { p_limit?: number; p_user_id: string }
         Returns: {
           company: string
           id: string
