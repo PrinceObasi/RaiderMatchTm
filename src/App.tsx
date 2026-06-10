@@ -1,15 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Analytics } from "@vercel/analytics/react";
 import { LandingPage } from "./components/LandingPage";
-import { StudentDashboard } from "./components/StudentDashboard";
-import { EmployerDashboard } from "./components/EmployerDashboard";
 import { AuthModal } from "./components/AuthModal";
-import { Settings } from "./components/Settings";
 import { supabase } from "@/integrations/supabase/client";
+
+const StudentDashboard = lazy(() => import("./components/StudentDashboard").then(m => ({ default: m.StudentDashboard })));
+const EmployerDashboard = lazy(() => import("./components/EmployerDashboard").then(m => ({ default: m.EmployerDashboard })));
+const Settings = lazy(() => import("./components/Settings").then(m => ({ default: m.Settings })));
 
 const queryClient = new QueryClient();
 
@@ -127,7 +128,15 @@ const App = () => {
             <div className="flex items-center justify-center min-h-screen">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
             </div>
-          ) : renderCurrentView()}
+          ) : (
+            <Suspense fallback={
+              <div className="flex items-center justify-center min-h-screen">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
+              </div>
+            }>
+              {renderCurrentView()}
+            </Suspense>
+          )}
           
           <AuthModal
             isOpen={authModal.isOpen}
