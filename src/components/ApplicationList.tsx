@@ -488,6 +488,7 @@ export function ApplicationList() {
       prev.map((a) => a.application_id === appId ? { ...a, note } : a)
     );
     showToast("Note saved");
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- showToast is stable
   }, []);
 
   const toggleExpand = useCallback((id: string) => {

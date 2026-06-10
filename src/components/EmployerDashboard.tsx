@@ -89,9 +89,8 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
   const { toast } = useToast();
 
   // Load employer's jobs
-  useEffect(() => {
-    loadJobs();
-  }, []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on mount
+  useEffect(() => { loadJobs(); }, []);
 
   const loadJobs = async () => {
     try {

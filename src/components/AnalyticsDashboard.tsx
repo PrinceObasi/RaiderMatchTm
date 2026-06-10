@@ -31,6 +31,9 @@ export function AnalyticsDashboard() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps -- runs once on mount
+  useEffect(() => { fetchAnalytics(); }, []);
+
   const fetchAnalytics = async () => {
     setLoading(true);
     try {
@@ -143,9 +146,6 @@ export function AnalyticsDashboard() {
     }
   };
 
-  useEffect(() => {
-    fetchAnalytics();
-  }, []);
 
   if (loading) {
     return (
