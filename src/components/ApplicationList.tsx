@@ -432,7 +432,21 @@ export function ApplicationList() {
         .order("applied_at", { ascending: false });
 
       if (!error && data) {
-        const mapped: AppData[] = data.map((row: any) => ({
+        interface AppRow {
+          id: string;
+          applied_at: string | null;
+          status: string | null;
+          jobs: {
+            title: string;
+            company: string;
+            city: string;
+            deadline: string | null;
+            skills: string[];
+            apply_url: string | null;
+            job_type: string | null;
+          } | null;
+        }
+        const mapped: AppData[] = (data as unknown as AppRow[]).map((row) => ({
           application_id: row.id,
           status: (row.status || "applied") as StatusKey,
           applied_at: row.applied_at || new Date().toISOString(),

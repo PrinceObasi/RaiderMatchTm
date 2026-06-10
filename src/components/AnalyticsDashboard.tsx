@@ -50,7 +50,7 @@ export function AnalyticsDashboard() {
       if (applicationsError) throw applicationsError;
 
       // Fetch jobs for company analysis
-      const { data: jobsData, error: jobsError } = await (supabase as any)
+      const { data: jobsData, error: jobsError } = await supabase
         .from('jobs')
         .select('id, company, title, skills');
 
@@ -60,8 +60,8 @@ export function AnalyticsDashboard() {
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
-      const signupGrowth = [];
-      const signupsByDate = {};
+      const signupGrowth: { date: string; count: number }[] = [];
+      const signupsByDate: Record<string, number> = {};
       
       studentsData?.forEach(student => {
         const date = new Date(student.created_at).toISOString().split('T')[0];
@@ -80,7 +80,7 @@ export function AnalyticsDashboard() {
       }
 
       // Analyze top skills
-      const skillCounts = {};
+      const skillCounts: Record<string, number> = {};
       studentsData?.forEach(student => {
         if (student.skills) {
           student.skills.forEach(skill => {
@@ -95,9 +95,9 @@ export function AnalyticsDashboard() {
         .map(([skill, count]) => ({ skill, count: count as number }));
 
       // Analyze top companies (by application volume)
-      const companyApplications = {};
-      applicationsData?.forEach((app: any) => {
-        const job = jobsData?.find((j: any) => j.id === app.job_id);
+      const companyApplications: Record<string, number> = {};
+      applicationsData?.forEach((app) => {
+        const job = jobsData?.find((j) => j.id === app.job_id);
         if (job) {
           companyApplications[job.company] = (companyApplications[job.company] || 0) + 1;
         }

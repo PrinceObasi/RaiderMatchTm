@@ -14,6 +14,72 @@ export type Database = {
   }
   public: {
     Tables: {
+      jobs: {
+        Row: {
+          id: string
+          title: string
+          company: string
+          city: string
+          description: string
+          skills: string[]
+          type: string
+          posted_date: string
+          deadline: string | null
+          created_at: string
+          updated_at: string
+          employer_id: string | null
+          apply_url: string | null
+          opens_at: string | null
+          closes_at: string | null
+          is_active: boolean
+          sponsors_visa: boolean
+          company_logo: string | null
+          job_type: string | null
+        }
+        Insert: {
+          id?: string
+          title: string
+          company: string
+          city: string
+          description: string
+          skills?: string[]
+          type?: string
+          posted_date?: string
+          deadline?: string | null
+          created_at?: string
+          updated_at?: string
+          employer_id?: string | null
+          apply_url?: string | null
+          opens_at?: string | null
+          closes_at?: string | null
+          is_active?: boolean
+          sponsors_visa?: boolean
+          company_logo?: string | null
+          job_type?: string | null
+        }
+        Update: {
+          id?: string
+          title?: string
+          company?: string
+          city?: string
+          description?: string
+          skills?: string[]
+          type?: string
+          posted_date?: string
+          deadline?: string | null
+          created_at?: string
+          updated_at?: string
+          employer_id?: string | null
+          apply_url?: string | null
+          opens_at?: string | null
+          closes_at?: string | null
+          is_active?: boolean
+          sponsors_visa?: boolean
+          company_logo?: string | null
+          job_type?: string | null
+        }
+        Relationships: []
+      }
       app_secrets: {
         Row: {
           created_at: string | null
@@ -117,6 +183,7 @@ export type Database = {
           hire_score: number | null
           id: string
           internship_id: string | null
+          job_id: string | null
           last_updated_at: string
           note: string | null
           status: string | null
@@ -128,6 +195,7 @@ export type Database = {
           hire_score?: number | null
           id?: string
           internship_id?: string | null
+          job_id?: string | null
           last_updated_at?: string
           note?: string | null
           status?: string | null
@@ -139,6 +207,7 @@ export type Database = {
           hire_score?: number | null
           id?: string
           internship_id?: string | null
+          job_id?: string | null
           last_updated_at?: string
           note?: string | null
           status?: string | null
@@ -165,6 +234,13 @@ export type Database = {
             columns: ["internship_id"]
             isOneToOne: false
             referencedRelation: "internships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "apps_job_fk"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
             referencedColumns: ["id"]
           },
         ]

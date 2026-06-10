@@ -7,6 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import type { Database } from "@/integrations/supabase/types";
+
+type StudentRow = Database["public"]["Tables"]["students"]["Row"];
 import { ApplicationList } from "./ApplicationList";
 import { ProfileWizard } from "./ProfileWizard";
 import { ApplicationSchema } from "@/lib/schemas";
@@ -76,7 +79,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [matches, setMatches] = useState<Job[]>([]);
   const [filteredMatches, setFilteredMatches] = useState<Job[]>([]);
   const [hasResume, setHasResume] = useState(false);
-  const [profile, setProfile] = useState<any>(null);
+  const [profile, setProfile] = useState<StudentRow | null>(null);
   const [showProfileWizard, setShowProfileWizard] = useState(false);
   const [skillFilter, setSkillFilter] = useState<string[]>([]);
   const [cityFilter, setCityFilter] = useState<string>("");
@@ -240,7 +243,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
         const { data } = await supabase.rpc('check_application', {
           p_internship_id: jobId,
         });
-        if ((data as any)?.applied) {
+        if ((data as { applied?: boolean } | null)?.applied) {
           setIsApplied(true);
         }
       };
@@ -273,7 +276,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
             toast({ title: "Failed to save application", description: error.message, variant: "destructive" });
             return;
           }
-          const result = data as any;
+          const result = data as { success?: boolean; message?: string } | null;
           if (result?.success === false) {
             toast({ title: "Failed to save", description: result?.message || "Unknown error", variant: "destructive" });
             return;
@@ -281,9 +284,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
           setIsApplied(true);
           toast({ title: "Application tracked!", description: "Marked as applied" });
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         console.error('Error toggling application:', error);
-        toast({ title: "Error", description: error?.message || "Something went wrong", variant: "destructive" });
+        const message = error instanceof Error ? error.message : "Something went wrong";
+        toast({ title: "Error", description: message, variant: "destructive" });
       } finally {
         setIsLoading(false);
       }

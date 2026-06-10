@@ -98,7 +98,7 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.user) return;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await supabase
         .from('jobs')
         .select('*, applications(count)')
         .eq('employer_id', session.session.user.id)
@@ -165,7 +165,7 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
       // Validate data before inserting
       JobCreateSchema.parse(jobData);
 
-      const { error } = await (supabase as any).from('jobs').insert(jobData);
+      const { error } = await supabase.from('jobs').insert(jobData);
 
       if (error) throw error;
 
@@ -203,7 +203,7 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
       const updateData = { is_active: !currentStatus };
       JobUpdateSchema.parse(updateData);
       
-      const { error } = await (supabase as any)
+      const { error } = await supabase
         .from('jobs')
         .update(updateData)
         .eq('id', jobId);

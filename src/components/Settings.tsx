@@ -57,7 +57,7 @@ export function Settings({ userType, onAccountDeleted }: SettingsProps) {
           applications: applications
         };
       } else {
-        const { data: jobs } = await (supabase as any)
+        const { data: jobs } = await supabase
           .from('jobs')
           .select(`
             *,
