@@ -1,0 +1,22 @@
+project_id = "tjahvypvfrjulnqmnhsh"
+
+[functions.upload-resume]
+verify_jwt = true
+
+[functions.match]
+verify_jwt = true
+
+[functions.delete-account]
+verify_jwt = true
+
+[functions.apply]
+verify_jwt = true
+
+[functions.update-company-logos]
+verify_jwt = true
+
+[functions.enrich-internship]
+verify_jwt = true
+
+[functions.notify_employer]
+verify_jwt = true
