@@ -2,6 +2,7 @@
 
 **Intelligent internship matching for Texas Tech CS students.**
 
+[![CI](https://github.com/PrinceObasi/RaiderMatchTm/actions/workflows/ci.yml/badge.svg)](https://github.com/PrinceObasi/RaiderMatchTm/actions/workflows/ci.yml)
 [![Live Demo](https://img.shields.io/badge/demo-raider--hire--match.vercel.app-CC0000)](https://raider-hire-match.vercel.app)
 [![Built with React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://typescriptlang.org)
