@@ -83,6 +83,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const [showProfileWizard, setShowProfileWizard] = useState(false);
   const [skillFilter, setSkillFilter] = useState<string[]>([]);
   const [cityFilter, setCityFilter] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [jobTypeFilter, setJobTypeFilter] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>("score");
+  const [showSavedOnly, setShowSavedOnly] = useState(false);
   const [availableSkills, setAvailableSkills] = useState<string[]>([]);
   const [availableCities, setAvailableCities] = useState<string[]>([]);
   const [savedJobs, setSavedJobs] = useState<Set<string>>(new Set());
@@ -111,15 +115,24 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     loadProfile();
   }, []);
 
-  // Filter matches based on selected filters
+  // Filter and sort matches
   useEffect(() => {
     let filtered = matches;
 
+    // Text search
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase();
+      filtered = filtered.filter(job =>
+        job.title.toLowerCase().includes(q) ||
+        job.company.toLowerCase().includes(q)
+      );
+    }
+
     // Filter by skills
     if (skillFilter.length > 0) {
-      filtered = filtered.filter(job => 
-        skillFilter.some(selectedSkill => 
-          job.skills?.some(jobSkill => 
+      filtered = filtered.filter(job =>
+        skillFilter.some(selectedSkill =>
+          job.skills?.some(jobSkill =>
             jobSkill.toLowerCase().includes(selectedSkill.toLowerCase())
           )
         )
@@ -128,13 +141,39 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
 
     // Filter by city
     if (cityFilter && cityFilter !== "all") {
-      filtered = filtered.filter(job => 
+      filtered = filtered.filter(job =>
         job.city.toLowerCase().includes(cityFilter.toLowerCase())
       );
     }
 
+    // Filter by job type
+    if (jobTypeFilter && jobTypeFilter !== "all") {
+      filtered = filtered.filter(job =>
+        job.job_type?.toLowerCase() === jobTypeFilter.toLowerCase()
+      );
+    }
+
+    // Filter saved only
+    if (showSavedOnly) {
+      filtered = filtered.filter(job => savedJobs.has(job.id));
+    }
+
+    // Sort
+    filtered = [...filtered].sort((a, b) => {
+      switch (sortBy) {
+        case "score":
+          return (b.composite_score ?? b.hireScore) - (a.composite_score ?? a.hireScore);
+        case "date":
+          return new Date(b.date_posted || b.posted_date).getTime() - new Date(a.date_posted || a.posted_date).getTime();
+        case "company":
+          return a.company.localeCompare(b.company);
+        default:
+          return 0;
+      }
+    });
+
     setFilteredMatches(filtered);
-  }, [matches, skillFilter, cityFilter]);
+  }, [matches, skillFilter, cityFilter, searchQuery, jobTypeFilter, sortBy, showSavedOnly, savedJobs]);
 
   const handleSkillFilterChange = (skill: string, checked: boolean) => {
     if (checked) {
@@ -147,7 +186,13 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
   const clearFilters = () => {
     setSkillFilter([]);
     setCityFilter("");
+    setSearchQuery("");
+    setJobTypeFilter("");
+    setSortBy("score");
+    setShowSavedOnly(false);
   };
+
+  const hasActiveFilters = skillFilter.length > 0 || !!cityFilter || !!searchQuery || !!jobTypeFilter || showSavedOnly;
 
   const formatSalary = (min?: number, max?: number) => {
     if (!min && !max) return "Salary not disclosed";
@@ -573,41 +618,104 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
               </div>
               
               <TabsContent value="matches" className="mt-6">
-                {/* Filter Controls */}
+                {/* Search & Filter Controls */}
                 {matches.length > 0 && (
                   <Card className="card-shadow mb-6">
                     <CardContent className="pt-6">
-                      <div className="flex items-center justify-between mb-4">
-                        <h3 className="font-semibold flex items-center gap-2">
-                          <Filter className="h-4 w-4" />
-                          Filter Internships
-                        </h3>
-                        {(skillFilter.length > 0 || cityFilter) && (
-                          <Button 
-                            variant="outline" 
-                            size="sm" 
-                            onClick={clearFilters}
-                            className="flex items-center gap-2"
+                      {/* Search bar */}
+                      <div className="relative mb-4">
+                        <Input
+                          placeholder="Search by job title or company..."
+                          value={searchQuery}
+                          onChange={(e) => setSearchQuery(e.target.value)}
+                          className="pl-10"
+                        />
+                        <Target className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                        {searchQuery && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                            onClick={() => setSearchQuery("")}
                           >
                             <X className="h-4 w-4" />
-                            Clear Filters
                           </Button>
                         )}
                       </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+
+                      <div className="flex items-center justify-between mb-4">
+                        <h3 className="font-semibold flex items-center gap-2">
+                          <Filter className="h-4 w-4" />
+                          Filters
+                        </h3>
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant={showSavedOnly ? "default" : "outline"}
+                            size="sm"
+                            onClick={() => setShowSavedOnly(!showSavedOnly)}
+                            className="flex items-center gap-1.5"
+                          >
+                            <Heart className={`h-3.5 w-3.5 ${showSavedOnly ? "fill-current" : ""}`} />
+                            Saved ({savedJobs.size})
+                          </Button>
+                          {hasActiveFilters && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={clearFilters}
+                              className="flex items-center gap-1.5"
+                            >
+                              <X className="h-3.5 w-3.5" />
+                              Clear
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                         {/* City Filter */}
                         <div>
                           <Label className="text-sm font-medium mb-2 block">Location</Label>
-                          <Select value={cityFilter} onValueChange={setCityFilter}>
+                          <Select value={cityFilter || "all"} onValueChange={(v) => setCityFilter(v === "all" ? "" : v)}>
                             <SelectTrigger>
                               <SelectValue placeholder="All locations" />
                             </SelectTrigger>
                             <SelectContent>
-                              <SelectItem value="">All locations</SelectItem>
+                              <SelectItem value="all">All locations</SelectItem>
                               {availableCities.map(city => (
                                 <SelectItem key={city} value={city}>{city}</SelectItem>
                               ))}
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Job Type Filter */}
+                        <div>
+                          <Label className="text-sm font-medium mb-2 block">Work Mode</Label>
+                          <Select value={jobTypeFilter || "all"} onValueChange={(v) => setJobTypeFilter(v === "all" ? "" : v)}>
+                            <SelectTrigger>
+                              <SelectValue placeholder="All types" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">All types</SelectItem>
+                              <SelectItem value="remote">Remote</SelectItem>
+                              <SelectItem value="hybrid">Hybrid</SelectItem>
+                              <SelectItem value="on-site">On-site</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+
+                        {/* Sort */}
+                        <div>
+                          <Label className="text-sm font-medium mb-2 block">Sort By</Label>
+                          <Select value={sortBy} onValueChange={setSortBy}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="score">Match Score</SelectItem>
+                              <SelectItem value="date">Most Recent</SelectItem>
+                              <SelectItem value="company">Company A-Z</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
@@ -621,8 +729,8 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                             <PopoverTrigger asChild>
                               <Button variant="outline" className="w-full justify-start">
                                 <Filter className="h-4 w-4 mr-2" />
-                                {skillFilter.length === 0 
-                                  ? "Select skills..." 
+                                {skillFilter.length === 0
+                                  ? "Select skills..."
                                   : `${skillFilter.length} skills selected`
                                 }
                               </Button>
@@ -631,10 +739,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                               <div className="max-h-60 overflow-y-auto space-y-2">
                                 {availableSkills.map(skill => (
                                   <div key={skill} className="flex items-center space-x-2">
-                                    <Checkbox 
+                                    <Checkbox
                                       id={skill}
                                       checked={skillFilter.includes(skill)}
-                                      onCheckedChange={(checked) => 
+                                      onCheckedChange={(checked) =>
                                         handleSkillFilterChange(skill, checked as boolean)
                                       }
                                     />
@@ -646,11 +754,10 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                           </Popover>
                         </div>
                       </div>
-                      
+
                       {/* Active Filters Display */}
                       {skillFilter.length > 0 && (
                         <div className="mt-4">
-                          <Label className="text-sm font-medium mb-2 block">Active Tech Stack Filters:</Label>
                           <div className="flex flex-wrap gap-2">
                             {skillFilter.map(skill => (
                               <Badge key={skill} variant="secondary" className="flex items-center gap-1">
