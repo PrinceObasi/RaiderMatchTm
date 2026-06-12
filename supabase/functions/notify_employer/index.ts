@@ -2,17 +2,10 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.52.1";
 import { Resend } from "npm:resend@2.0.0";
 
-const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGIN') || '').split(',').map(o => o.trim()).filter(Boolean);
-
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get('Origin') || '';
-  const isAllowed = ALLOWED_ORIGINS.length > 0 && ALLOWED_ORIGINS.includes(origin);
-  return {
-    'Access-Control-Allow-Origin': isAllowed ? origin : '',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Vary': 'Origin',
-  };
-}
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 // Initialize Supabase client with service role key for admin access
 const supabaseAdmin = createClient(
@@ -25,8 +18,6 @@ if (!RESEND_API_KEY) throw new Error('Missing RESEND_API_KEY');
 const resend = new Resend(RESEND_API_KEY);
 
 const handler = async (req: Request): Promise<Response> => {
-  const corsHeaders = getCorsHeaders(req);
-
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -99,10 +90,8 @@ const handler = async (req: Request): Promise<Response> => {
 
       if (employerError || !employerAuth.user?.email) {
         console.error('Error fetching employer email:', employerError);
-        return new Response(JSON.stringify({ error: 'Employer email not found' }), {
-          status: 404,
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-        });
+        // Fallback for development - you might want to handle this differently
+        employerEmail = 'employer@ttu.edu';
       } else {
         employerEmail = employerAuth.user.email;
       }
@@ -170,7 +159,7 @@ const handler = async (req: Request): Promise<Response> => {
             </div>
 
             <div style="text-align: center; margin: 30px 0;">
-              <a href="${(Deno.env.get('ALLOWED_ORIGIN') || '').split(',')[0]?.trim() || '#'}"
+              <a href="https://tjahvypvfrjulnqmnhsh.supabase.co" 
                  style="background: #dc2626; color: white; padding: 15px 30px; text-decoration: none; border-radius: 8px; display: inline-block; font-weight: bold; font-size: 16px;">
                 View Full Application →
               </a>
@@ -202,7 +191,7 @@ const handler = async (req: Request): Promise<Response> => {
   } catch (error: any) {
     console.error('Error in notify_employer function:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: error.message }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' }

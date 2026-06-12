@@ -1,31 +1,22 @@
-import { useState, useEffect, lazy, Suspense } from "react";
+import { useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Analytics } from "@vercel/analytics/react";
 import { LandingPage } from "./components/LandingPage";
+import { StudentDashboard } from "./components/StudentDashboard";
+import { EmployerDashboard } from "./components/EmployerDashboard";
 import { AuthModal } from "./components/AuthModal";
-import { supabase } from "@/integrations/supabase/client";
-
-const StudentDashboard = lazy(() => import("./components/StudentDashboard").then(m => ({ default: m.StudentDashboard })));
-const EmployerDashboard = lazy(() => import("./components/EmployerDashboard").then(m => ({ default: m.EmployerDashboard })));
-const Settings = lazy(() => import("./components/Settings").then(m => ({ default: m.Settings })));
+import { Settings } from "./components/Settings";
+import { AuthBootstrapper } from "./components/AuthBootstrapper";
 
 const queryClient = new QueryClient();
 
 type UserType = 'student' | 'employer' | null;
 
-function getUserType(user: { user_metadata?: Record<string, unknown> } | null): UserType {
-  if (!user) return null;
-  const role = user.user_metadata?.role;
-  if (role === 'student' || role === 'employer') return role;
-  return 'student'; // default fallback
-}
-
 const App = () => {
   const [user, setUser] = useState<UserType>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [currentView, setCurrentView] = useState<'main' | 'settings'>('main');
   const [authModal, setAuthModal] = useState<{
     isOpen: boolean;
@@ -34,23 +25,6 @@ const App = () => {
     isOpen: false,
     defaultTab: 'login'
   });
-
-  // Restore session on mount and listen for auth changes
-  useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(getUserType(session?.user ?? null));
-      setIsLoading(false);
-    });
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(getUserType(session?.user ?? null));
-      if (!session) {
-        setCurrentView('main');
-      }
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
 
   const handleStudentSignup = () => {
     setAuthModal({ isOpen: true, defaultTab: 'student' });
@@ -69,8 +43,7 @@ const App = () => {
     setAuthModal({ isOpen: false, defaultTab: 'login' });
   };
 
-  const handleLogout = async () => {
-    await supabase.auth.signOut();
+  const handleLogout = () => {
     setUser(null);
     setCurrentView('main');
   };
@@ -123,20 +96,9 @@ const App = () => {
         <div className="min-h-screen overflow-x-hidden bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
           <Toaster />
           <Sonner />
-
-          {isLoading ? (
-            <div className="flex items-center justify-center min-h-screen">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-            </div>
-          ) : (
-            <Suspense fallback={
-              <div className="flex items-center justify-center min-h-screen">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary" />
-              </div>
-            }>
-              {renderCurrentView()}
-            </Suspense>
-          )}
+          <AuthBootstrapper />
+          
+          {renderCurrentView()}
           
           <AuthModal
             isOpen={authModal.isOpen}

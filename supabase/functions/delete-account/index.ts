@@ -1,25 +1,16 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const ALLOWED_ORIGINS = (Deno.env.get('ALLOWED_ORIGIN') || '').split(',').map(o => o.trim()).filter(Boolean);
-
-function getCorsHeaders(req: Request) {
-  const origin = req.headers.get('Origin') || '';
-  const isAllowed = ALLOWED_ORIGINS.length > 0 && ALLOWED_ORIGINS.includes(origin);
-  return {
-    'Access-Control-Allow-Origin': isAllowed ? origin : '',
-    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-    'Vary': 'Origin',
-  };
-}
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+};
 
 interface DeleteAccountRequest {
   userType: 'student' | 'employer';
 }
 
 serve(async (req) => {
-  const corsHeaders = getCorsHeaders(req);
-
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -61,46 +52,83 @@ serve(async (req) => {
     }
 
     const { userType }: DeleteAccountRequest = await req.json();
-
-    if (userType !== 'student' && userType !== 'employer') {
-      return new Response(
-        JSON.stringify({ error: 'Invalid user type' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    // Verify the userType matches the user's actual role from JWT metadata
-    const actualRole = user.user_metadata?.role;
-    if (actualRole && actualRole !== userType) {
-      return new Response(
-        JSON.stringify({ error: 'User type does not match account role' }),
-        { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
+    
     console.log(`Starting account deletion for user ${user.id} (${userType})`);
 
-    // Atomically delete all user data via DB function (runs in a single transaction)
-    const { error: rpcError } = await supabaseAdmin.rpc('delete_user_data', {
-      p_user_id: user.id,
-      p_user_type: userType,
-    });
-
-    if (rpcError) {
-      console.error('Error deleting user data:', rpcError);
-      throw new Error('Failed to delete user data');
-    }
-
-    // Clean up resume files from storage (best-effort, outside transaction)
+    // Delete user data based on type
     if (userType === 'student') {
-      const { data: files } = await supabaseAdmin
+      // Delete student applications first (due to foreign key constraints)
+      const { error: appError } = await supabaseAdmin
+        .from('applications')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (appError) {
+        console.error('Error deleting applications:', appError);
+        throw new Error('Failed to delete applications');
+      }
+
+      // Delete student profile
+      const { error: studentError } = await supabaseAdmin
+        .from('students')
+        .delete()
+        .eq('user_id', user.id);
+
+      if (studentError) {
+        console.error('Error deleting student profile:', studentError);
+        throw new Error('Failed to delete student profile');
+      }
+
+      // Delete resume files from storage
+      const { data: files, error: listError } = await supabaseAdmin
         .storage
         .from('resumes')
         .list(user.id);
 
-      if (files && files.length > 0) {
+      if (!listError && files && files.length > 0) {
         const filePaths = files.map(file => `${user.id}/${file.name}`);
-        await supabaseAdmin.storage.from('resumes').remove(filePaths);
+        const { error: deleteFilesError } = await supabaseAdmin
+          .storage
+          .from('resumes')
+          .remove(filePaths);
+
+        if (deleteFilesError) {
+          console.error('Error deleting resume files:', deleteFilesError);
+        }
+      }
+
+    } else if (userType === 'employer') {
+      // Delete applications for employer's jobs first
+      const { data: jobs } = await supabaseAdmin
+        .from('jobs')
+        .select('id')
+        .eq('employer_id', user.id);
+
+      if (jobs && jobs.length > 0) {
+        const jobIds = jobs.map(job => job.id);
+        
+        // Delete applications for these jobs
+        for (const jobId of jobIds) {
+          const { error: appError } = await supabaseAdmin
+            .from('applications')
+            .delete()
+            .eq('job_id', jobId);
+
+          if (appError) {
+            console.error(`Error deleting applications for job ${jobId}:`, appError);
+          }
+        }
+      }
+
+      // Delete employer's jobs
+      const { error: jobsError } = await supabaseAdmin
+        .from('jobs')
+        .delete()
+        .eq('employer_id', user.id);
+
+      if (jobsError) {
+        console.error('Error deleting jobs:', jobsError);
+        throw new Error('Failed to delete jobs');
       }
     }
 
@@ -128,8 +156,8 @@ serve(async (req) => {
   } catch (error) {
     console.error('Delete account error:', error);
     return new Response(
-      JSON.stringify({
-        error: 'Failed to delete account'
+      JSON.stringify({ 
+        error: error.message || 'Failed to delete account' 
       }),
       { 
         status: 500, 

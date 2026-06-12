@@ -432,21 +432,7 @@ export function ApplicationList() {
         .order("applied_at", { ascending: false });
 
       if (!error && data) {
-        interface AppRow {
-          id: string;
-          applied_at: string | null;
-          status: string | null;
-          jobs: {
-            title: string;
-            company: string;
-            city: string;
-            deadline: string | null;
-            skills: string[];
-            apply_url: string | null;
-            job_type: string | null;
-          } | null;
-        }
-        const mapped: AppData[] = (data as unknown as AppRow[]).map((row) => ({
+        const mapped: AppData[] = data.map((row: any) => ({
           application_id: row.id,
           status: (row.status || "applied") as StatusKey,
           applied_at: row.applied_at || new Date().toISOString(),
@@ -488,7 +474,6 @@ export function ApplicationList() {
       prev.map((a) => a.application_id === appId ? { ...a, note } : a)
     );
     showToast("Note saved");
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- showToast is stable
   }, []);
 
   const toggleExpand = useCallback((id: string) => {
