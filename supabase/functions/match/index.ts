@@ -3,368 +3,397 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.52.1'
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-interface Factors {
-  overlap: number;        // 0-1
-  gpa: number;            // 0-1
-  prevIntern: boolean;
-  projectDepth: number;   // 0-1
-  missingSkills: string[];
-  weightedScore?: number; // 0-1 overall weighted score
-  gpaScore?: number;      // 0-1 GPA component score
-  experienceScore?: number; // 0-1 experience component score
-  recencyScore?: number;  // 0-1 recency component score
+const DEFAULT_MATCH_LIMIT = 10
+
+interface StudentProfileRow {
+  is_international: boolean | null
 }
 
-function buildExplanation(f: Factors) {
-  const lines: string[] = [];
-
-  // Enhanced explanations using weighted scoring components
-  
-  // 1. Overall Match Quality
-  if (f.weightedScore !== undefined) {
-    if (f.weightedScore >= 0.85) {
-      lines.push('🎯 Excellent match! This role aligns perfectly with your profile.');
-    } else if (f.weightedScore >= 0.7) {
-      lines.push('✅ Strong match with good alignment across multiple factors.');
-    } else if (f.weightedScore >= 0.5) {
-      lines.push('📊 Moderate match - some areas align well, others need improvement.');
-    } else {
-      lines.push('⚠️ Lower match score - consider strengthening your profile for similar roles.');
-    }
-  }
-
-  // 2. Skills Analysis (50% of score)
-  if (f.overlap > 0.8) {
-    lines.push('💪 Your résumé covers most required skills.');
-  } else if (f.overlap > 0.5) {
-    lines.push('📝 You match some key skills - highlight relevant experience more.');
-  } else if (f.overlap > 0.2) {
-    lines.push('🎯 Limited skill overlap - consider developing missing competencies.');
-  } else {
-    lines.push('📚 Few matching skills found - significant skill gap exists.');
-  }
-
-  // 3. Missing Skills Guidance
-  if (f.missingSkills.length > 0) {
-    const topMissing = f.missingSkills.slice(0, 3).join(', ');
-    lines.push(`🔍 Consider learning: ${topMissing}`);
-  }
-
-  // 4. Academic Standing (20% of score)
-  if (f.gpaScore !== undefined) {
-    if (f.gpaScore >= 0.9) {
-      lines.push('🏆 Exceptional GPA strengthens your candidacy.');
-    } else if (f.gpaScore >= 0.7) {
-      lines.push('📊 Solid academic performance supports your application.');
-    } else {
-      lines.push('📈 Focus on highlighting other strengths to offset GPA.');
-    }
-  }
-
-  // 5. Experience Level (20% of score)
-  if (f.experienceScore !== undefined) {
-    if (f.experienceScore >= 0.9) {
-      lines.push('⭐ Your experience level is ideal for this role.');
-    } else if (f.experienceScore >= 0.7) {
-      lines.push('✨ Good experience match - emphasize relevant projects.');
-    } else {
-      lines.push('🚀 Entry-level friendly role - great opportunity to grow.');
-    }
-  }
-
-  // 6. Application Timing (10% of score)
-  if (f.recencyScore !== undefined) {
-    if (f.recencyScore >= 0.9) {
-      lines.push('⚡ Recently posted - apply soon for best chances.');
-    } else if (f.recencyScore >= 0.6) {
-      lines.push('📅 Posted recently - still fresh opportunity.');
-    } else {
-      lines.push('⏰ Older posting - verify if still accepting applications.');
-    }
-  }
-
-  return lines;
-}
-
-interface JobMatch {
+interface InternshipDetailRow {
   id: string
-  title: string
+  apply_url: string | null
+  clearance_required: boolean | null
+  description_text: string | null
+  employment_type: string | null
+  salary_period: string | null
+  source: string | null
+  us_citizen_required: boolean | null
+}
+
+interface WeightedMatchRow {
+  application_link: string
   company: string
-  city: string
-  description: string
-  skills: string[]
-  hireScore: number
-  apply_url: string
+  composite_score: number
+  date_posted: string
+  deadline: string
+  direct_link: string
+  experience_score: number
+  gpa_score: number
+  id: string
+  link_type: string
+  location: string
+  matched_count: number
+  matched_tags: string[]
+  missing_skills: string[]
+  preference_score: number
+  recency_score: number
+  role_title: string
+  salary_currency: string
+  salary_max: number
+  salary_min: number
+  skill_overlap_ratio: number
+  summary_text: string
+  tech_stack: string[]
+  total_required: number
+  visa_sponsorship: string
+  work_mode: string
+}
+
+type MatchDatabase = {
+  public: {
+    Tables: {
+      internships: {
+        Row: InternshipDetailRow
+        Insert: Partial<InternshipDetailRow>
+        Update: Partial<InternshipDetailRow>
+        Relationships: []
+      }
+      students: {
+        Row: StudentProfileRow
+        Insert: Partial<StudentProfileRow>
+        Update: Partial<StudentProfileRow>
+        Relationships: []
+      }
+    }
+    Views: Record<string, never>
+    Functions: {
+      match_internships_weighted: {
+        Args: { p_limit?: number; p_user_id: string }
+        Returns: WeightedMatchRow[]
+      }
+    }
+    Enums: Record<string, never>
+    CompositeTypes: Record<string, never>
+  }
+}
+
+interface ExplanationFactors {
+  experienceScore: number
+  gpaScore: number
+  ineligible: boolean
+  missingSkills: string[]
+  overlap: number
+  recencyScore: number
+  restrictionLabels: string[]
+  weightedScore: number
+}
+
+interface MatchResponseJob {
+  application_link: string | null
+  apply_url: string | null
+  city: string | null
+  company: string
+  company_logo: null
+  composite_score: number
+  date_posted: string | null
+  deadline: string | null
+  description: string | null
+  direct_link: string | null
+  experience_score: number
   explanationLines: string[]
+  gpa_score: number
+  hireScore: number
+  id: string
+  ineligible: boolean
+  job_type: string | null
+  link_type: string | null
+  matched_count: number
+  matched_skills: string[]
+  missing_skills: string[]
+  posted_date: string | null
+  preference_score: number
+  recency_score: number
+  requires_clearance: string | null
+  requires_us_citizenship: boolean
+  salary_currency: string | null
+  salary_max: number | null
+  salary_min: number | null
+  salary_period: string | null
+  skill_overlap_ratio: number
+  skills: string[]
+  source: string | null
+  summary_text: string | null
+  title: string
+  total_required: number
+  visa_sponsorship: string | null
+  work_mode: string | null
 }
 
-function computeHireScore(factors: {
-  skillOverlap: number
-  gpa: number
-  prevIntern: boolean
-  projectDepth: number
-}) {
-  const score =
-    0.40 * factors.skillOverlap +
-    0.25 * factors.gpa +
-    0.20 * (factors.prevIntern ? 1 : 0) +
-    0.15 * factors.projectDepth;
-  return Math.round(score * 100);
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  })
 }
 
-function normalizeGPA(gpa: number): number {
-  if (!gpa || gpa < 2.0) return 0;
-  if (gpa > 4.0) return 1;
-  return (gpa - 2.0) / 2.0;
+function clamp(value: number, minimum: number, maximum: number): number {
+  return Math.min(maximum, Math.max(minimum, value))
 }
 
-Deno.serve(async (req) => {
-  // Handle CORS preflight requests
+function toUnitScore(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  const normalized = value > 1 ? value / 100 : value
+  return clamp(normalized, 0, 1)
+}
+
+function toPercentScore(value: number): number {
+  return Math.round(toUnitScore(value) * 100)
+}
+
+function cleanStringArray(values: string[] | null | undefined): string[] {
+  if (!values) return []
+
+  const seen = new Set<string>()
+  const result: string[] = []
+
+  for (const value of values) {
+    const trimmed = value.trim()
+    const key = trimmed.toLocaleLowerCase()
+    if (!trimmed || seen.has(key)) continue
+    seen.add(key)
+    result.push(trimmed)
+  }
+
+  return result
+}
+
+function firstNonEmpty(...values: Array<string | null | undefined>): string | null {
+  for (const value of values) {
+    const trimmed = value?.trim()
+    if (trimmed) return trimmed
+  }
+  return null
+}
+
+function buildExplanation(factors: ExplanationFactors): string[] {
+  const lines: string[] = []
+
+  if (factors.ineligible) {
+    const restrictions = factors.restrictionLabels.join(' and ')
+    lines.push(
+      restrictions
+        ? `⛔ Eligibility review required: this role lists ${restrictions}.`
+        : '⛔ Eligibility review required for this role.',
+    )
+  }
+
+  if (factors.weightedScore >= 0.85) {
+    lines.push('🎯 Excellent match! This role aligns strongly with your profile.')
+  } else if (factors.weightedScore >= 0.7) {
+    lines.push('✅ Strong match with good alignment across multiple factors.')
+  } else if (factors.weightedScore >= 0.5) {
+    lines.push('📊 Moderate match - some areas align well, others need improvement.')
+  } else {
+    lines.push('⚠️ Lower match score - consider strengthening your profile for similar roles.')
+  }
+
+  if (factors.overlap > 0.8) {
+    lines.push('💪 Your résumé covers most required skills.')
+  } else if (factors.overlap > 0.5) {
+    lines.push('📝 You match some key skills - highlight relevant experience more.')
+  } else if (factors.overlap > 0.2) {
+    lines.push('🎯 Limited skill overlap - consider developing missing competencies.')
+  } else {
+    lines.push('📚 Few matching skills found - significant skill gap exists.')
+  }
+
+  if (factors.missingSkills.length > 0) {
+    lines.push(`🔍 Consider learning: ${factors.missingSkills.slice(0, 3).join(', ')}`)
+  }
+
+  if (factors.gpaScore >= 0.9) {
+    lines.push('🏆 Exceptional GPA strengthens your candidacy.')
+  } else if (factors.gpaScore >= 0.7) {
+    lines.push('📊 Solid academic performance supports your application.')
+  } else {
+    lines.push('📈 Focus on highlighting other strengths to offset GPA.')
+  }
+
+  if (factors.experienceScore >= 0.9) {
+    lines.push('⭐ Your experience level is ideal for this role.')
+  } else if (factors.experienceScore >= 0.7) {
+    lines.push('✨ Good experience match - emphasize relevant projects.')
+  } else {
+    lines.push('🚀 Entry-level friendly role - great opportunity to grow.')
+  }
+
+  if (factors.recencyScore >= 0.9) {
+    lines.push('⚡ Recently posted - apply soon for best chances.')
+  } else if (factors.recencyScore >= 0.6) {
+    lines.push('📅 Posted recently - still a fresh opportunity.')
+  } else {
+    lines.push('⏰ Older posting - verify that it is still accepting applications.')
+  }
+
+  return lines
+}
+
+Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
+  if (req.method !== 'POST') {
+    return jsonResponse({ error: 'Method not allowed' }, 405)
+  }
+
+  const authorization = req.headers.get('Authorization')
+  if (!authorization) {
+    return jsonResponse({ error: 'Unauthorized' }, 401)
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Missing Supabase function environment variables')
+    return jsonResponse({ error: 'Service configuration error' }, 500)
+  }
+
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: req.headers.get('Authorization')! },
-        },
-      }
-    )
+    const supabase = createClient<MatchDatabase>(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authorization } },
+    })
 
-    // Get the current user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    if (userError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    const { data: userData, error: userError } = await supabase.auth.getUser()
+    if (userError || !userData.user) {
+      return jsonResponse({ error: 'Unauthorized' }, 401)
     }
 
-    if (req.method !== 'POST') {
-      return new Response(
-        JSON.stringify({ error: 'Method not allowed' }),
-        { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Get student's profile data including new features
-    const { data: studentData, error: studentError } = await supabase
+    const userId = userData.user.id
+    const { data: student, error: studentError } = await supabase
       .from('students')
-      .select('skills, is_international, gpa, has_prev_intern, project_depth')
-      .eq('user_id', user.id)
+      .select('is_international')
+      .eq('user_id', userId)
       .single()
 
-    if (studentError || !studentData) {
-      return new Response(
-        JSON.stringify({ error: 'Student profile not found. Please upload a resume first.' }),
-        { status: 404, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    if (studentError || !student) {
+      console.error('Student profile query error:', studentError)
+      return jsonResponse(
+        { error: 'Student profile not found. Please upload a resume first.' },
+        404,
       )
     }
 
-    const studentSkills = studentData.skills || []
-    const isInternational = studentData.is_international || false
-    
-    if (studentSkills.length === 0) {
-      return new Response(
-        JSON.stringify({ error: 'No skills found in profile. Please upload a resume first.' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
+    const { data: weightedMatches, error: matchError } = await supabase.rpc(
+      'match_internships_weighted',
+      { p_user_id: userId, p_limit: DEFAULT_MATCH_LIMIT },
+    )
+
+    if (matchError) {
+      console.error('Weighted matching RPC error:', matchError)
+      return jsonResponse({ error: 'Failed to fetch job matches' }, 500)
     }
 
-    // Use improved weighted matching algorithm  
-    const { data: jobs, error: jobsError } = await supabase.rpc('match_internships_weighted', {
-      student_skills: studentSkills,
-      student_gpa: studentData.gpa || 0,
-      student_year: studentData.graduation_year || 2025,
-      has_prev_intern: studentData.has_prev_intern || false,
-      is_international: isInternational,
-      max_results: 10
-    })
+    if (!weightedMatches || weightedMatches.length === 0) {
+      return jsonResponse({ jobs: [] })
+    }
 
-    if (jobsError) {
-      console.error('Jobs query error:', jobsError)
-      
-      // Fallback to simple matching if RPC fails
-      let jobQuery = supabase
-        .from('jobs')
-        .select('*')
-        .ilike('title', '%intern%')
-        .lte('opens_at', new Date().toISOString().split('T')[0])
-        .or('closes_at.is.null,closes_at.gte.' + new Date().toISOString().split('T')[0])
-
-      // Apply visa sponsorship filter for international students
-      if (isInternational) {
-        jobQuery = jobQuery.eq('sponsors_visa', true)
-      }
-
-      const { data: fallbackJobs, error: fallbackError } = await jobQuery.limit(10)
-
-      if (fallbackError) {
-        return new Response(
-          JSON.stringify({ error: 'Failed to fetch job matches' }),
-          { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        )
-      }
-
-      // Calculate explainable score for fallback
-      const jobMatches: JobMatch[] = fallbackJobs.map((job: any) => {
-        const jobSkills = job.skills || []
-        const overlap = studentSkills.filter(skill => 
-          jobSkills.some((jobSkill: string) => 
-            jobSkill.toLowerCase().includes(skill.toLowerCase()) ||
-            skill.toLowerCase().includes(jobSkill.toLowerCase())
-          )
-        ).length
-        
-        const maxSkills = Math.max(studentSkills.length, jobSkills.length)
-        const skillOverlap = maxSkills > 0 ? overlap / maxSkills : 0
-        const normalizedGPA = normalizeGPA(studentData.gpa || 0)
-        const prevIntern = studentData.has_prev_intern || false
-        const projectDepth = studentData.project_depth || 0
-
-        const missingSkills = jobSkills.filter(skill =>
-          !studentSkills.some(studentSkill =>
-            studentSkill.toLowerCase().includes(skill.toLowerCase()) ||
-            skill.toLowerCase().includes(studentSkill.toLowerCase())
-          )
-        )
-
-      const matchedSkills = jobSkills.filter(skill =>
-        studentSkills.some(studentSkill =>
-          studentSkill.toLowerCase().includes(skill.toLowerCase()) ||
-          skill.toLowerCase().includes(studentSkill.toLowerCase())
-        )
+    const matchedIds = [...new Set(weightedMatches.map((match: WeightedMatchRow) => match.id))]
+    const { data: internshipDetails, error: detailsError } = await supabase
+      .from('internships')
+      .select(
+        'id, apply_url, clearance_required, description_text, employment_type, salary_period, source, us_citizen_required',
       )
+      .in('id', matchedIds)
 
-      const hireScore = computeHireScore({
-        skillOverlap,
-        gpa: normalizedGPA,
-        prevIntern,
-        projectDepth
-      })
+    if (detailsError) {
+      console.error('Internship eligibility query error:', detailsError)
+      return jsonResponse({ error: 'Failed to fetch internship eligibility' }, 500)
+    }
 
+    const detailsById = new Map<string, InternshipDetailRow>(
+      (internshipDetails ?? []).map((detail) => [detail.id, detail]),
+    )
+    const isInternational = student.is_international === true
+
+    const jobs: MatchResponseJob[] = weightedMatches.map((match: WeightedMatchRow) => {
+      const detail = detailsById.get(match.id)
+      const requiresUsCitizenship = detail?.us_citizen_required === true
+      const clearanceRequired = detail?.clearance_required === true
+      const ineligible = isInternational && (requiresUsCitizenship || clearanceRequired)
+      const requiresClearance = clearanceRequired ? 'Required' : null
+      const restrictionLabels = [
+        requiresUsCitizenship ? 'U.S. citizenship' : null,
+        clearanceRequired ? 'security clearance' : null,
+      ].filter((label): label is string => label !== null)
+
+      const skills = cleanStringArray(match.tech_stack)
+      const matchedSkills = cleanStringArray(match.matched_tags)
+      const missingSkills = cleanStringArray(match.missing_skills)
+      const skillOverlapRatio = toUnitScore(match.skill_overlap_ratio)
+      const hireScore = toPercentScore(match.composite_score)
       const explanationLines = buildExplanation({
-        overlap: skillOverlap,
-        gpa: normalizedGPA,
-        prevIntern,
-        projectDepth,
-        missingSkills
+        experienceScore: toUnitScore(match.experience_score),
+        gpaScore: toUnitScore(match.gpa_score),
+        ineligible,
+        missingSkills,
+        overlap: skillOverlapRatio,
+        recencyScore: toUnitScore(match.recency_score),
+        restrictionLabels,
+        weightedScore: hireScore / 100,
       })
+
+      const applicationLink = firstNonEmpty(match.application_link)
+      const directLink = firstNonEmpty(match.direct_link)
 
       return {
-        id: job.id,
-        title: job.title,
-        company: job.company,
-        company_logo: job.company_logo,
-        city: job.city,
-        description: job.description,
-        summary_text: job.summary_text || null,
-        skills: jobSkills,
+        application_link: applicationLink,
+        apply_url: firstNonEmpty(detail?.apply_url, applicationLink, directLink),
+        city: firstNonEmpty(match.location),
+        company: match.company,
+        company_logo: null,
+        composite_score: hireScore,
+        date_posted: firstNonEmpty(match.date_posted),
+        deadline: firstNonEmpty(match.deadline),
+        description: firstNonEmpty(detail?.description_text, match.summary_text),
+        direct_link: directLink,
+        experience_score: match.experience_score,
+        explanationLines,
+        gpa_score: match.gpa_score,
+        hireScore,
+        id: match.id,
+        ineligible,
+        job_type: firstNonEmpty(detail?.employment_type),
+        link_type: firstNonEmpty(match.link_type),
+        matched_count: match.matched_count,
         matched_skills: matchedSkills,
         missing_skills: missingSkills,
-        hireScore,
-        apply_url: job.apply_url,
-        posted_date: job.posted_date,
-        date_posted: job.date_posted || job.posted_date,
-        job_type: job.job_type,
-        salary_min: job.salary_min,
-        salary_max: job.salary_max,
-        salary_period: job.salary_period || null,
-        explanationLines
+        posted_date: firstNonEmpty(match.date_posted),
+        preference_score: match.preference_score,
+        recency_score: match.recency_score,
+        requires_clearance: requiresClearance,
+        requires_us_citizenship: requiresUsCitizenship,
+        salary_currency: firstNonEmpty(match.salary_currency),
+        salary_max: Number.isFinite(match.salary_max) ? match.salary_max : null,
+        salary_min: Number.isFinite(match.salary_min) ? match.salary_min : null,
+        salary_period: firstNonEmpty(detail?.salary_period),
+        skill_overlap_ratio: skillOverlapRatio,
+        skills,
+        source: firstNonEmpty(detail?.source),
+        summary_text: firstNonEmpty(match.summary_text),
+        title: match.role_title,
+        total_required: match.total_required,
+        visa_sponsorship: firstNonEmpty(match.visa_sponsorship),
+        work_mode: firstNonEmpty(match.work_mode),
       }
-      })
-
-      return new Response(
-        JSON.stringify({ jobs: jobMatches }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    // Use the weighted score from the improved matching algorithm
-    const jobMatches: JobMatch[] = jobs.map((job: any) => {
-      const jobSkills = job.skills || []
-      const weightedScore = job.weighted_score || 0
-      const skillMatchScore = job.skill_match_score || 0
-      const gpaScore = job.gpa_score || 0
-      const experienceScore = job.experience_score || 0
-      const recencyScore = job.recency_score || 0
-      
-      const normalizedGPA = normalizeGPA(studentData.gpa || 0)
-      const prevIntern = studentData.has_prev_intern || false
-      const projectDepth = studentData.project_depth || 0
-
-      const missingSkills = jobSkills.filter(skill =>
-        !studentSkills.some(studentSkill =>
-          studentSkill.toLowerCase().includes(skill.toLowerCase()) ||
-          skill.toLowerCase().includes(studentSkill.toLowerCase())
-        )
-      )
-
-      const matchedSkills = jobSkills.filter(skill =>
-        studentSkills.some(studentSkill =>
-          studentSkill.toLowerCase().includes(skill.toLowerCase()) ||
-          skill.toLowerCase().includes(studentSkill.toLowerCase())
-        )
-      )
-
-    // Convert weighted score (0-1) to hire score (0-100)
-    const hireScore = Math.round(weightedScore * 100)
-
-    const explanationLines = buildExplanation({
-      overlap: skillMatchScore,
-      gpa: normalizedGPA,
-      prevIntern,
-      projectDepth,
-      missingSkills,
-      weightedScore,
-      gpaScore,
-      experienceScore,
-      recencyScore
     })
 
-    return {
-      id: job.id,
-      title: job.title,
-      company: job.company,
-      company_logo: job.company_logo,
-      city: job.city,
-      description: job.description,
-      summary_text: job.summary_text || null,
-      skills: jobSkills,
-      matched_skills: matchedSkills,
-      missing_skills: missingSkills,
-      composite_score: hireScore,
-      hireScore,
-      apply_url: job.apply_url,
-      posted_date: job.posted_date,
-      date_posted: job.date_posted || job.posted_date,
-      job_type: job.job_type,
-      salary_min: job.salary_min,
-      salary_max: job.salary_max,
-      salary_period: job.salary_period || null,
-      explanationLines
-    }
-    })
-
-    return new Response(
-      JSON.stringify({ jobs: jobMatches }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    )
-
-  } catch (error) {
-    console.error('Error:', error)
-    return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    )
+    return jsonResponse({ jobs })
+  } catch (error: unknown) {
+    console.error('Unexpected matching error:', error)
+    return jsonResponse({ error: 'Internal server error' }, 500)
   }
 })

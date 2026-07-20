@@ -1,3 +1,12 @@
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function numericField(record: Record<string, unknown>, field: string): number {
+  const value = record[field];
+  return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+}
+
 export async function fetchProjectDepth(user: string): Promise<number> {
   if (!user) return 0;
   
@@ -15,14 +24,16 @@ export async function fetchProjectDepth(user: string): Promise<number> {
     
     if (!res.ok) return 0;
     
-    const repos = await res.json();
+    const repos: unknown = await res.json();
     if (!Array.isArray(repos) || !repos.length) return 0;
 
     let stars = 0, forks = 0, big = 0;
-    repos.forEach((r: any) => {
-      stars += r.stargazers_count || 0;
-      forks += r.forks_count || 0;
-      if ((r.size || 0) > 100) big++;          // size in KB
+    repos.forEach((repo: unknown) => {
+      if (!isRecord(repo)) return;
+
+      stars += numericField(repo, 'stargazers_count');
+      forks += numericField(repo, 'forks_count');
+      if (numericField(repo, 'size') > 100) big++; // size in KB
     });
 
     const score =

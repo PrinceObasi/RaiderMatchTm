@@ -25,7 +25,7 @@ export function validatePassword(password: string): PasswordValidation {
     hasUppercase: /[A-Z]/.test(password),
     hasLowercase: /[a-z]/.test(password),
     hasNumber: /\d/.test(password),
-    hasSpecialChar: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+    hasSpecialChar: /[-!@#$%^&*()_+=[\]{};':"\\|,.<>/?]/.test(password)
   };
 
   const passedRequirements = Object.values(requirements).filter(Boolean).length;

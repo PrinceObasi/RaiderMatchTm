@@ -6,7 +6,53 @@ import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { Settings2, Download, Trash2, AlertTriangle, FileText, User, Shield } from "lucide-react";
+
+type EmployerExportJobRow = {
+  id: string;
+  employer_id: string;
+} & Record<string, unknown>;
+
+type EmployerExportApplicationRow = {
+  id: string;
+  job_id: string;
+  user_id: string;
+  status: string | null;
+  hire_score: number | null;
+  applied_at: string | null;
+} & Record<string, unknown>;
+
+type EmployerExportDatabase = {
+  public: {
+    Tables: {
+      jobs: {
+        Row: EmployerExportJobRow;
+        Insert: Partial<EmployerExportJobRow>;
+        Update: Partial<EmployerExportJobRow>;
+        Relationships: [];
+      };
+      applications: {
+        Row: EmployerExportApplicationRow;
+        Insert: Partial<EmployerExportApplicationRow>;
+        Update: Partial<EmployerExportApplicationRow>;
+        Relationships: [
+          {
+            foreignKeyName: "applications_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+  };
+};
+
+const employerExportSupabase = supabase as unknown as SupabaseClient<EmployerExportDatabase>;
 
 interface SettingsProps {
   userType: 'student' | 'employer';
@@ -39,10 +85,10 @@ export function Settings({ userType, onAccountDeleted }: SettingsProps) {
           .from('applications')
           .select(`
             *,
-            jobs!job_id (
-              title,
+            internships!internship_id (
+              role_title,
               company,
-              city
+              location
             )
           `)
           .eq('user_id', session.user.id);
@@ -57,7 +103,7 @@ export function Settings({ userType, onAccountDeleted }: SettingsProps) {
           applications: applications
         };
       } else {
-        const { data: jobs } = await (supabase as any)
+        const { data: jobs } = await employerExportSupabase
           .from('jobs')
           .select(`
             *,
