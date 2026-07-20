@@ -260,6 +260,7 @@ export type Database = {
           apply_url: string | null
           archived_at: string | null
           category: string | null
+          clearance_required: boolean | null
           company: string
           core_requirements: string[] | null
           created_at: string | null
@@ -312,6 +313,7 @@ export type Database = {
           summary_text: string | null
           tech_stack: string[] | null
           updated_at: string | null
+          us_citizen_required: boolean | null
           validation_message: string | null
           visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
           work_mode: string | null
@@ -321,6 +323,7 @@ export type Database = {
           apply_url?: string | null
           archived_at?: string | null
           category?: string | null
+          clearance_required?: boolean | null
           company: string
           core_requirements?: string[] | null
           created_at?: string | null
@@ -373,6 +376,7 @@ export type Database = {
           summary_text?: string | null
           tech_stack?: string[] | null
           updated_at?: string | null
+          us_citizen_required?: boolean | null
           validation_message?: string | null
           visa_sponsorship?: Database["public"]["Enums"]["visa_sponsorship_status"]
           work_mode?: string | null
@@ -382,6 +386,7 @@ export type Database = {
           apply_url?: string | null
           archived_at?: string | null
           category?: string | null
+          clearance_required?: boolean | null
           company?: string
           core_requirements?: string[] | null
           created_at?: string | null
@@ -434,6 +439,7 @@ export type Database = {
           summary_text?: string | null
           tech_stack?: string[] | null
           updated_at?: string | null
+          us_citizen_required?: boolean | null
           validation_message?: string | null
           visa_sponsorship?: Database["public"]["Enums"]["visa_sponsorship_status"]
           work_mode?: string | null

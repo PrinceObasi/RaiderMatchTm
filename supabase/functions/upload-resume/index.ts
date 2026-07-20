@@ -53,7 +53,7 @@ async function parseResumeSkills(text: string): Promise<string[]> {
     const matches = text.match(pattern)
     if (matches) {
       matches.forEach(match => {
-        const normalized = match.replace(/[^\w\+#]/g, '').toLowerCase()
+        const normalized = match.replace(/[^\w+#]/g, '').toLowerCase()
         if (normalized === 'javascript' || normalized === 'js') skillsSet.add('JavaScript')
         else if (normalized === 'typescript' || normalized === 'ts') skillsSet.add('TypeScript')
         else if (normalized === 'python') skillsSet.add('Python')

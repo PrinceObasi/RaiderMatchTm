@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -9,14 +9,21 @@ import { StudentDashboard } from "./components/StudentDashboard";
 import { EmployerDashboard } from "./components/EmployerDashboard";
 import { AuthModal } from "./components/AuthModal";
 import { Settings } from "./components/Settings";
-import { AuthBootstrapper } from "./components/AuthBootstrapper";
+import { supabase } from "@/integrations/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 
 const queryClient = new QueryClient();
 
 type UserType = 'student' | 'employer' | null;
 
+function getUserType(session: Session | null): UserType {
+  if (!session) return null;
+  return session.user.app_metadata?.role === 'employer' ? 'employer' : 'student';
+}
+
 const App = () => {
   const [user, setUser] = useState<UserType>(null);
+  const [isAuthReady, setIsAuthReady] = useState(false);
   const [currentView, setCurrentView] = useState<'main' | 'settings'>('main');
   const [authModal, setAuthModal] = useState<{
     isOpen: boolean;
@@ -25,6 +32,27 @@ const App = () => {
     isOpen: false,
     defaultTab: 'login'
   });
+
+  useEffect(() => {
+    let isMounted = true;
+
+    void supabase.auth.getSession().then(({ data }) => {
+      if (!isMounted) return;
+      setUser(getUserType(data.session));
+      setIsAuthReady(true);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+      setUser(getUserType(session));
+      setIsAuthReady(true);
+    });
+
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, []);
 
   const handleStudentSignup = () => {
     setAuthModal({ isOpen: true, defaultTab: 'student' });
@@ -38,12 +66,13 @@ const App = () => {
     setAuthModal({ isOpen: true, defaultTab: 'login' });
   };
 
-  const handleAuthSuccess = (userType: UserType) => {
-    setUser(userType);
+  const handleAuthSuccess = (session: Session) => {
+    setUser(getUserType(session));
     setAuthModal({ isOpen: false, defaultTab: 'login' });
   };
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
     setUser(null);
     setCurrentView('main');
   };
@@ -54,6 +83,17 @@ const App = () => {
   };
 
   const renderCurrentView = () => {
+    if (!isAuthReady) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-muted/30" role="status" aria-live="polite">
+          <div className="flex items-center gap-3 text-sm font-medium text-muted-foreground">
+            <img src="/raidermatch-logo.png" alt="" className="h-9 w-9 rounded-xl" />
+            Loading RaiderMatch…
+          </div>
+        </div>
+      );
+    }
+
     if (currentView === 'settings' && user) {
       return (
         <Settings 
@@ -96,7 +136,6 @@ const App = () => {
         <div className="min-h-screen overflow-x-hidden bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
           <Toaster />
           <Sonner />
-          <AuthBootstrapper />
           
           {renderCurrentView()}
           

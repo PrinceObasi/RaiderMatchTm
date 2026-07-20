@@ -97,8 +97,7 @@ App runs at `http://localhost:8080`.
 **Frontend** (`.env`):
 ```
 VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_PUBLISHABLE_KEY=your-anon-key
-VITE_SUPABASE_PROJECT_ID=your-project-id
+VITE_SUPABASE_ANON_KEY=your-anon-key
 ```
 
 **Edge Functions** (set via `supabase secrets set`):

@@ -14,6 +14,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { JobApplicants } from "@/components/JobApplicants";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { JobCreateSchema, JobUpdateSchema } from "@/lib/schemas";
@@ -52,6 +53,65 @@ interface Job {
   type?: string;
   applications?: { count: number }[];
 }
+
+type EmployerJobRow = Omit<Job, "applications"> & {
+  sponsors_visa: boolean;
+} & Record<string, unknown>;
+
+type EmployerJobInsert = {
+  employer_id: string;
+  title: string;
+  company: string;
+  city: string;
+  description: string;
+  apply_url: string;
+  opens_at: string;
+  closes_at: string | null;
+  is_active: boolean;
+  sponsors_visa: boolean;
+  skills: string[];
+  type: string;
+} & Record<string, unknown>;
+
+type EmployerApplicationRow = {
+  id: string;
+  job_id: string;
+  user_id: string;
+  status: string | null;
+  hire_score: number | null;
+  applied_at: string | null;
+} & Record<string, unknown>;
+
+type EmployerDatabase = {
+  public: {
+    Tables: {
+      jobs: {
+        Row: EmployerJobRow;
+        Insert: EmployerJobInsert;
+        Update: Partial<EmployerJobInsert>;
+        Relationships: [];
+      };
+      applications: {
+        Row: EmployerApplicationRow;
+        Insert: Partial<EmployerApplicationRow>;
+        Update: Partial<EmployerApplicationRow>;
+        Relationships: [
+          {
+            foreignKeyName: "applications_job_id_fkey";
+            columns: ["job_id"];
+            isOneToOne: false;
+            referencedRelation: "jobs";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+  };
+};
+
+const employerSupabase = supabase as unknown as SupabaseClient<EmployerDatabase>;
 
 interface EmployerDashboardProps {
   onLogout: () => void;
@@ -98,14 +158,14 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
       const { data: session } = await supabase.auth.getSession();
       if (!session?.session?.user) return;
 
-      const { data, error } = await (supabase as any)
+      const { data, error } = await employerSupabase
         .from('jobs')
         .select('*, applications(count)')
         .eq('employer_id', session.session.user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setJobs((data as Job[]) || []);
+      setJobs(data || []);
     } catch (error) {
       console.error('Error loading jobs:', error);
       toast({
@@ -165,7 +225,7 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
       // Validate data before inserting
       JobCreateSchema.parse(jobData);
 
-      const { error } = await (supabase as any).from('jobs').insert(jobData);
+      const { error } = await employerSupabase.from('jobs').insert(jobData);
 
       if (error) throw error;
 
@@ -203,7 +263,7 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
       const updateData = { is_active: !currentStatus };
       JobUpdateSchema.parse(updateData);
       
-      const { error } = await (supabase as any)
+      const { error } = await employerSupabase
         .from('jobs')
         .update(updateData)
         .eq('id', jobId);

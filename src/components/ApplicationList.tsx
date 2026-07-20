@@ -1,19 +1,34 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import {
+  encodeExternalApplicationNote,
+  parseExternalApplicationNote,
+  type ExternalApplicationEnvelope,
+} from "@/lib/externalApplication";
+import { FastAddModal } from "./FastAddModal";
+import { firstValidHttpUrl } from "@/lib/httpUrl";
 
 // ─── Status config ───────────────────────────────────────────────────────────
 
 const STATUSES = [
-  { key: "saved",     label: "Saved",     color: "#6B7280", icon: "○" },
-  { key: "applied",   label: "Applied",   color: "#2563EB", icon: "✓" },
-  { key: "interview", label: "Interview", color: "#D97706", icon: "◆" },
-  { key: "offer",     label: "Offer",     color: "#059669", icon: "★" },
-  { key: "rejected",  label: "Rejected",  color: "#DC2626", icon: "✗" },
-  { key: "withdrawn", label: "Withdrawn", color: "#9CA3AF", icon: "×" },
+  { key: "saved",        label: "Saved",        color: "#6B7280", icon: "○" },
+  { key: "applied",      label: "Applied",      color: "#2563EB", icon: "✓" },
+  { key: "assessment",   label: "Assessment",   color: "#D97706", icon: "◈" },
+  { key: "interview",    label: "Interview",    color: "#7C3AED", icon: "◆" },
+  { key: "offer",        label: "Offer",        color: "#059669", icon: "★" },
+  { key: "rejected",     label: "Rejected",     color: "#DC2626", icon: "✗" },
+  { key: "withdrawn",    label: "Withdrawn",    color: "#9CA3AF", icon: "×" },
+  { key: "no_response",  label: "No Response",  color: "#9CA3AF", icon: "–" },
 ] as const;
 
 type StatusKey = typeof STATUSES[number]["key"];
 const STATUS_MAP = Object.fromEntries(STATUSES.map((s) => [s.key, s])) as Record<string, typeof STATUSES[number]>;
+
+function normalizeStatus(value: string | null): StatusKey {
+  return value && Object.prototype.hasOwnProperty.call(STATUS_MAP, value)
+    ? value as StatusKey
+    : "applied";
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -30,6 +45,7 @@ interface AppData {
   application_link: string | null;
   deadline: string | null;
   days_in_status: number;
+  externalApplication: ExternalApplicationEnvelope | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -112,7 +128,7 @@ function StatBar({ apps }: { apps: AppData[] }) {
   const counts: Record<string, number> = {};
   STATUSES.forEach((s) => { counts[s.key] = 0; });
   apps.forEach((a) => { counts[a.status] = (counts[a.status] || 0) + 1; });
-  const active = (counts.saved || 0) + (counts.applied || 0) + (counts.interview || 0);
+  const active = (counts.saved || 0) + (counts.applied || 0) + (counts.assessment || 0) + (counts.interview || 0);
 
   return (
     <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const, marginBottom: 20 }}>
@@ -155,6 +171,19 @@ function EmptyState() {
 
 // ─── Card ─────────────────────────────────────────────────────────────────────
 
+function ExternalBadge() {
+  return (
+    <span style={{
+      fontSize: 10, fontWeight: 600, padding: "1px 6px",
+      borderRadius: 99, background: "#F3F4F6", color: "#6B7280",
+      border: "1px solid #E5E7EB", whiteSpace: "nowrap" as const,
+      letterSpacing: "0.02em",
+    }}>
+      External
+    </span>
+  );
+}
+
 function AppCard({
   app, onStatusChange, onNoteUpdate, expanded, onToggleExpand,
 }: {
@@ -167,7 +196,7 @@ function AppCard({
   const s = STATUS_MAP[app.status] || STATUS_MAP.applied;
   const [editing, setEditing] = useState(false);
   const [noteVal, setNoteVal] = useState(app.note || "");
-  const finished = ["offer", "rejected", "withdrawn"].includes(app.status);
+  const finished = ["offer", "rejected", "withdrawn", "no_response"].includes(app.status);
 
   return (
     <div
@@ -195,7 +224,10 @@ function AppCard({
             {app.role_title}
           </div>
         </div>
-        <StatusBadge status={app.status} />
+        <div style={{ display: "flex", gap: 4, alignItems: "center", flexShrink: 0 }}>
+          {app.externalApplication && <ExternalBadge />}
+          <StatusBadge status={app.status} />
+        </div>
       </div>
 
       {/* Meta */}
@@ -334,7 +366,10 @@ function BoardCard({ app, onStatusChange, expanded, onToggleExpand }: {
       onMouseEnter={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = "0 2px 8px rgba(0,0,0,0.06)"; }}
       onMouseLeave={(e) => { (e.currentTarget as HTMLDivElement).style.boxShadow = "none"; }}
     >
-      <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", marginBottom: 2 }}>{app.company}</div>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 4, marginBottom: 2 }}>
+        <div style={{ fontSize: 13, fontWeight: 600, color: "#111827", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flex: 1 }}>{app.company}</div>
+        {app.externalApplication && <ExternalBadge />}
+      </div>
       <div style={{ fontSize: 11, color: "#6B7280", marginBottom: 6, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
         {app.role_title}
       </div>
@@ -387,10 +422,11 @@ function BoardCard({ app, onStatusChange, expanded, onToggleExpand }: {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 const BOARD_COLUMNS = [
-  { key: "saved",     label: "Saved",     statuses: ["saved"] },
-  { key: "applied",   label: "Applied",   statuses: ["applied"] },
-  { key: "interview", label: "Interview", statuses: ["interview"] },
-  { key: "decided",   label: "Decided",   statuses: ["offer", "rejected", "withdrawn"] },
+  { key: "saved",       label: "Saved",       statuses: ["saved"] },
+  { key: "applied",     label: "Applied",     statuses: ["applied"] },
+  { key: "assessment",  label: "Assessment",  statuses: ["assessment"] },
+  { key: "interview",   label: "Interview",   statuses: ["interview"] },
+  { key: "decided",     label: "Decided",     statuses: ["offer", "rejected", "withdrawn", "no_response"] },
 ] as const;
 
 export function ApplicationList() {
@@ -400,91 +436,153 @@ export function ApplicationList() {
   const [view, setView] = useState<"list" | "board">("list");
   const [filter, setFilter] = useState<string>("all");
   const [toast, setToast] = useState<string | null>(null);
-
-  // Notes are stored in local state since the DB doesn't have a note column yet.
-  // To persist notes: add a `note text` column to the applications table and
-  // call supabase.from('applications').update({ note }).eq('id', appId).
-  const [notes, setNotes] = useState<Record<string, string>>({});
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const showToast = useCallback((msg: string) => {
     setToast(msg);
     setTimeout(() => setToast(null), 2500);
   }, []);
 
-  useEffect(() => {
-    const fetchApplications = async () => {
-      const { data, error } = await supabase
-        .from("applications")
-        .select(`
-          id,
-          applied_at,
-          status,
-          jobs!job_id (
-            title,
-            company,
-            city,
-            deadline,
-            skills,
-            apply_url,
-            job_type
-          )
-        `)
-        .order("applied_at", { ascending: false });
+  const fetchApplications = useCallback(async () => {
+    setLoadError(null);
+    const { data, error } = await supabase
+      .from("applications")
+      .select(`
+        id,
+        internship_id,
+        applied_at,
+        status,
+        status_changed_at,
+        last_updated_at,
+        note,
+        internships!internship_id (
+          role_title,
+          company,
+          location,
+          deadline,
+          tech_stack,
+          application_link,
+          direct_link,
+          apply_url,
+          work_mode,
+          employment_type
+        )
+      `)
+      .order("applied_at", { ascending: false });
 
-      if (!error && data) {
-        const mapped: AppData[] = data.map((row: any) => ({
+    if (error) {
+      console.error("Error loading applications:", error);
+      setLoadError("We couldn't load your applications. Please try again.");
+    } else {
+      const mapped: AppData[] = (data ?? []).map((row) => {
+        const internship = row.internships;
+        const externalApplication = (!row.internship_id || !internship)
+          ? parseExternalApplicationNote(row.note)
+          : null;
+        return {
           application_id: row.id,
-          status: (row.status || "applied") as StatusKey,
+          status: normalizeStatus(row.status),
           applied_at: row.applied_at || new Date().toISOString(),
-          note: null,
-          company: row.jobs?.company || "Unknown",
-          role_title: row.jobs?.title || "Internship",
-          location: row.jobs?.city || "",
-          work_mode: row.jobs?.job_type || null,
-          tech_stack: row.jobs?.skills || [],
-          application_link: row.jobs?.apply_url || null,
-          deadline: row.jobs?.deadline || null,
-          days_in_status: daysSince(row.applied_at),
-        }));
-        setApps(mapped);
-      }
-      setLoading(false);
-    };
-
-    fetchApplications();
+          note: externalApplication ? externalApplication.note : row.note,
+          company: internship?.company || externalApplication?.company || "Unknown",
+          role_title: internship?.role_title || externalApplication?.roleTitle || "Internship",
+          location: internship?.location || externalApplication?.location || "",
+          work_mode: internship?.work_mode || internship?.employment_type || null,
+          tech_stack: internship?.tech_stack || [],
+          application_link: firstValidHttpUrl(
+            internship?.direct_link,
+            internship?.application_link,
+            internship?.apply_url,
+            externalApplication?.url,
+          ),
+          deadline: internship?.deadline || externalApplication?.deadline || null,
+          days_in_status: daysSince(row.status_changed_at || row.last_updated_at || row.applied_at),
+          externalApplication,
+        };
+      });
+      setApps(mapped);
+    }
+    setLoading(false);
   }, []);
 
+  useEffect(() => {
+    fetchApplications();
+  }, [fetchApplications]);
+
   const handleStatusChange = useCallback(async (appId: string, newStatus: StatusKey) => {
+    const previous = apps.find((app) => app.application_id === appId);
+    if (!previous || previous.status === newStatus) return;
+
     setApps((prev) =>
       prev.map((a) => a.application_id === appId
         ? { ...a, status: newStatus, days_in_status: 0 }
         : a
       )
     );
-    await supabase
+    const { data, error } = await supabase
       .from("applications")
       .update({ status: newStatus })
-      .eq("id", appId);
-    showToast(`Status updated to ${STATUS_MAP[newStatus]?.label || newStatus}`);
-  }, [showToast]);
+      .eq("id", appId)
+      .select("id")
+      .maybeSingle();
 
-  const handleNoteUpdate = useCallback((appId: string, note: string) => {
-    setNotes((prev) => ({ ...prev, [appId]: note }));
+    if (error || !data) {
+      console.error("Error updating application status:", error);
+      setApps((current) => current.map((app) =>
+        app.application_id === appId && app.status === newStatus
+          ? { ...app, status: previous.status, days_in_status: previous.days_in_status }
+          : app
+      ));
+      showToast("Status update failed. Please try again.");
+      return;
+    }
+
+    showToast(`Status updated to ${STATUS_MAP[newStatus]?.label || newStatus}`);
+  }, [apps, showToast]);
+
+  const handleNoteUpdate = useCallback(async (appId: string, note: string) => {
+    const previous = apps.find((app) => app.application_id === appId);
+    if (!previous) return;
+    const nextNote = note.trim() || null;
+    const nextExternalApplication = previous.externalApplication
+      ? { ...previous.externalApplication, note: nextNote }
+      : null;
+    const persistedNote = nextExternalApplication
+      ? encodeExternalApplicationNote(nextExternalApplication)
+      : nextNote;
+
     setApps((prev) =>
-      prev.map((a) => a.application_id === appId ? { ...a, note } : a)
+      prev.map((a) => a.application_id === appId
+        ? { ...a, note: nextNote, externalApplication: nextExternalApplication }
+        : a)
     );
+
+    const { data, error } = await supabase
+      .from("applications")
+      .update({ note: persistedNote })
+      .eq("id", appId)
+      .select("id")
+      .maybeSingle();
+
+    if (error || !data) {
+      console.error("Error updating application note:", error);
+      setApps((current) => current.map((app) =>
+        app.application_id === appId && app.note === nextNote
+          ? { ...app, note: previous.note, externalApplication: previous.externalApplication }
+          : app
+      ));
+      showToast("Note update failed. Please try again.");
+      return;
+    }
+
     showToast("Note saved");
-  }, []);
+  }, [apps, showToast]);
 
   const toggleExpand = useCallback((id: string) => {
     setExpandedId((prev) => (prev === id ? null : id));
   }, []);
 
-  // Merge local notes into apps
-  const appsWithNotes = apps.map((a) => ({
-    ...a,
-    note: notes[a.application_id] ?? a.note,
-  }));
+  const appsWithNotes = apps;
 
   const filtered = filter === "all" ? appsWithNotes : appsWithNotes.filter((a) => a.status === filter);
 
@@ -504,8 +602,10 @@ export function ApplicationList() {
             Track every application from saved to offer
           </p>
         </div>
-        {/* View toggle */}
-        <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 2 }}>
+        <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+          <FastAddModal onSuccess={fetchApplications} />
+          {/* View toggle */}
+          <div style={{ display: "flex", background: "#F3F4F6", borderRadius: 8, padding: 2 }}>
           {(["list", "board"] as const).map((v) => (
             <button
               key={v}
@@ -522,13 +622,37 @@ export function ApplicationList() {
               {v}
             </button>
           ))}
+          </div>
         </div>
       </div>
 
-      <StatBar apps={appsWithNotes} />
+      {loadError && (
+        <div
+          role="alert"
+          style={{
+            display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12,
+            padding: "12px 14px", marginBottom: 16, borderRadius: 8,
+            border: "1px solid #FCA5A5", background: "#FEF2F2", color: "#991B1B", fontSize: 13,
+          }}
+        >
+          <span>{loadError}</span>
+          <button
+            type="button"
+            onClick={() => void fetchApplications()}
+            style={{
+              border: "1px solid #FCA5A5", borderRadius: 6, background: "#fff",
+              color: "#991B1B", padding: "5px 10px", cursor: "pointer", fontFamily: "inherit",
+            }}
+          >
+            Retry
+          </button>
+        </div>
+      )}
+
+      {(apps.length > 0 || !loadError) && <StatBar apps={appsWithNotes} />}
 
       {apps.length === 0 ? (
-        <EmptyState />
+        loadError ? null : <EmptyState />
       ) : view === "list" ? (
         <>
           {/* Filter pills */}

@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { isTTUEmail, validatePassword } from "@/lib/validators";
 import { PasswordStrengthIndicator } from "@/components/PasswordStrengthIndicator";
 import { supabase } from "@/integrations/supabase/client";
+import type { Session } from "@supabase/supabase-js";
 import { StudentCreateSchema } from "@/lib/schemas";
 import { X, Mail, Lock, User, Building } from "lucide-react";
 
@@ -16,7 +17,12 @@ interface AuthModalProps {
   isOpen: boolean;
   onClose: () => void;
   defaultTab?: 'student' | 'employer' | 'login';
-  onSuccess: (userType: 'student' | 'employer') => void;
+  onSuccess: (session: Session) => void;
+}
+
+function isUnapprovedEmployer(session: Session): boolean {
+  return session.user.user_metadata?.role === 'employer'
+    && session.user.app_metadata?.role !== 'employer';
 }
 
 
@@ -107,8 +113,24 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
         }
         return;
       }
-      const role = data.user.user_metadata?.role ?? 'student';
-      onSuccess(role as 'student' | 'employer');
+      if (!data.session) {
+        toast({
+          title: 'Sign-in incomplete',
+          description: 'No active session was created. Please try signing in again.',
+          variant: 'destructive'
+        });
+        return;
+      }
+      if (isUnapprovedEmployer(data.session)) {
+        await supabase.auth.signOut();
+        toast({
+          title: 'Employer access pending',
+          description: 'An administrator must approve your employer account before you can sign in.',
+          variant: 'default'
+        });
+        return;
+      }
+      onSuccess(data.session);
       toast({ title: 'Welcome back!', description: "You've been successfully signed in." });
       onClose();
     } else {
@@ -138,16 +160,30 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
         return;
       }
 
-      // Show confirmation message for students to check email
-      if (type === 'student') {
-        toast({ 
-          title: 'Account created!', 
-          description: "Check your TTU inbox to confirm your account.",
+      if (!data.session) {
+        toast({
+          title: 'Account created!',
+          description: type === 'employer'
+            ? 'Check your email to confirm your account. Employer access also requires administrator approval.'
+            : 'Check your email to confirm your account, then sign in.',
           variant: 'default'
         });
+        onClose();
+        return;
       }
-      
-      onSuccess(type);
+
+      if (type === 'employer' && isUnapprovedEmployer(data.session)) {
+        await supabase.auth.signOut();
+        toast({
+          title: 'Employer account created',
+          description: 'An administrator must approve employer access before you can sign in.',
+          variant: 'default'
+        });
+        onClose();
+        return;
+      }
+
+      onSuccess(data.session);
       toast({ title: 'Account created!', description: "You're now signed in." });
       onClose();
     }
@@ -185,8 +221,8 @@ export function AuthModal({ isOpen, onClose, defaultTab = 'login', onSuccess }: 
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 overflow-y-auto">
-      <Card className="w-full max-w-sm sm:max-w-md mx-4 my-6 card-shadow relative">
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/50 p-4 backdrop-blur-sm sm:items-center">
+      <Card className="relative my-auto w-full max-w-md card-shadow">
         <Button
           variant="ghost"
           size="icon"

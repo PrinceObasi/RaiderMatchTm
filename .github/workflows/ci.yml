@@ -22,7 +22,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Type check
-        run: bunx tsc --noEmit
+        run: bunx tsc -p tsconfig.app.json --noEmit
 
       - name: Lint
         run: bunx eslint .

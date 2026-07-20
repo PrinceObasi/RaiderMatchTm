@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
@@ -31,7 +31,7 @@ export function AnalyticsDashboard() {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     try {
       // Fetch total students
@@ -44,24 +44,24 @@ export function AnalyticsDashboard() {
       // Fetch total applications  
       const { data: applicationsData, error: applicationsError } = await supabase
         .from('applications')
-        .select('id, applied_at, job_id')
+        .select('id, applied_at, internship_id')
         .not('applied_at', 'is', null);
 
       if (applicationsError) throw applicationsError;
 
-      // Fetch jobs for company analysis
-      const { data: jobsData, error: jobsError } = await (supabase as any)
-        .from('jobs')
-        .select('id, company, title, skills');
+      // Fetch internships for company analysis
+      const { data: internshipsData, error: internshipsError } = await supabase
+        .from('internships')
+        .select('id, company, role_title, tech_stack');
 
-      if (jobsError) throw jobsError;
+      if (internshipsError) throw internshipsError;
 
       // Process signup growth (last 30 days)
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
-      const signupGrowth = [];
-      const signupsByDate = {};
+      const signupGrowth: AnalyticsData['signupGrowth'] = [];
+      const signupsByDate: Record<string, number> = {};
       
       studentsData?.forEach(student => {
         const date = new Date(student.created_at).toISOString().split('T')[0];
@@ -80,7 +80,7 @@ export function AnalyticsDashboard() {
       }
 
       // Analyze top skills
-      const skillCounts = {};
+      const skillCounts: Record<string, number> = {};
       studentsData?.forEach(student => {
         if (student.skills) {
           student.skills.forEach(skill => {
@@ -90,23 +90,23 @@ export function AnalyticsDashboard() {
       });
 
       const topSkills = Object.entries(skillCounts)
-        .sort(([, a], [, b]) => (b as number) - (a as number))
+        .sort(([, a], [, b]) => b - a)
         .slice(0, 10)
-        .map(([skill, count]) => ({ skill, count: count as number }));
+        .map(([skill, count]) => ({ skill, count }));
 
       // Analyze top companies (by application volume)
-      const companyApplications = {};
-      applicationsData?.forEach((app: any) => {
-        const job = jobsData?.find((j: any) => j.id === app.job_id);
-        if (job) {
-          companyApplications[job.company] = (companyApplications[job.company] || 0) + 1;
+      const companyApplications: Record<string, number> = {};
+      applicationsData?.forEach((app) => {
+        const internship = internshipsData?.find((candidate) => candidate.id === app.internship_id);
+        if (internship) {
+          companyApplications[internship.company] = (companyApplications[internship.company] || 0) + 1;
         }
       });
 
       const topCompanies = Object.entries(companyApplications)
-        .sort(([, a], [, b]) => (b as number) - (a as number))
+        .sort(([, a], [, b]) => b - a)
         .slice(0, 10)
-        .map(([company, count]) => ({ company, count: count as number }));
+        .map(([company, count]) => ({ company, count }));
 
       // Calculate recent signups (last 7 days)
       const sevenDaysAgo = new Date();
@@ -141,11 +141,11 @@ export function AnalyticsDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
   useEffect(() => {
-    fetchAnalytics();
-  }, []);
+    void fetchAnalytics();
+  }, [fetchAnalytics]);
 
   if (loading) {
     return (
