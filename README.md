@@ -19,7 +19,7 @@ RaiderMatch takes a student's resume and skill profile, runs it through an AI-po
 ### Key Features
 
 - **Resume Upload & Parsing** - Upload a PDF resume; skills and experience are extracted automatically
-- **AI-Powered Matching** - Gemini 1.5 Flash scores student-internship fit on a 0-100 scale
+- **AI-Enriched Matching** - Gemini 2.5 Flash enriches listings before the weighted matcher ranks fit on a 0-100 scale
 - **Student Dashboard** - View matched internships, track applications, manage profile and preferences
 - **Employer Dashboard** - Post internships, review applicants, manage listings with analytics
 - **Application Tracking** - Full lifecycle tracking from submission to decision
@@ -37,7 +37,7 @@ RaiderMatch takes a student's resume and skill profile, runs it through an AI-po
 | **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui |
 | **Backend** | Supabase (Postgres, Auth, Storage, Row-Level Security) |
 | **Edge Functions** | Deno (resume upload, matching, notifications, enrichment) |
-| **AI** | Gemini 1.5 Flash (internship enrichment & matching) |
+| **AI** | Gemini 2.5 Flash (internship enrichment) |
 | **Email** | Resend (employer notifications) |
 | **Hosting** | Vercel (frontend), Supabase (backend) |
 
@@ -64,7 +64,9 @@ supabase/
     apply/          Application submission
     match/          AI-powered internship matching
     upload-resume/  Resume parsing and storage
-    enrich-internship/  AI enrichment of job listings
+    auto-sync-simplify/  Authenticated source sync and enrichment dispatch
+    enrich-missing/     Authenticated backlog dispatch (compatibility endpoint)
+    enrich-internship/  Single and bounded-batch job enrichment
     notify_employer/    Email notifications via Resend
     update-company-logos/  Logo fetching
     delete-account/     Account deletion with data cleanup
@@ -103,8 +105,12 @@ VITE_SUPABASE_ANON_KEY=your-anon-key
 **Edge Functions** (set via `supabase secrets set`):
 ```
 RESEND_API_KEY=...
-ALLOWED_ORIGIN=https://your-domain.com
+GEMINI_API_KEY=...   # direct Gemini access
+# or LOVABLE_API_KEY=... for the Lovable AI gateway
 ```
+
+The sync and enrichment endpoints are internal service-to-service routes. Call them with the Supabase service-role key in the `Authorization` or `apikey` header; never expose that key in frontend code.
+Any Supabase Cron job that invokes `auto-sync-simplify` must read that key server-side (for example, from Vault) and include it with the POST request.
 
 ### Deploy
 
@@ -116,9 +122,14 @@ ALLOWED_ORIGIN=https://your-domain.com
 
 **Backend (Supabase):**
 ```bash
-supabase db push                          # apply migrations
-supabase functions deploy <function-name> # deploy edge functions
+supabase functions deploy enrich-internship
+supabase functions deploy enrich-missing
+supabase functions deploy auto-sync-simplify
 ```
+
+Deploy in that order: the worker accepts both the existing single-ID calls and the new batch calls before either dispatcher starts using batch mode.
+
+The checked-in migration history predates the current production `internships` schema. Reconcile it before running `supabase db push` against the linked production project.
 
 ---
 

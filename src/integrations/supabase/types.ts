@@ -1591,6 +1591,8 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      get_admin_analytics: { Args: never; Returns: Json }
+      is_admin: { Args: never; Returns: boolean }
       get_top_locations: {
         Args: { p_limit?: number }
         Returns: {

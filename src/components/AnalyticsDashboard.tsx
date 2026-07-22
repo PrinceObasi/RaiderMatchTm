@@ -14,19 +14,33 @@ import {
   Award
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { z } from "zod";
 
-interface AnalyticsData {
-  totalStudents: number;
-  totalApplications: number;
-  applicationRate: number;
-  signupGrowth: Array<{ date: string; count: number }>;
-  topSkills: Array<{ skill: string; count: number }>;
-  topCompanies: Array<{ company: string; count: number }>;
-  recentSignups: number;
-  activeUsers: number;
-}
+const AdminAnalyticsSchema = z.object({
+  totalStudents: z.number().nonnegative(),
+  totalApplications: z.number().nonnegative(),
+  applicationRate: z.number().nonnegative(),
+  signupGrowth: z.array(z.object({
+    date: z.string(),
+    count: z.number().nonnegative(),
+  })),
+  topSkills: z.array(z.object({
+    skill: z.string(),
+    count: z.number().nonnegative(),
+  })),
+  topCompanies: z.array(z.object({
+    company: z.string(),
+    count: z.number().nonnegative(),
+  })),
+  recentSignups: z.number().nonnegative(),
+  activeUsers: z.number().nonnegative(),
+});
 
-export function AnalyticsDashboard() {
+type AnalyticsData = z.infer<typeof AdminAnalyticsSchema>;
+
+export function AnalyticsDashboard({ scope = "employer" }: {
+  scope?: "employer" | "admin";
+}) {
   const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
@@ -34,91 +48,101 @@ export function AnalyticsDashboard() {
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     try {
-      // Fetch total students
+      if (scope === "admin") {
+        const { data, error } = await supabase.rpc("get_admin_analytics");
+        if (error) throw error;
+
+        const parsed = AdminAnalyticsSchema.safeParse(data);
+        if (!parsed.success) throw new Error("Invalid admin analytics response");
+
+        // The database returns dates that had signups. Fill the remaining days
+        // so the existing dashboard keeps a stable 31-day series.
+        const signupsByDate = new Map(
+          parsed.data.signupGrowth.map((entry) => [entry.date, entry.count]),
+        );
+        const signupGrowth: AnalyticsData['signupGrowth'] = [];
+        for (let i = 30; i >= 0; i--) {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          const dateStr = date.toISOString().split('T')[0];
+          signupGrowth.push({
+            date: dateStr,
+            count: signupsByDate.get(dateStr) ?? 0,
+          });
+        }
+
+        setAnalytics({ ...parsed.data, signupGrowth });
+        return;
+      }
+
+      // Preserve the existing employer-scoped analytics behavior. RLS limits
+      // these reads to the rows available to the signed-in employer.
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
         .select('id, created_at, skills');
-      
       if (studentsError) throw studentsError;
 
-      // Fetch total applications  
       const { data: applicationsData, error: applicationsError } = await supabase
         .from('applications')
         .select('id, applied_at, internship_id')
         .not('applied_at', 'is', null);
-
       if (applicationsError) throw applicationsError;
 
-      // Fetch internships for company analysis
       const { data: internshipsData, error: internshipsError } = await supabase
         .from('internships')
         .select('id, company, role_title, tech_stack');
-
       if (internshipsError) throw internshipsError;
 
-      // Process signup growth (last 30 days)
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const signupGrowth: AnalyticsData['signupGrowth'] = [];
       const signupsByDate: Record<string, number> = {};
-      
-      studentsData?.forEach(student => {
+      studentsData?.forEach((student) => {
         const date = new Date(student.created_at).toISOString().split('T')[0];
         signupsByDate[date] = (signupsByDate[date] || 0) + 1;
       });
 
-      // Fill in missing dates with 0
+      const signupGrowth: AnalyticsData['signupGrowth'] = [];
       for (let i = 30; i >= 0; i--) {
         const date = new Date();
         date.setDate(date.getDate() - i);
         const dateStr = date.toISOString().split('T')[0];
-        signupGrowth.push({
-          date: dateStr,
-          count: signupsByDate[dateStr] || 0
-        });
+        signupGrowth.push({ date: dateStr, count: signupsByDate[dateStr] || 0 });
       }
 
-      // Analyze top skills
       const skillCounts: Record<string, number> = {};
-      studentsData?.forEach(student => {
-        if (student.skills) {
-          student.skills.forEach(skill => {
-            skillCounts[skill] = (skillCounts[skill] || 0) + 1;
-          });
-        }
+      studentsData?.forEach((student) => {
+        student.skills?.forEach((skill) => {
+          skillCounts[skill] = (skillCounts[skill] || 0) + 1;
+        });
       });
-
       const topSkills = Object.entries(skillCounts)
         .sort(([, a], [, b]) => b - a)
         .slice(0, 10)
         .map(([skill, count]) => ({ skill, count }));
 
-      // Analyze top companies (by application volume)
       const companyApplications: Record<string, number> = {};
-      applicationsData?.forEach((app) => {
-        const internship = internshipsData?.find((candidate) => candidate.id === app.internship_id);
+      applicationsData?.forEach((application) => {
+        const internship = internshipsData?.find(
+          (candidate) => candidate.id === application.internship_id,
+        );
         if (internship) {
-          companyApplications[internship.company] = (companyApplications[internship.company] || 0) + 1;
+          companyApplications[internship.company] =
+            (companyApplications[internship.company] || 0) + 1;
         }
       });
-
       const topCompanies = Object.entries(companyApplications)
         .sort(([, a], [, b]) => b - a)
         .slice(0, 10)
         .map(([company, count]) => ({ company, count }));
 
-      // Calculate recent signups (last 7 days)
       const sevenDaysAgo = new Date();
       sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const recentSignups = studentsData?.filter(student => 
-        new Date(student.created_at) > sevenDaysAgo
+      const recentSignups = studentsData?.filter(
+        (student) => new Date(student.created_at) > sevenDaysAgo,
       ).length || 0;
-
-      // Calculate application rate
       const totalStudents = studentsData?.length || 0;
       const totalApplications = applicationsData?.length || 0;
-      const applicationRate = totalStudents > 0 ? (totalApplications / totalStudents) * 100 : 0;
+      const applicationRate = totalStudents > 0
+        ? (totalApplications / totalStudents) * 100
+        : 0;
 
       setAnalytics({
         totalStudents,
@@ -128,7 +152,7 @@ export function AnalyticsDashboard() {
         topSkills,
         topCompanies,
         recentSignups,
-        activeUsers: totalStudents // For now, assume all registered users are "active"
+        activeUsers: totalStudents,
       });
 
     } catch (error) {
@@ -141,7 +165,7 @@ export function AnalyticsDashboard() {
     } finally {
       setLoading(false);
     }
-  }, [toast]);
+  }, [scope, toast]);
 
   useEffect(() => {
     void fetchAnalytics();

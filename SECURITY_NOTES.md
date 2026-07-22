@@ -14,3 +14,16 @@ The database functions have been secured via migrations, but the following setti
 - **Leaked Password Protection**: Currently disabled
 
 These settings cannot be automated and require admin access to your Supabase project dashboard.
+
+### Admin role provisioning
+
+The web app authorizes administrators only when Supabase Auth returns
+`app_metadata.role = "admin"`. Set or remove that claim with a trusted,
+server-side Auth Admin API workflow or an audited one-time maintenance action.
+Never put the service-role key in the browser and never use `user_metadata` for
+admin authorization.
+
+Apply `20260722000000_secure_admin_access.sql` before enabling the admin UI. It
+adds the claim-checked analytics RPC and removes browser access to legacy
+privileged functions and `app_secrets`. After changing a user's app metadata,
+have that user sign in again so their access token contains the current claim.
