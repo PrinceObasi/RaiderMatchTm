@@ -15,8 +15,14 @@ verify_jwt = true
 [functions.update-company-logos]
 verify_jwt = true
 
+[functions.auto-sync-simplify]
+verify_jwt = false
+
+[functions.enrich-missing]
+verify_jwt = false
+
 [functions.enrich-internship]
-verify_jwt = true
+verify_jwt = false
 
 [functions.notify_employer]
 verify_jwt = true

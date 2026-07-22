@@ -11,18 +11,26 @@ import { AuthModal } from "./components/AuthModal";
 import { Settings } from "./components/Settings";
 import { supabase } from "@/integrations/supabase/client";
 import type { Session } from "@supabase/supabase-js";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
+import { AdminAuthProvider } from "@/auth/AdminAuthContext";
+import { AdminRoutes } from "@/components/admin/AdminRoutes";
+import { Button } from "@/components/ui/button";
 
 const queryClient = new QueryClient();
 
-type UserType = 'student' | 'employer' | null;
+type UserType = 'student' | 'employer' | 'pendingEmployer' | 'admin' | null;
 
 function getUserType(session: Session | null): UserType {
   if (!session) return null;
-  return session.user.app_metadata?.role === 'employer' ? 'employer' : 'student';
+  const trustedRole = session.user.app_metadata?.role;
+  if (trustedRole === 'admin') return 'admin';
+  if (trustedRole === 'employer') return 'employer';
+  if (session.user.user_metadata?.role === 'employer') return 'pendingEmployer';
+  return 'student';
 }
 
-const App = () => {
-  const [user, setUser] = useState<UserType>(null);
+export const MainApplication = () => {
+  const [session, setSession] = useState<Session | null>(null);
   const [isAuthReady, setIsAuthReady] = useState(false);
   const [currentView, setCurrentView] = useState<'main' | 'settings'>('main');
   const [authModal, setAuthModal] = useState<{
@@ -36,15 +44,21 @@ const App = () => {
   useEffect(() => {
     let isMounted = true;
 
-    void supabase.auth.getSession().then(({ data }) => {
-      if (!isMounted) return;
-      setUser(getUserType(data.session));
-      setIsAuthReady(true);
-    });
+    void supabase.auth.getSession()
+      .then(({ data, error }) => {
+        if (!isMounted) return;
+        setSession(error ? null : data.session);
+        setIsAuthReady(true);
+      })
+      .catch(() => {
+        if (!isMounted) return;
+        setSession(null);
+        setIsAuthReady(true);
+      });
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (!isMounted) return;
-      setUser(getUserType(session));
+      setSession(session);
       setIsAuthReady(true);
     });
 
@@ -53,6 +67,12 @@ const App = () => {
       subscription.unsubscribe();
     };
   }, []);
+
+  const user = getUserType(session);
+
+  useEffect(() => {
+    setCurrentView('main');
+  }, [session?.user.id]);
 
   const handleStudentSignup = () => {
     setAuthModal({ isOpen: true, defaultTab: 'student' });
@@ -67,18 +87,24 @@ const App = () => {
   };
 
   const handleAuthSuccess = (session: Session) => {
-    setUser(getUserType(session));
+    setSession(session);
     setAuthModal({ isOpen: false, defaultTab: 'login' });
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    setUser(null);
-    setCurrentView('main');
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) await supabase.auth.signOut({ scope: 'local' });
+    } catch {
+      await supabase.auth.signOut({ scope: 'local' }).catch(() => undefined);
+    } finally {
+      setSession(null);
+      setCurrentView('main');
+    }
   };
 
   const handleAccountDeleted = () => {
-    setUser(null);
+    setSession(null);
     setCurrentView('main');
   };
 
@@ -94,7 +120,7 @@ const App = () => {
       );
     }
 
-    if (currentView === 'settings' && user) {
+    if (currentView === 'settings' && (user === 'student' || user === 'employer')) {
       return (
         <Settings 
           userType={user} 
@@ -105,7 +131,8 @@ const App = () => {
 
     if (user === 'student') {
       return (
-        <StudentDashboard 
+        <StudentDashboard
+          key={session?.user.id}
           onLogout={handleLogout} 
           onOpenSettings={() => setCurrentView('settings')}
         />
@@ -114,10 +141,31 @@ const App = () => {
     
     if (user === 'employer') {
       return (
-        <EmployerDashboard 
+        <EmployerDashboard
+          key={session?.user.id}
           onLogout={handleLogout}
           onOpenSettings={() => setCurrentView('settings')}
         />
+      );
+    }
+
+    if (user === 'admin') {
+      return <Navigate to="/admin/dashboard" replace />;
+    }
+
+    if (user === 'pendingEmployer') {
+      return (
+        <main className="flex min-h-screen items-center justify-center bg-muted/30 p-6">
+          <div className="w-full max-w-lg rounded-xl border bg-card p-6 text-card-foreground card-shadow">
+            <h1 className="text-xl font-semibold">Employer approval pending</h1>
+            <p className="mt-2 text-sm text-muted-foreground">
+              An administrator must approve this employer account before it can access employer tools.
+            </p>
+            <Button variant="outline" className="mt-5" onClick={handleLogout}>
+              Sign out
+            </Button>
+          </div>
+        </main>
       );
     }
 
@@ -131,25 +179,48 @@ const App = () => {
   };
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
+    <>
+      {renderCurrentView()}
+
+      <AuthModal
+        isOpen={authModal.isOpen}
+        onClose={() => setAuthModal({ ...authModal, isOpen: false })}
+        defaultTab={authModal.defaultTab}
+        onSuccess={handleAuthSuccess}
+      />
+    </>
+  );
+};
+
+export function AppRoutes() {
+  return (
+    <Routes>
+      <Route
+        path="/admin/*"
+        element={
+          <AdminAuthProvider>
+            <AdminRoutes />
+          </AdminAuthProvider>
+        }
+      />
+      <Route path="*" element={<MainApplication />} />
+    </Routes>
+  );
+}
+
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <BrowserRouter>
         <div className="min-h-screen overflow-x-hidden bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
           <Toaster />
           <Sonner />
-          
-          {renderCurrentView()}
-          
-          <AuthModal
-            isOpen={authModal.isOpen}
-            onClose={() => setAuthModal({ ...authModal, isOpen: false })}
-            defaultTab={authModal.defaultTab}
-            onSuccess={handleAuthSuccess}
-          />
+          <AppRoutes />
           <Analytics />
         </div>
-      </TooltipProvider>
-    </QueryClientProvider>
-  );
-};
+      </BrowserRouter>
+    </TooltipProvider>
+  </QueryClientProvider>
+);
 
 export default App;
