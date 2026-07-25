@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { AlertCircle, LogOut, ShieldCheck } from "lucide-react";
+import { AlertCircle, ArrowLeft, LogOut, ShieldCheck } from "lucide-react";
 import { useAdminAuth } from "@/auth/admin-auth-state";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -42,14 +42,24 @@ export function AdminDashboard() {
               </p>
             </div>
           </div>
-          <Button
-            variant="outline"
-            onClick={handleLogout}
-            disabled={isSigningOut}
-          >
-            <LogOut className="h-4 w-4" />
-            {isSigningOut ? "Signing out…" : "Sign out"}
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/")}
+              disabled={isSigningOut}
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Regular account
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleLogout}
+              disabled={isSigningOut}
+            >
+              <LogOut className="h-4 w-4" />
+              {isSigningOut ? "Signing out…" : "Sign out"}
+            </Button>
+          </div>
         </div>
       </header>
 

@@ -18,14 +18,22 @@ import { Button } from "@/components/ui/button";
 
 const queryClient = new QueryClient();
 
-type UserType = 'student' | 'employer' | 'pendingEmployer' | 'admin' | null;
+type UserType = 'student' | 'employer' | 'pendingEmployer' | null;
 
 function getUserType(session: Session | null): UserType {
   if (!session) return null;
+
   const trustedRole = session.user.app_metadata?.role;
-  if (trustedRole === 'admin') return 'admin';
   if (trustedRole === 'employer') return 'employer';
-  if (session.user.user_metadata?.role === 'employer') return 'pendingEmployer';
+
+  if (session.user.user_metadata?.role === 'employer') {
+    // Admin is an additional authorization level, not a forced dashboard.
+    // An admin with an employer account can still use that regular account.
+    return trustedRole === 'admin' ? 'employer' : 'pendingEmployer';
+  }
+
+  // Admin access is handled only by /admin. On the regular RaiderMatch route,
+  // the same authenticated identity continues to use its student account.
   return 'student';
 }
 
@@ -147,10 +155,6 @@ export const MainApplication = () => {
           onOpenSettings={() => setCurrentView('settings')}
         />
       );
-    }
-
-    if (user === 'admin') {
-      return <Navigate to="/admin/dashboard" replace />;
     }
 
     if (user === 'pendingEmployer') {
