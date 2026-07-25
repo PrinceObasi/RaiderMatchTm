@@ -195,6 +195,25 @@ describe("persistent admin authentication", () => {
     expect(screen.getByTestId("location")).toHaveTextContent("/admin/dashboard");
   });
 
+  it("lets an admin use the regular RaiderMatch account at the main route", async () => {
+    supabaseTestDouble.state.session = createSession("admin");
+    renderAt("/");
+
+    expect(await screen.findByText("Student dashboard content")).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent("/");
+  });
+
+  it("lets an admin switch from the admin dashboard to the regular account", async () => {
+    supabaseTestDouble.state.session = createSession("admin");
+    const user = userEvent.setup();
+    renderAt("/admin/dashboard");
+
+    await user.click(await screen.findByRole("button", { name: "Regular account" }));
+
+    expect(await screen.findByText("Student dashboard content")).toBeInTheDocument();
+    expect(screen.getByTestId("location")).toHaveTextContent("/");
+  });
+
   it("logs out and prevents the restored route from opening again", async () => {
     supabaseTestDouble.state.session = createSession("admin");
     const user = userEvent.setup();
