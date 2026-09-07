@@ -112,7 +112,7 @@ function hasPdfSignature(bytes: Uint8Array): boolean {
 
 function normalizeText(text: string): string {
   return text
-    .replace(/\u0000/g, " ")
+    .replaceAll("\u0000", " ")
     .replace(/[^\S\n]+/g, " ")
     .replace(/ ?\n ?/g, "\n")
     .replace(/\n{3,}/g, "\n\n")
