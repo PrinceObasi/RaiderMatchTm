@@ -18,6 +18,10 @@ jobs:
         with:
           bun-version: latest
 
+      - uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
@@ -29,6 +33,12 @@ jobs:
 
       - name: Test
         run: bun run test
+
+      - name: Check Edge Functions
+        run: |
+          deno test supabase/functions/_shared
+          deno test --config supabase/functions/upload-resume/deno.json supabase/functions/upload-resume/resume-parser_test.ts
+          deno check --config supabase/functions/upload-resume/deno.json supabase/functions/upload-resume/index.ts
 
       - name: Build
         run: bun run build
