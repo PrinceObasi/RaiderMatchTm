@@ -1,6 +1,11 @@
 import { extractText, getDocumentProxy } from "unpdf";
 
 const MAX_RESUME_PAGES = 20;
+
+type PdfDocumentCleanup = {
+  cleanup?: () => Promise<void> | void;
+  destroy?: () => Promise<void> | void;
+};
 const PDF_SIGNATURE = [0x25, 0x50, 0x44, 0x46, 0x2d];
 
 export type ResumeParseErrorCode =
@@ -164,7 +169,12 @@ export async function extractTextFromPDF(buffer: ArrayBuffer): Promise<string> {
     );
   } finally {
     try {
-      await pdfDocument.destroy();
+      const cleanupDocument = pdfDocument as PdfDocumentCleanup;
+      if (typeof cleanupDocument.destroy === "function") {
+        await cleanupDocument.destroy();
+      } else if (typeof cleanupDocument.cleanup === "function") {
+        await cleanupDocument.cleanup();
+      }
     } catch {
       // Parsing has already completed; cleanup errors should not fail the upload.
     }
