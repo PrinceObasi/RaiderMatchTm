@@ -94,6 +94,12 @@ interface MatchResponse {
   jobs?: JobCardJob[];
 }
 
+interface ResumeUploadResponse {
+  skills?: string[];
+  resume_path?: string;
+  resume_url?: string;
+}
+
 interface RpcResult {
   success?: boolean;
   message?: string;
@@ -441,13 +447,16 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       const { data, error } = await supabase.functions.invoke("upload-resume", { body: formData });
       if (error) throw error;
 
-      const upload = data as { skills?: string[]; resume_url?: string } | null;
+      const upload = data as ResumeUploadResponse | null;
       setHasResume(true);
       setProfile((current) => current
         ? {
             ...current,
+            resume_path: upload?.resume_path ?? current.resume_path,
             resume_uploaded: true,
-            resume_url: upload?.resume_url ?? current.resume_url,
+            resume_url: upload?.resume_path
+              ? null
+              : (upload?.resume_url ?? current.resume_url),
             skills: upload?.skills ?? current.skills,
           }
         : current);
