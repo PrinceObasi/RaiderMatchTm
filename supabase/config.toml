@@ -26,3 +26,6 @@ verify_jwt = false
 
 [functions.notify_employer]
 verify_jwt = true
+
+[functions.weekly-digest]
+verify_jwt = true
