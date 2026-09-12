@@ -37,6 +37,8 @@ jobs:
       - name: Check Edge Functions
         run: |
           deno test supabase/functions/_shared
+          deno test supabase/functions/validate-internship-links/validation_test.ts
+          deno check supabase/functions/validate-internship-links/index.ts
           deno test --config supabase/functions/upload-resume/deno.json supabase/functions/upload-resume/resume-parser_test.ts
           deno check --config supabase/functions/upload-resume/deno.json supabase/functions/upload-resume/index.ts
 
