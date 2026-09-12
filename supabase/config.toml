@@ -29,3 +29,6 @@ verify_jwt = true
 
 [functions.weekly-digest]
 verify_jwt = true
+
+[functions.validate-internship-links]
+verify_jwt = true
