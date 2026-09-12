@@ -18,6 +18,9 @@ verify_jwt = true
 [functions.auto-sync-simplify]
 verify_jwt = false
 
+[functions.send-welcome]
+verify_jwt = false
+
 [functions.enrich-missing]
 verify_jwt = false
 

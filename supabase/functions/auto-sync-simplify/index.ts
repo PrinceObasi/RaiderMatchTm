@@ -9,6 +9,14 @@ import {
   isServiceRoleRequest,
   serviceRoleHeaders,
 } from "../_shared/service-role.ts";
+import {
+  cleanUrl,
+  detectAts,
+  fingerprint,
+  isUSLocation,
+  parsePostedDate,
+  roleFilter,
+} from "../_shared/parsers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -46,51 +54,6 @@ const SOURCES = [
   },
 ];
 
-const NON_SWE_KEYWORDS = [
-  "product manager",
-  "product management",
-  "product intern",
-  "data scientist",
-  "data science intern",
-  "data analyst",
-  "quantitative researcher",
-  "quant researcher",
-  "quantitative analyst",
-  "quantitative trader",
-  "trading analyst",
-  "trader intern",
-  "hardware engineer",
-  "electrical engineer",
-  "firmware engineer",
-  "analog engineer",
-  "rf engineer",
-  "mechanical engineer",
-];
-
-const SWE_KEYWORDS = [
-  "software engineer",
-  "software engineering",
-  "software developer",
-  "swe",
-  "full stack",
-  "full-stack",
-  "frontend engineer",
-  "front end engineer",
-  "backend engineer",
-  "back end engineer",
-  "web engineer",
-  "mobile engineer",
-  "ios engineer",
-  "android engineer",
-  "platform engineer",
-  "infrastructure engineer",
-  "devops engineer",
-  "site reliability",
-  "sre",
-  "ml engineer",
-  "machine learning engineer",
-];
-
 const TEXAS_KEYWORDS = [
   "TX",
   "Texas",
@@ -103,239 +66,6 @@ const TEXAS_KEYWORDS = [
   "Irving",
   "Lubbock",
 ];
-
-const US_STATE_ABBREVS = new Set([
-  "AL",
-  "AK",
-  "AZ",
-  "AR",
-  "CA",
-  "CO",
-  "CT",
-  "DE",
-  "FL",
-  "GA",
-  "HI",
-  "ID",
-  "IL",
-  "IN",
-  "IA",
-  "KS",
-  "KY",
-  "LA",
-  "ME",
-  "MD",
-  "MA",
-  "MI",
-  "MN",
-  "MS",
-  "MO",
-  "MT",
-  "NE",
-  "NV",
-  "NH",
-  "NJ",
-  "NM",
-  "NY",
-  "NC",
-  "ND",
-  "OH",
-  "OK",
-  "OR",
-  "PA",
-  "RI",
-  "SC",
-  "SD",
-  "TN",
-  "TX",
-  "UT",
-  "VT",
-  "VA",
-  "WA",
-  "WV",
-  "WI",
-  "WY",
-  "DC",
-  "PR",
-  "GU",
-  "VI",
-]);
-
-const INTERNATIONAL_PATTERNS = [
-  ", UK",
-  ", Canada",
-  ", CA, Canada",
-  ", ON, Canada",
-  ", BC, Canada",
-  ", Germany",
-  ", France",
-  ", Ireland",
-  ", Israel",
-  ", India",
-  ", Japan",
-  ", Singapore",
-  ", Australia",
-  ", Netherlands",
-  ", Sweden",
-  ", Switzerland",
-  ", Spain",
-  ", Italy",
-  ", Belgium",
-  ", Poland",
-  ", Czech",
-  ", Austria",
-  ", Denmark",
-  ", Norway",
-  ", Finland",
-  ", Brazil",
-  ", Mexico",
-  ", Korea",
-  ", China",
-  ", Taiwan",
-  ", Hong Kong",
-  "London,",
-  "Toronto,",
-  "Vancouver,",
-  "Montreal,",
-  "Dublin,",
-  "Berlin,",
-  "Munich,",
-  "Tel Aviv,",
-  "Bangalore,",
-  "Hyderabad,",
-  "Tokyo,",
-  "Sydney,",
-  "Melbourne,",
-  "Belfast,",
-  "Edinburgh,",
-  "Glasgow,",
-  "Cardiff,",
-  "Amsterdam,",
-  "Waterloo, ON",
-  "Mississauga",
-  "Ottawa,",
-  "Calgary,",
-  ", ON</",
-  ", BC</",
-];
-
-function isUSLocation(location: string): boolean {
-  if (!location) return false;
-  const loc = location.trim();
-  if (
-    /\bUSA\b/i.test(loc) || /\bUnited States\b/i.test(loc) ||
-    /\bRemote in USA\b/i.test(loc) || /^Remote$/i.test(loc)
-  ) return true;
-  for (const pattern of INTERNATIONAL_PATTERNS) {
-    if (loc.includes(pattern)) return false;
-  }
-  const stateMatches = loc.match(/\b([A-Z]{2})\b/g);
-  if (stateMatches) {
-    for (const abbr of stateMatches) {
-      if (US_STATE_ABBREVS.has(abbr)) return true;
-    }
-  }
-  const stateNames = [
-    "Alabama",
-    "Alaska",
-    "Arizona",
-    "Arkansas",
-    "California",
-    "Colorado",
-    "Connecticut",
-    "Delaware",
-    "Florida",
-    "Georgia",
-    "Hawaii",
-    "Idaho",
-    "Illinois",
-    "Indiana",
-    "Iowa",
-    "Kansas",
-    "Kentucky",
-    "Louisiana",
-    "Maine",
-    "Maryland",
-    "Massachusetts",
-    "Michigan",
-    "Minnesota",
-    "Mississippi",
-    "Missouri",
-    "Montana",
-    "Nebraska",
-    "Nevada",
-    "New Hampshire",
-    "New Jersey",
-    "New Mexico",
-    "New York",
-    "North Carolina",
-    "North Dakota",
-    "Ohio",
-    "Oklahoma",
-    "Oregon",
-    "Pennsylvania",
-    "Rhode Island",
-    "South Carolina",
-    "South Dakota",
-    "Tennessee",
-    "Texas",
-    "Utah",
-    "Vermont",
-    "Virginia",
-    "Washington",
-    "West Virginia",
-    "Wisconsin",
-    "Wyoming",
-  ];
-  for (const name of stateNames) if (loc.includes(name)) return true;
-  const usCityShorthands = [
-    "NYC",
-    "SF",
-    "LA",
-    "DMV",
-    "Bay Area",
-    "Silicon Valley",
-  ];
-  for (const city of usCityShorthands) if (loc.includes(city)) return true;
-  return false;
-}
-
-function detectAts(url: string): string | null {
-  const map: Record<string, string> = {
-    "greenhouse.io": "greenhouse",
-    "lever.co": "lever",
-    "myworkdayjobs.com": "workday",
-    "jobvite.com": "jobvite",
-    "icims.com": "icims",
-    "smartrecruiters.com": "smartrecruiters",
-    "ashbyhq.com": "ashby",
-    "breezy.hr": "breezy",
-    "recruitee.com": "recruitee",
-    "workable.com": "workable",
-  };
-  for (const [domain, ats] of Object.entries(map)) {
-    if (url.includes(domain)) return ats;
-  }
-  return null;
-}
-
-function fingerprint(company: string, role: string): string {
-  return `${(company ?? "").toLowerCase().trim()}::${
-    (role ?? "").toLowerCase().trim().substring(0, 30)
-  }`;
-}
-
-function cleanUrl(url: string): string {
-  try {
-    const u = new URL(url);
-    u.searchParams.delete("utm_source");
-    u.searchParams.delete("utm_medium");
-    u.searchParams.delete("utm_campaign");
-    return u.toString();
-  } catch {
-    return url;
-  }
-}
 
 async function fetchTextWithTimeout(url: string, timeoutMs = 15000) {
   const controller = new AbortController();
@@ -358,13 +88,6 @@ interface ParsedInternship {
   date_posted: string | null;
   source_url: string;
   fp: string;
-}
-
-function roleFilter(roleText: string): "swe" | "non_swe" {
-  const titleLower = roleText.toLowerCase();
-  const isNonSwe = NON_SWE_KEYWORDS.some((kw) => titleLower.includes(kw));
-  const hasSweKeyword = SWE_KEYWORDS.some((kw) => titleLower.includes(kw));
-  return (isNonSwe || !hasSweKeyword) ? "non_swe" : "swe";
 }
 
 // ── Parser A: SimplifyJobs HTML <tr> format ──
@@ -438,17 +161,18 @@ function parseHtmlFormat(markdown: string, sourceUrl: string) {
     const directLink = allLinks.find((link) => !link.includes("simplify.jobs"));
     if (!directLink) continue;
 
+    const appLink = cleanUrl(directLink);
     internships.push({
       company: company.substring(0, 255),
       role_title: roleText.substring(0, 255),
       location: locationText.substring(0, 255),
-      application_link: cleanUrl(directLink),
+      application_link: appLink,
       // 🛂 = does NOT offer sponsorship (legend), 🇺🇸 = requires US citizenship
       visa_sponsorship: row.includes("🛂") ? "No" : "Unspecified",
       us_citizen_required: row.includes("🇺🇸"),
       date_posted: null,
       source_url: sourceUrl,
-      fp: fingerprint(company, roleText),
+      fp: fingerprint(company, roleText, appLink),
     });
   }
   return {
@@ -461,34 +185,6 @@ function parseHtmlFormat(markdown: string, sourceUrl: string) {
 }
 
 // ── Parser B: community markdown pipe-table format ──
-const MONTHS: Record<string, number> = {
-  Jan: 1,
-  Feb: 2,
-  Mar: 3,
-  Apr: 4,
-  May: 5,
-  Jun: 6,
-  Jul: 7,
-  Aug: 8,
-  Sep: 9,
-  Oct: 10,
-  Nov: 11,
-  Dec: 12,
-};
-
-function parsePostedDate(raw: string): string | null {
-  const m = raw.trim().match(/^([A-Z][a-z]{2})\s+(\d{1,2})$/);
-  if (!m || !MONTHS[m[1]]) return null;
-  const now = new Date();
-  let year = now.getFullYear();
-  const month = MONTHS[m[1]];
-  // If the parsed month is ahead of the current month, it's from last year
-  if (month > now.getMonth() + 1) year -= 1;
-  return `${year}-${String(month).padStart(2, "0")}-${
-    String(+m[2]).padStart(2, "0")
-  }`;
-}
-
 function parseMarkdownFormat(markdown: string, sourceUrl: string) {
   const internships: ParsedInternship[] = [];
   let skippedNonSwe = 0,
@@ -556,7 +252,7 @@ function parseMarkdownFormat(markdown: string, sourceUrl: string) {
       us_citizen_required: line.includes("🇺🇸"),
       date_posted: cells.length >= 6 ? parsePostedDate(cells[5]) : null,
       source_url: sourceUrl,
-      fp: fingerprint(company, roleText),
+      fp: fingerprint(company, roleText, link),
     });
   }
   return {
@@ -695,13 +391,14 @@ serve(async (req) => {
 
     const existingByFp = new Map<string, { id: string; is_active: boolean }>();
     for (const row of existingRows ?? []) {
-      existingByFp.set(fingerprint(row.company, row.role_title), {
+      existingByFp.set(fingerprint(row.company, row.role_title, row.application_link), {
         id: row.id,
         is_active: row.is_active,
       });
     }
 
-    let inserted = 0, skippedDuplicates = 0, reactivated = 0;
+    let inserted = 0, reactivated = 0, updated = 0;
+    const skippedDuplicates = 0;
     const enrichmentIds: string[] = [];
     const insertErrors: string[] = [];
     const scrapedFps = new Set<string>();
@@ -712,6 +409,7 @@ serve(async (req) => {
 
       if (existing) {
         if (!existing.is_active) {
+          // Reactivate: reset enrichment and re-queue
           if (!dryRun) {
             const { error } = await supabase.from("internships").update({
               is_active: true,
@@ -753,7 +451,29 @@ serve(async (req) => {
               enrichmentIds.push(existing.id);
             }
           } else reactivated++;
-        } else skippedDuplicates++;
+        } else {
+          // Active duplicate: update URL, location, posting date if changed
+          if (!dryRun) {
+            const { error } = await supabase.from("internships").update({
+              application_link: item.application_link,
+              direct_link: item.application_link,
+              location: item.location,
+              final_domain: detectAts(item.application_link),
+              is_texas: TEXAS_KEYWORDS.some((kw) => item.location.includes(kw)),
+              remote_flag: item.location.toLowerCase().includes("remote"),
+              source_url: item.source_url,
+              visa_sponsorship: item.visa_sponsorship,
+              us_citizen_required: item.us_citizen_required || null,
+              ...(item.date_posted ? { date_posted: item.date_posted } : {}),
+              updated_at: new Date().toISOString(),
+            }).eq("id", existing.id);
+            if (error) {
+              insertErrors.push(`Update ${item.company}: ${error.message}`);
+            } else {
+              updated++;
+            }
+          } else updated++;
+        }
         continue;
       }
 
@@ -783,9 +503,12 @@ serve(async (req) => {
             updated_at: new Date().toISOString(),
           }).select("id").single();
         if (error || !insertedRow?.id) {
-          insertErrors.push(
-            `${item.company}: ${error?.message ?? "insert returned no id"}`,
-          );
+          const msg = error?.message ?? "insert returned no id";
+          const isDuplicateKey = msg.includes("duplicate key") ||
+            msg.includes("unique constraint");
+          if (!isDuplicateKey) {
+            insertErrors.push(`${item.company}: ${msg}`);
+          }
         } else {
           inserted++;
           enrichmentIds.push(insertedRow.id);
@@ -797,8 +520,9 @@ serve(async (req) => {
     const sourceSetComplete = SOURCES.every((source) =>
       (sourceStats[source.name] ?? 0) >= MIN_SAFE_LISTINGS_PER_SOURCE
     );
+    const highErrorRate = insertErrors.length > Math.max(5, scraped.length * 0.1);
     const deactivationSkipped = skipDeactivation || sourceErrors.length > 0 ||
-      insertErrors.length > 0 || !sourceSetComplete;
+      highErrorRate || !sourceSetComplete;
     if (!deactivationSkipped) {
       for (const [fp, row] of existingByFp.entries()) {
         if (!scrapedFps.has(fp) && row.is_active) {
@@ -867,6 +591,7 @@ serve(async (req) => {
         : "success",
       new_jobs_found: inserted + reactivated,
       jobs_inserted: inserted,
+      jobs_updated: updated,
       jobs_deactivated: deactivated,
       jobs_reactivated: reactivated,
       jobs_enriched: 0,
@@ -944,6 +669,7 @@ serve(async (req) => {
         sources: sourceStats,
         total_unique_listings: scraped.length,
         inserted,
+        updated,
         skipped_duplicates: skippedDuplicates,
         deactivated,
         reactivated,

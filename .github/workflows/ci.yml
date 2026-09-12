@@ -43,7 +43,11 @@ jobs:
           deno check supabase/functions/delete-account/index.ts
           deno check supabase/functions/notify_employer/index.ts
           deno check supabase/functions/update-company-logos/index.ts
+          deno check supabase/functions/match/index.ts
+          deno check supabase/functions/auto-sync-simplify/index.ts
+          deno check supabase/functions/send-welcome/index.ts
           deno test --config supabase/functions/upload-resume/deno.json supabase/functions/upload-resume/resume-parser_test.ts
+          deno test --config supabase/functions/upload-resume/deno.json supabase/functions/upload-resume/resume-upload-validation_test.ts
           deno check --config supabase/functions/upload-resume/deno.json supabase/functions/upload-resume/index.ts
 
       - name: Build

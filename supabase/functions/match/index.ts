@@ -273,6 +273,16 @@ Deno.serve(async (req: Request) => {
     }
 
     const userId = userData.user.id
+
+    // Parse optional exclude_ids from request body
+    let excludeIds: string[] = []
+    try {
+      const body = await req.json()
+      if (Array.isArray(body?.exclude_ids)) {
+        excludeIds = body.exclude_ids.filter((id: unknown) => typeof id === 'string')
+      }
+    } catch { /* no body or invalid JSON — use defaults */ }
+
     const { data: student, error: studentError } = await supabase
       .from('students')
       .select('is_international')
@@ -287,9 +297,11 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    // Fetch a larger pool so we can exclude already-displayed IDs and still return enough
+    const fetchLimit = DEFAULT_MATCH_LIMIT + excludeIds.length
     const { data: weightedMatches, error: matchError } = await supabase.rpc(
       'match_internships_weighted',
-      { p_user_id: userId, p_limit: DEFAULT_MATCH_LIMIT },
+      { p_user_id: userId, p_limit: fetchLimit },
     )
 
     if (matchError) {
@@ -301,7 +313,18 @@ Deno.serve(async (req: Request) => {
       return jsonResponse({ jobs: [] })
     }
 
-    const matchedIds = [...new Set(weightedMatches.map((match: WeightedMatchRow) => match.id))]
+    // Filter out excluded IDs (already displayed on client) and cap at DEFAULT_MATCH_LIMIT
+    const excludeSet = new Set(excludeIds)
+    const filteredMatches = excludeSet.size > 0
+      ? weightedMatches.filter((m: WeightedMatchRow) => !excludeSet.has(m.id))
+      : weightedMatches
+    const cappedMatches = filteredMatches.slice(0, DEFAULT_MATCH_LIMIT)
+
+    if (cappedMatches.length === 0) {
+      return jsonResponse({ jobs: [] })
+    }
+
+    const matchedIds = [...new Set(cappedMatches.map((match: WeightedMatchRow) => match.id))]
     const { data: internshipDetails, error: detailsError } = await supabase
       .from('internships')
       .select(
@@ -319,7 +342,7 @@ Deno.serve(async (req: Request) => {
     )
     const isInternational = student.is_international === true
 
-    const jobs: MatchResponseJob[] = weightedMatches.map((match: WeightedMatchRow) => {
+    const jobs: MatchResponseJob[] = cappedMatches.map((match: WeightedMatchRow) => {
       const detail = detailsById.get(match.id)
       const requiresUsCitizenship = detail?.us_citizen_required === true
       const clearanceRequired = detail?.clearance_required === true
