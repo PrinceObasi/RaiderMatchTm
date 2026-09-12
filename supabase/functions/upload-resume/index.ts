@@ -4,6 +4,7 @@ import {
   parseResumeSkills,
   ResumeParseError,
 } from "./resume-parser.ts";
+import { validateResumeUpload } from "./resume-upload-validation.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -51,13 +52,9 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: "No file provided" }, 400);
     }
 
-    if (file.type !== "application/pdf") {
-      return jsonResponse({ error: "Only PDF files are allowed" }, 400);
-    }
-
-    const maxSize = 4 * 1024 * 1024;
-    if (file.size > maxSize) {
-      return jsonResponse({ error: "File size must be less than 4MB" }, 400);
+    const validationError = validateResumeUpload(file);
+    if (validationError) {
+      return jsonResponse({ error: validationError }, 400);
     }
 
     const arrayBuffer = await file.arrayBuffer();
