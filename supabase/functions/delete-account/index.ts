@@ -1,168 +1,133 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2.107.0";
+import { bearerToken } from "../_shared/edge-input.ts";
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-interface DeleteAccountRequest {
-  userType: 'student' | 'employer';
+const STORAGE_PAGE_SIZE = 100;
+const STORAGE_DELETE_BATCH_SIZE = 100;
+
+function json(body: unknown, status = 200) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
 }
 
-serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
+  if (req.method !== "POST") {
+    return json({ error: "Method not allowed" }, 405);
+  }
+
+  const token = bearerToken(req.headers.get("authorization"));
+  if (!token) return json({ error: "Unauthorized" }, 401);
+
+  const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+  const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+  if (!supabaseUrl || !serviceRoleKey) {
+    console.error("Account deletion service is not configured");
+    return json({ error: "Service unavailable" }, 503);
+  }
+
+  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
 
   try {
-    // Create Supabase client with service role key for admin operations
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    });
+    const {
+      data: { user },
+      error: userError,
+    } = await supabaseAdmin.auth.getUser(token);
+    if (userError || !user) return json({ error: "Unauthorized" }, 401);
 
-    // Create regular client for user operations
-    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-    // Get the authorization header
-    const authHeader = req.headers.get('Authorization')!;
-    
-    // Get user from JWT token
-    const { data: { user }, error: userError } = await supabase.auth.getUser(
-      authHeader.replace('Bearer ', '')
-    );
-
-    if (userError || !user) {
-      console.error('Authentication error:', userError);
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      );
-    }
-
-    const { userType }: DeleteAccountRequest = await req.json();
-    
-    console.log(`Starting account deletion for user ${user.id} (${userType})`);
-
-    // Delete user data based on type
-    if (userType === 'student') {
-      // Delete student applications first (due to foreign key constraints)
-      const { error: appError } = await supabaseAdmin
-        .from('applications')
-        .delete()
-        .eq('user_id', user.id);
-
-      if (appError) {
-        console.error('Error deleting applications:', appError);
-        throw new Error('Failed to delete applications');
+    const bucket = supabaseAdmin.storage.from("resumes");
+    const collectResumePaths = async (
+      prefix: string,
+      depth = 0,
+    ): Promise<string[]> => {
+      if (depth > 32) {
+        throw new Error("Resume storage nesting exceeds the deletion limit");
       }
 
-      // Delete student profile
-      const { error: studentError } = await supabaseAdmin
-        .from('students')
-        .delete()
-        .eq('user_id', user.id);
+      const paths: string[] = [];
+      let offset = 0;
+      while (true) {
+        const { data: entries, error: listError } = await bucket.list(prefix, {
+          limit: STORAGE_PAGE_SIZE,
+          offset,
+          sortBy: { column: "name", order: "asc" },
+        });
+        if (listError) throw listError;
 
-      if (studentError) {
-        console.error('Error deleting student profile:', studentError);
-        throw new Error('Failed to delete student profile');
-      }
+        for (const entry of entries ?? []) {
+          if (!entry.name) continue;
 
-      // Delete resume files from storage
-      const { data: files, error: listError } = await supabaseAdmin
-        .storage
-        .from('resumes')
-        .list(user.id);
-
-      if (!listError && files && files.length > 0) {
-        const filePaths = files.map(file => `${user.id}/${file.name}`);
-        const { error: deleteFilesError } = await supabaseAdmin
-          .storage
-          .from('resumes')
-          .remove(filePaths);
-
-        if (deleteFilesError) {
-          console.error('Error deleting resume files:', deleteFilesError);
-        }
-      }
-
-    } else if (userType === 'employer') {
-      // Delete applications for employer's jobs first
-      const { data: jobs } = await supabaseAdmin
-        .from('jobs')
-        .select('id')
-        .eq('employer_id', user.id);
-
-      if (jobs && jobs.length > 0) {
-        const jobIds = jobs.map(job => job.id);
-        
-        // Delete applications for these jobs
-        for (const jobId of jobIds) {
-          const { error: appError } = await supabaseAdmin
-            .from('applications')
-            .delete()
-            .eq('job_id', jobId);
-
-          if (appError) {
-            console.error(`Error deleting applications for job ${jobId}:`, appError);
+          const path = `${prefix}/${entry.name}`;
+          const isFolder = entry.id == null && entry.metadata == null;
+          if (isFolder) {
+            paths.push(...await collectResumePaths(path, depth + 1));
+          } else {
+            paths.push(path);
           }
         }
+
+        if (!entries || entries.length < STORAGE_PAGE_SIZE) break;
+        offset += entries.length;
       }
+      return paths;
+    };
 
-      // Delete employer's jobs
-      const { error: jobsError } = await supabaseAdmin
-        .from('jobs')
-        .delete()
-        .eq('employer_id', user.id);
+    let resumePaths: string[];
+    try {
+      resumePaths = await collectResumePaths(user.id);
+    } catch (listError) {
+      console.error("Resume storage listing failed:", String(listError));
+      return json({ error: "Failed to delete resume files" }, 500);
+    }
 
-      if (jobsError) {
-        console.error('Error deleting jobs:', jobsError);
-        throw new Error('Failed to delete jobs');
+    for (
+      let index = 0;
+      index < resumePaths.length;
+      index += STORAGE_DELETE_BATCH_SIZE
+    ) {
+      const paths = resumePaths.slice(index, index + STORAGE_DELETE_BATCH_SIZE);
+      const { error: removeError } = await bucket.remove(paths);
+      if (removeError) {
+        console.error("Resume storage cleanup failed:", removeError.message);
+        return json({ error: "Failed to delete resume files" }, 500);
       }
     }
 
-    // Finally, delete the user account from auth
-    const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
+    // The database determines which records belong to the authenticated user.
+    // Client-supplied role or account-type claims are deliberately ignored.
+    const { error: cleanupError } = await supabaseAdmin.rpc(
+      "delete_user_data",
+      { p_user_id: user.id },
+    );
+    if (cleanupError) {
+      console.error("Database account cleanup failed:", cleanupError.code);
+      return json({ error: "Failed to delete account data" }, 500);
+    }
 
+    const { error: deleteUserError } = await supabaseAdmin.auth.admin
+      .deleteUser(
+        user.id,
+      );
     if (deleteUserError) {
-      console.error('Error deleting user account:', deleteUserError);
-      throw new Error('Failed to delete user account');
+      console.error("Auth account deletion failed:", deleteUserError.message);
+      return json({ error: "Failed to delete account" }, 500);
     }
 
-    console.log(`Successfully deleted account for user ${user.id}`);
-
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        message: 'Account deleted successfully' 
-      }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
-
+    return json({ success: true, message: "Account deleted successfully" });
   } catch (error) {
-    console.error('Delete account error:', error);
-    return new Response(
-      JSON.stringify({ 
-        error: error.message || 'Failed to delete account' 
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    );
+    console.error("Account deletion failed:", String(error));
+    return json({ error: "Failed to delete account" }, 500);
   }
 });
