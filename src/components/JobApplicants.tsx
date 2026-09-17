@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,18 +35,12 @@ export function JobApplicants({ job, open, onClose }: JobApplicantsProps) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  useEffect(() => {
-    if (open && job.id) {
-      loadApplications();
-    }
-  }, [open, job.id]);
-
-  const loadApplications = async () => {
+  const loadApplications = useCallback(async () => {
     setLoading(true);
     try {
       // Use the secure function to get applicant info
       const { data: applicants, error } = await supabase
-        .rpc('get_applicant_info', { p_job_id: job.id });
+        .rpc('get_applicant_info', { p_internship_id: job.id });
 
       if (error) throw error;
 
@@ -61,7 +55,13 @@ export function JobApplicants({ job, open, onClose }: JobApplicantsProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [job.id, toast]);
+
+  useEffect(() => {
+    if (open && job.id) {
+      void loadApplications();
+    }
+  }, [job.id, loadApplications, open]);
 
   return (
     <Drawer open={open} onOpenChange={onClose}>
@@ -120,11 +120,11 @@ export function JobApplicants({ job, open, onClose }: JobApplicantsProps) {
                       </div>
                     )}
                     
-                    <Button size="sm" variant="secondary" className="w-full">
-                      <span className="flex items-center gap-2">
+                    <Button size="sm" variant="secondary" className="w-full" asChild>
+                      <a href={`mailto:${app.email}`} className="flex items-center gap-2">
                         <ExternalLink className="h-3 w-3" />
                         Contact: {app.email}
-                      </span>
+                      </a>
                     </Button>
                   </CardContent>
                 </Card>

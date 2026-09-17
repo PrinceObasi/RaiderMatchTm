@@ -1,17 +1,23 @@
 import { z } from 'zod';
 
 export const JobSchema = z.object({
-  title: z.string().min(3).max(120),
-  company: z.string().min(2).max(120),
-  city: z.string().min(2).max(120),
-  description: z.string().min(20).max(5000),
-  apply_url: z.string().url().startsWith('https://'),
-  opens_at: z.string().or(z.date()),
-  closes_at: z.string().or(z.date()).nullable(),
-  is_active: z.boolean(),
-  sponsors_visa: z.boolean().default(false),
-  skills: z.array(z.string()).default([]),
-  type: z.string().default('internship')
+  p_role_title: z.string().trim().min(3).max(120),
+  p_location: z.string().trim().min(2).max(120),
+  p_description_text: z.string().trim().min(20).max(5000),
+  p_application_url: z.string().url().startsWith('https://').max(2048),
+  p_date_posted: z.string().date(),
+  p_deadline: z.string().date().optional(),
+  p_tech_stack: z.array(z.string().trim().min(1).max(60)).min(1).max(30),
+  p_is_texas: z.boolean(),
+  p_visa_sponsorship: z.enum(['Yes', 'No', 'Unspecified']).default('Unspecified'),
+}).superRefine((job, context) => {
+  if (job.p_deadline && job.p_deadline < job.p_date_posted) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      path: ['p_deadline'],
+      message: 'Deadline must not precede the post date',
+    });
+  }
 });
 
 export const StudentProfileSchema = z.object({
@@ -30,18 +36,23 @@ export const StudentProfileSchema = z.object({
 });
 
 export const ApplicationSchema = z.object({
-  job_id: z.string().uuid(),
-  user_id: z.string().uuid(),
-  status: z.string().default('applied'),
-  hire_score: z.number().min(0).max(100).optional()
+  internship_id: z.string().uuid().nullable().optional(),
+  status: z.enum([
+    'saved', 'applied', 'assessment', 'interview',
+    'offer', 'rejected', 'withdrawn', 'no_response',
+  ]).default('applied'),
+  external_company: z.string().trim().min(1).max(120).optional(),
+  external_role_title: z.string().trim().min(1).max(120).optional(),
+  external_url: z.string().url().max(2048).optional(),
+  external_location: z.string().trim().max(120).optional(),
+  deadline: z.string().date().optional(),
+  note: z.string().max(10000).optional(),
 });
 
 export const StudentUpdateSchema = StudentProfileSchema.partial().omit({
   email: true, // Email shouldn't be updated through profile updates
   name: true   // Name shouldn't be updated through profile updates
 });
-
-export const JobUpdateSchema = JobSchema.partial();
 
 // For database inserts where we need to ensure required fields are included
 export const StudentCreateSchema = z.object({
@@ -53,6 +64,4 @@ export const StudentCreateSchema = z.object({
   is_international: z.boolean().default(false)
 });
 
-export const JobCreateSchema = JobSchema.extend({
-  employer_id: z.string().uuid()
-});
+export const JobCreateSchema = JobSchema;

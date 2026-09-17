@@ -114,34 +114,52 @@ export type Database = {
       applications: {
         Row: {
           applied_at: string | null
+          deadline: string | null
+          external_company: string | null
+          external_location: string | null
+          external_role_title: string | null
+          external_url: string | null
           hire_score: number | null
           id: string
           internship_id: string | null
           last_updated_at: string
           note: string | null
-          status: string | null
+          source: string
+          status: string
           status_changed_at: string | null
           user_id: string
         }
         Insert: {
           applied_at?: string | null
+          deadline?: string | null
+          external_company?: string | null
+          external_location?: string | null
+          external_role_title?: string | null
+          external_url?: string | null
           hire_score?: number | null
           id?: string
           internship_id?: string | null
           last_updated_at?: string
           note?: string | null
-          status?: string | null
+          source?: string
+          status?: string
           status_changed_at?: string | null
           user_id: string
         }
         Update: {
           applied_at?: string | null
+          deadline?: string | null
+          external_company?: string | null
+          external_location?: string | null
+          external_role_title?: string | null
+          external_url?: string | null
           hire_score?: number | null
           id?: string
           internship_id?: string | null
           last_updated_at?: string
           note?: string | null
-          status?: string | null
+          source?: string
+          status?: string
           status_changed_at?: string | null
           user_id?: string
         }
@@ -163,6 +181,133 @@ export type Database = {
           {
             foreignKeyName: "applications_internship_id_fkey"
             columns: ["internship_id"]
+            isOneToOne: false
+            referencedRelation: "internships"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      digest_log: {
+        Row: {
+          deadlines_included: number | null
+          followups_included: number | null
+          id: string
+          matches_included: number | null
+          sent_at: string
+          status: string
+          user_id: string
+        }
+        Insert: {
+          deadlines_included?: number | null
+          followups_included?: number | null
+          id?: string
+          matches_included?: number | null
+          sent_at?: string
+          status?: string
+          user_id: string
+        }
+        Update: {
+          deadlines_included?: number | null
+          followups_included?: number | null
+          id?: string
+          matches_included?: number | null
+          sent_at?: string
+          status?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      employer_submissions: {
+        Row: {
+          application_url: string | null
+          company_name: string
+          company_website: string | null
+          contact_email: string
+          contact_name: string
+          created_at: string
+          honeypot: string | null
+          hours_per_week: string | null
+          id: string
+          location: string | null
+          pay_range: string | null
+          published_internship_id: string | null
+          requirements: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          role_description: string
+          role_title: string
+          start_date: string | null
+          status: string
+          ttu_relationship: string | null
+          work_mode: string | null
+        }
+        Insert: {
+          application_url?: string | null
+          company_name: string
+          company_website?: string | null
+          contact_email: string
+          contact_name: string
+          created_at?: string
+          honeypot?: string | null
+          hours_per_week?: string | null
+          id?: string
+          location?: string | null
+          pay_range?: string | null
+          published_internship_id?: string | null
+          requirements?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          role_description: string
+          role_title: string
+          start_date?: string | null
+          status?: string
+          ttu_relationship?: string | null
+          work_mode?: string | null
+        }
+        Update: {
+          application_url?: string | null
+          company_name?: string
+          company_website?: string | null
+          contact_email?: string
+          contact_name?: string
+          created_at?: string
+          honeypot?: string | null
+          hours_per_week?: string | null
+          id?: string
+          location?: string | null
+          pay_range?: string | null
+          published_internship_id?: string | null
+          requirements?: string | null
+          review_note?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          role_description?: string
+          role_title?: string
+          start_date?: string | null
+          status?: string
+          ttu_relationship?: string | null
+          work_mode?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employer_submissions_published_internship_id_fkey"
+            columns: ["published_internship_id"]
+            isOneToOne: false
+            referencedRelation: "active_internships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employer_submissions_published_internship_id_fkey"
+            columns: ["published_internship_id"]
+            isOneToOne: false
+            referencedRelation: "enriched_active_internships"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employer_submissions_published_internship_id_fkey"
+            columns: ["published_internship_id"]
             isOneToOne: false
             referencedRelation: "internships"
             referencedColumns: ["id"]
@@ -271,6 +416,7 @@ export type Database = {
           direct_link: string
           direct_url: string | null
           duplicate_of: string | null
+          employer_id: string | null
           employment_type: string | null
           enriched_at: string | null
           enrichment_attempts: number | null
@@ -334,6 +480,7 @@ export type Database = {
           direct_link: string
           direct_url?: string | null
           duplicate_of?: string | null
+          employer_id?: string | null
           employment_type?: string | null
           enriched_at?: string | null
           enrichment_attempts?: number | null
@@ -397,6 +544,7 @@ export type Database = {
           direct_link?: string
           direct_url?: string | null
           duplicate_of?: string | null
+          employer_id?: string | null
           employment_type?: string | null
           enriched_at?: string | null
           enrichment_attempts?: number | null
@@ -604,6 +752,7 @@ export type Database = {
           jobs_enriched: number
           jobs_inserted: number
           jobs_reactivated: number
+          jobs_updated: number | null
           new_jobs_found: number
           skipped_advanced_degree: number
           skipped_duplicates: number
@@ -623,6 +772,7 @@ export type Database = {
           jobs_enriched?: number
           jobs_inserted?: number
           jobs_reactivated?: number
+          jobs_updated?: number | null
           new_jobs_found?: number
           skipped_advanced_degree?: number
           skipped_duplicates?: number
@@ -642,6 +792,7 @@ export type Database = {
           jobs_enriched?: number
           jobs_inserted?: number
           jobs_reactivated?: number
+          jobs_updated?: number | null
           new_jobs_found?: number
           skipped_advanced_degree?: number
           skipped_duplicates?: number
@@ -777,6 +928,7 @@ export type Database = {
           created_at: string
           degree: string | null
           devpost_url: string | null
+          digest_opt_out: boolean
           email: string
           github: string | null
           gpa: number | null
@@ -814,6 +966,7 @@ export type Database = {
           created_at?: string
           degree?: string | null
           devpost_url?: string | null
+          digest_opt_out?: boolean
           email: string
           github?: string | null
           gpa?: number | null
@@ -851,6 +1004,7 @@ export type Database = {
           created_at?: string
           degree?: string | null
           devpost_url?: string | null
+          digest_opt_out?: boolean
           email?: string
           github?: string | null
           gpa?: number | null
@@ -880,6 +1034,27 @@ export type Database = {
           updated_at?: string
           user_id?: string
           work_experience?: Json | null
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          granted_at: string
+          granted_by: string | null
+          role: string
+          user_id: string
+        }
+        Insert: {
+          granted_at?: string
+          granted_by?: string | null
+          role: string
+          user_id: string
+        }
+        Update: {
+          granted_at?: string
+          granted_by?: string | null
+          role?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -1366,15 +1541,26 @@ export type Database = {
           tag: string
         }[]
       }
-      can_view_applicant_data: {
-        Args: { application_job_id: string }
-        Returns: boolean
+      approve_employer_submission: {
+        Args: { p_edits?: Json; p_submission_id: string }
+        Returns: Json
       }
       check_application: { Args: { p_internship_id: string }; Returns: Json }
-      delete_user_data: {
-        Args: { p_user_id: string; p_user_type: string }
-        Returns: undefined
+      create_employer_internship: {
+        Args: {
+          p_application_url: string
+          p_date_posted: string
+          p_deadline?: string
+          p_description_text: string
+          p_is_texas: boolean
+          p_location: string
+          p_role_title: string
+          p_tech_stack: string[]
+          p_visa_sponsorship?: string
+        }
+        Returns: string
       }
+      delete_user_data: { Args: { p_user_id: string }; Returns: undefined }
       explore_internships: {
         Args: {
           p_cities?: string[]
@@ -1388,6 +1574,7 @@ export type Database = {
           apply_url: string | null
           archived_at: string | null
           category: string | null
+          clearance_required: boolean | null
           company: string
           core_requirements: string[] | null
           created_at: string | null
@@ -1398,6 +1585,7 @@ export type Database = {
           direct_link: string
           direct_url: string | null
           duplicate_of: string | null
+          employer_id: string | null
           employment_type: string | null
           enriched_at: string | null
           enrichment_attempts: number | null
@@ -1440,6 +1628,7 @@ export type Database = {
           summary_text: string | null
           tech_stack: string[] | null
           updated_at: string | null
+          us_citizen_required: boolean | null
           validation_message: string | null
           visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
           work_mode: string | null
@@ -1451,8 +1640,22 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      fast_add_application: {
+        Args: {
+          p_company: string
+          p_deadline?: string
+          p_location?: string
+          p_note?: string
+          p_role_title: string
+          p_status?: string
+          p_url?: string
+        }
+        Returns: Json
+      }
+      flag_stale_applications: { Args: never; Returns: Json }
+      get_admin_analytics: { Args: never; Returns: Json }
       get_applicant_info: {
-        Args: { p_job_id: string }
+        Args: { p_internship_id: string }
         Returns: {
           application_id: string
           applied_at: string
@@ -1486,12 +1689,12 @@ export type Database = {
               company: string
               days_in_status: number
               deadline: string
-              direct_link: string
               internship_id: string
               last_updated_at: string
               location: string
               note: string
               role_title: string
+              source: string
               status: string
               status_changed_at: string
               tech_stack: string[]
@@ -1521,6 +1724,14 @@ export type Database = {
               work_mode: string
             }[]
           }
+      get_employer_analytics: { Args: never; Returns: Json }
+      get_employer_application_counts: {
+        Args: never
+        Returns: {
+          applicant_count: number
+          internship_id: string
+        }[]
+      }
       get_internships_needing_enrichment: {
         Args: { p_limit?: number }
         Returns: {
@@ -1528,6 +1739,7 @@ export type Database = {
           apply_url: string | null
           archived_at: string | null
           category: string | null
+          clearance_required: boolean | null
           company: string
           core_requirements: string[] | null
           created_at: string | null
@@ -1538,6 +1750,7 @@ export type Database = {
           direct_link: string
           direct_url: string | null
           duplicate_of: string | null
+          employer_id: string | null
           employment_type: string | null
           enriched_at: string | null
           enrichment_attempts: number | null
@@ -1580,6 +1793,7 @@ export type Database = {
           summary_text: string | null
           tech_stack: string[] | null
           updated_at: string | null
+          us_citizen_required: boolean | null
           validation_message: string | null
           visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
           work_mode: string | null
@@ -1591,8 +1805,63 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      get_admin_analytics: { Args: never; Returns: Json }
-      is_admin: { Args: never; Returns: boolean }
+      get_readiness_matches: {
+        Args: { p_limit?: number; p_user_id?: string }
+        Returns: {
+          application_link: string
+          company: string
+          composite_score: number
+          confidence: string
+          date_posted: string
+          deadline: string
+          id: string
+          location: string
+          matched_tags: string[]
+          missing_skills: string[]
+          next_actions: string[]
+          readiness: string
+          readiness_reasons: string[]
+          role_title: string
+          skill_overlap_ratio: number
+          summary_text: string
+          tech_stack: string[]
+          visa_sponsorship: string
+          work_mode: string
+        }[]
+      }
+      get_submission_queue: {
+        Args: never
+        Returns: {
+          application_url: string | null
+          company_name: string
+          company_website: string | null
+          contact_email: string
+          contact_name: string
+          created_at: string
+          honeypot: string | null
+          hours_per_week: string | null
+          id: string
+          location: string | null
+          pay_range: string | null
+          published_internship_id: string | null
+          requirements: string | null
+          review_note: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          role_description: string
+          role_title: string
+          start_date: string | null
+          status: string
+          ttu_relationship: string | null
+          work_mode: string | null
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "employer_submissions"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       get_top_locations: {
         Args: { p_limit?: number }
         Returns: {
@@ -1607,6 +1876,8 @@ export type Database = {
           status: string
         }[]
       }
+      has_role: { Args: { p_role: string }; Returns: boolean }
+      is_admin: { Args: never; Returns: boolean }
       match_internships_for_user: {
         Args: { p_limit?: number; p_user_id: string }
         Returns: {
@@ -1681,6 +1952,7 @@ export type Database = {
           apply_url: string | null
           archived_at: string | null
           category: string | null
+          clearance_required: boolean | null
           company: string
           core_requirements: string[] | null
           created_at: string | null
@@ -1691,6 +1963,7 @@ export type Database = {
           direct_link: string
           direct_url: string | null
           duplicate_of: string | null
+          employer_id: string | null
           employment_type: string | null
           enriched_at: string | null
           enrichment_attempts: number | null
@@ -1733,6 +2006,7 @@ export type Database = {
           summary_text: string | null
           tech_stack: string[] | null
           updated_at: string | null
+          us_citizen_required: boolean | null
           validation_message: string | null
           visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
           work_mode: string | null
@@ -1745,6 +2019,11 @@ export type Database = {
         }
       }
       resolve_skill: { Args: { raw_skill: string }; Returns: string }
+      resolve_target_user: { Args: { p_user_id: string }; Returns: string }
+      review_employer_submission: {
+        Args: { p_note?: string; p_status: string; p_submission_id: string }
+        Returns: Json
+      }
       save_application: {
         Args: { p_internship_id: string; p_status?: string }
         Returns: Json
@@ -1767,6 +2046,7 @@ export type Database = {
               apply_url: string | null
               archived_at: string | null
               category: string | null
+              clearance_required: boolean | null
               company: string
               core_requirements: string[] | null
               created_at: string | null
@@ -1777,6 +2057,7 @@ export type Database = {
               direct_link: string
               direct_url: string | null
               duplicate_of: string | null
+              employer_id: string | null
               employment_type: string | null
               enriched_at: string | null
               enrichment_attempts: number | null
@@ -1819,6 +2100,7 @@ export type Database = {
               summary_text: string | null
               tech_stack: string[] | null
               updated_at: string | null
+              us_citizen_required: boolean | null
               validation_message: string | null
               visa_sponsorship: Database["public"]["Enums"]["visa_sponsorship_status"]
               work_mode: string | null
@@ -1902,9 +2184,17 @@ export type Database = {
               isSetofReturn: true
             }
           }
+      set_employer_internship_active: {
+        Args: { p_internship_id: string; p_is_active: boolean }
+        Returns: Json
+      }
       set_profile_keywords: {
         Args: { p_user_id: string; raw: string[] }
         Returns: undefined
+      }
+      update_application_note: {
+        Args: { p_application_id: string; p_note: string }
+        Returns: Json
       }
       update_application_status: {
         Args: {
@@ -1933,12 +2223,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1962,11 +2252,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1987,11 +2277,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2012,11 +2302,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -2029,11 +2319,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }

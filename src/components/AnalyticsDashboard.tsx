@@ -48,112 +48,31 @@ export function AnalyticsDashboard({ scope = "employer" }: {
   const fetchAnalytics = useCallback(async () => {
     setLoading(true);
     try {
-      if (scope === "admin") {
-        const { data, error } = await supabase.rpc("get_admin_analytics");
-        if (error) throw error;
+      const { data, error } = scope === "admin"
+        ? await supabase.rpc("get_admin_analytics")
+        : await supabase.rpc("get_employer_analytics");
+      if (error) throw error;
 
-        const parsed = AdminAnalyticsSchema.safeParse(data);
-        if (!parsed.success) throw new Error("Invalid admin analytics response");
+      const parsed = AdminAnalyticsSchema.safeParse(data);
+      if (!parsed.success) throw new Error("Invalid analytics response");
 
-        // The database returns dates that had signups. Fill the remaining days
-        // so the existing dashboard keeps a stable 31-day series.
-        const signupsByDate = new Map(
-          parsed.data.signupGrowth.map((entry) => [entry.date, entry.count]),
-        );
-        const signupGrowth: AnalyticsData['signupGrowth'] = [];
-        for (let i = 30; i >= 0; i--) {
-          const date = new Date();
-          date.setDate(date.getDate() - i);
-          const dateStr = date.toISOString().split('T')[0];
-          signupGrowth.push({
-            date: dateStr,
-            count: signupsByDate.get(dateStr) ?? 0,
-          });
-        }
-
-        setAnalytics({ ...parsed.data, signupGrowth });
-        return;
-      }
-
-      // Preserve the existing employer-scoped analytics behavior. RLS limits
-      // these reads to the rows available to the signed-in employer.
-      const { data: studentsData, error: studentsError } = await supabase
-        .from('students')
-        .select('id, created_at, skills');
-      if (studentsError) throw studentsError;
-
-      const { data: applicationsData, error: applicationsError } = await supabase
-        .from('applications')
-        .select('id, applied_at, internship_id')
-        .not('applied_at', 'is', null);
-      if (applicationsError) throw applicationsError;
-
-      const { data: internshipsData, error: internshipsError } = await supabase
-        .from('internships')
-        .select('id, company, role_title, tech_stack');
-      if (internshipsError) throw internshipsError;
-
-      const signupsByDate: Record<string, number> = {};
-      studentsData?.forEach((student) => {
-        const date = new Date(student.created_at).toISOString().split('T')[0];
-        signupsByDate[date] = (signupsByDate[date] || 0) + 1;
-      });
-
+      // Both analytics RPCs return only dates with activity. Fill gaps so the
+      // dashboard keeps a stable 31-day series without broad client-side reads.
+      const activityByDate = new Map(
+        parsed.data.signupGrowth.map((entry) => [entry.date, entry.count]),
+      );
       const signupGrowth: AnalyticsData['signupGrowth'] = [];
       for (let i = 30; i >= 0; i--) {
         const date = new Date();
         date.setDate(date.getDate() - i);
         const dateStr = date.toISOString().split('T')[0];
-        signupGrowth.push({ date: dateStr, count: signupsByDate[dateStr] || 0 });
+        signupGrowth.push({
+          date: dateStr,
+          count: activityByDate.get(dateStr) ?? 0,
+        });
       }
 
-      const skillCounts: Record<string, number> = {};
-      studentsData?.forEach((student) => {
-        student.skills?.forEach((skill) => {
-          skillCounts[skill] = (skillCounts[skill] || 0) + 1;
-        });
-      });
-      const topSkills = Object.entries(skillCounts)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 10)
-        .map(([skill, count]) => ({ skill, count }));
-
-      const companyApplications: Record<string, number> = {};
-      applicationsData?.forEach((application) => {
-        const internship = internshipsData?.find(
-          (candidate) => candidate.id === application.internship_id,
-        );
-        if (internship) {
-          companyApplications[internship.company] =
-            (companyApplications[internship.company] || 0) + 1;
-        }
-      });
-      const topCompanies = Object.entries(companyApplications)
-        .sort(([, a], [, b]) => b - a)
-        .slice(0, 10)
-        .map(([company, count]) => ({ company, count }));
-
-      const sevenDaysAgo = new Date();
-      sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-      const recentSignups = studentsData?.filter(
-        (student) => new Date(student.created_at) > sevenDaysAgo,
-      ).length || 0;
-      const totalStudents = studentsData?.length || 0;
-      const totalApplications = applicationsData?.length || 0;
-      const applicationRate = totalStudents > 0
-        ? (totalApplications / totalStudents) * 100
-        : 0;
-
-      setAnalytics({
-        totalStudents,
-        totalApplications,
-        applicationRate,
-        signupGrowth,
-        topSkills,
-        topCompanies,
-        recentSignups,
-        activeUsers: totalStudents,
-      });
+      setAnalytics({ ...parsed.data, signupGrowth });
 
     } catch (error) {
       console.error('Analytics fetch error:', error);
@@ -215,13 +134,15 @@ export function AnalyticsDashboard({ scope = "employer" }: {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Students</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {scope === "employer" ? "Unique Applicants" : "Total Students"}
+            </CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analytics.totalStudents.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              +{analytics.recentSignups} this week
+              +{analytics.recentSignups} {scope === "employer" ? "active this week" : "this week"}
             </p>
           </CardContent>
         </Card>
@@ -234,33 +155,37 @@ export function AnalyticsDashboard({ scope = "employer" }: {
           <CardContent>
             <div className="text-2xl font-bold">{analytics.totalApplications.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              Across all internships
+              {scope === "employer" ? "Across your internships" : "Across all internships"}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Application Rate</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {scope === "employer" ? "Role Engagement" : "Application Rate"}
+            </CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analytics.applicationRate.toFixed(1)}%</div>
             <p className="text-xs text-muted-foreground">
-              Students who applied
+              {scope === "employer" ? "Roles receiving applicants" : "Students who applied"}
             </p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              {scope === "employer" ? "Active Applicants" : "Active Users"}
+            </CardTitle>
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{analytics.activeUsers.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
-              Registered users
+              {scope === "employer" ? "Active in the last 30 days" : "Registered users"}
             </p>
           </CardContent>
         </Card>
@@ -269,9 +194,13 @@ export function AnalyticsDashboard({ scope = "employer" }: {
       {/* Detailed Analytics */}
       <Tabs defaultValue="growth" className="space-y-4">
         <TabsList>
-          <TabsTrigger value="growth">Signup Growth</TabsTrigger>
+          <TabsTrigger value="growth">
+            {scope === "employer" ? "Applicant Activity" : "Signup Growth"}
+          </TabsTrigger>
           <TabsTrigger value="skills">Top Skills</TabsTrigger>
-          <TabsTrigger value="companies">Top Companies</TabsTrigger>
+          <TabsTrigger value="companies">
+            {scope === "employer" ? "Top Roles" : "Top Companies"}
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="growth" className="space-y-4">
@@ -279,7 +208,7 @@ export function AnalyticsDashboard({ scope = "employer" }: {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Calendar className="h-5 w-5" />
-                Daily Signups (Last 30 Days)
+                {scope === "employer" ? "Daily Applicant Activity" : "Daily Signups"} (Last 30 Days)
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -288,7 +217,7 @@ export function AnalyticsDashboard({ scope = "employer" }: {
                   <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
                     <span className="text-sm">{new Date(day.date).toLocaleDateString()}</span>
                     <Badge variant={day.count > 0 ? "default" : "secondary"}>
-                      {day.count} signups
+                      {day.count} {scope === "employer" ? "applicants" : "signups"}
                     </Badge>
                   </div>
                 ))}
@@ -316,7 +245,7 @@ export function AnalyticsDashboard({ scope = "employer" }: {
                       <span className="font-medium">{skill.skill}</span>
                     </div>
                     <Badge variant="outline">
-                      {skill.count} students
+                      {skill.count} {scope === "employer" ? "applicants" : "students"}
                     </Badge>
                   </div>
                 ))}
@@ -330,7 +259,7 @@ export function AnalyticsDashboard({ scope = "employer" }: {
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Building className="h-5 w-5" />
-                Companies by Application Volume
+                {scope === "employer" ? "Roles" : "Companies"} by Application Volume
               </CardTitle>
             </CardHeader>
             <CardContent>
