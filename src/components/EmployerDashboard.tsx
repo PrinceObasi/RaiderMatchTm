@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -14,10 +14,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { JobApplicants } from "@/components/JobApplicants";
 import { AnalyticsDashboard } from "@/components/AnalyticsDashboard";
-import { JobCreateSchema, JobUpdateSchema } from "@/lib/schemas";
+import { JobCreateSchema } from "@/lib/schemas";
+import { z } from "zod";
 import { 
   Plus, 
   Building, 
@@ -54,64 +54,11 @@ interface Job {
   applications?: { count: number }[];
 }
 
-type EmployerJobRow = Omit<Job, "applications"> & {
-  sponsors_visa: boolean;
-} & Record<string, unknown>;
-
-type EmployerJobInsert = {
-  employer_id: string;
-  title: string;
-  company: string;
-  city: string;
-  description: string;
-  apply_url: string;
-  opens_at: string;
-  closes_at: string | null;
-  is_active: boolean;
-  sponsors_visa: boolean;
-  skills: string[];
-  type: string;
-} & Record<string, unknown>;
-
-type EmployerApplicationRow = {
-  id: string;
-  job_id: string;
-  user_id: string;
-  status: string | null;
-  hire_score: number | null;
-  applied_at: string | null;
-} & Record<string, unknown>;
-
-type EmployerDatabase = {
-  public: {
-    Tables: {
-      jobs: {
-        Row: EmployerJobRow;
-        Insert: EmployerJobInsert;
-        Update: Partial<EmployerJobInsert>;
-        Relationships: [];
-      };
-      applications: {
-        Row: EmployerApplicationRow;
-        Insert: Partial<EmployerApplicationRow>;
-        Update: Partial<EmployerApplicationRow>;
-        Relationships: [
-          {
-            foreignKeyName: "applications_job_id_fkey";
-            columns: ["job_id"];
-            isOneToOne: false;
-            referencedRelation: "jobs";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-    };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-  };
-};
-
-const employerSupabase = supabase as unknown as SupabaseClient<EmployerDatabase>;
+const EmployerStatusResponseSchema = z.object({
+  success: z.boolean(),
+  is_active: z.boolean(),
+  message: z.string(),
+});
 
 interface EmployerDashboardProps {
   onLogout: () => void;
@@ -130,16 +77,19 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
     applyUrl: "",
     opensAt: new Date(),
     closesAt: undefined as Date | undefined,
-    sponsorsVisa: false
+    sponsorsVisa: false,
+    techStack: "",
+    isTexas: true,
   });
   const [companyName, setCompanyName] = useState("");
 
   // Get company name from user session
   useEffect(() => {
     const getCompanyName = async () => {
-      const { data: session } = await supabase.auth.getSession();
-      if (session?.session?.user?.user_metadata?.company) {
-        setCompanyName(session.session.user.user_metadata.company);
+      const { data: { user } } = await supabase.auth.getUser();
+      const company = user?.app_metadata?.company;
+      if (typeof company === "string") {
+        setCompanyName(company);
       }
     };
     getCompanyName();
@@ -148,24 +98,44 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
-  // Load employer's jobs
-  useEffect(() => {
-    loadJobs();
-  }, []);
-
-  const loadJobs = async () => {
+  const loadJobs = useCallback(async () => {
     try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.user) return;
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!user) throw new Error("Not authenticated");
 
-      const { data, error } = await employerSupabase
-        .from('jobs')
-        .select('*, applications(count)')
-        .eq('employer_id', session.session.user.id)
+      const { data, error } = await supabase
+        .from('internships')
+        .select('id, role_title, description_text, summary_text, location, company, date_posted, deadline, is_active, application_link, direct_link, apply_url, employer_id, created_at, updated_at, tech_stack, employment_type')
+        .eq('employer_id', user.id)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setJobs(data || []);
+
+      const { data: counts, error: countsError } = await supabase
+        .rpc('get_employer_application_counts');
+      if (countsError) throw countsError;
+
+      const countByInternship = new Map(
+        (counts || []).map((row) => [row.internship_id, Number(row.applicant_count)]),
+      );
+      setJobs((data || []).map((internship) => ({
+        id: internship.id,
+        title: internship.role_title || "Untitled internship",
+        description: internship.description_text || internship.summary_text || "",
+        city: internship.location || "",
+        company: internship.company,
+        opens_at: internship.date_posted || internship.created_at || new Date().toISOString(),
+        closes_at: internship.deadline,
+        is_active: internship.is_active === true,
+        apply_url: internship.direct_link || internship.application_link || internship.apply_url || "",
+        employer_id: internship.employer_id || undefined,
+        created_at: internship.created_at || undefined,
+        updated_at: internship.updated_at || undefined,
+        skills: internship.tech_stack || [],
+        type: internship.employment_type || "internship",
+        applications: [{ count: countByInternship.get(internship.id) || 0 }],
+      })));
     } catch (error) {
       console.error('Error loading jobs:', error);
       toast({
@@ -176,7 +146,11 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
+
+  useEffect(() => {
+    void loadJobs();
+  }, [loadJobs]);
 
   const isValidHttps = (url: string) =>
     /^https:\/\/[^\s]+$/i.test(url.trim());
@@ -203,29 +177,36 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
     setIsPosting(true);
 
     try {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.user) throw new Error('Not authenticated');
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError) throw authError;
+      if (!user) throw new Error('Not authenticated');
+
+      const company = typeof user.app_metadata?.company === "string"
+        ? user.app_metadata.company.trim()
+        : "";
+      if (!company) throw new Error("Verified employer company is missing");
+
+      const techStack = Array.from(new Set(
+        newJob.techStack.split(',').map((skill) => skill.trim()).filter(Boolean),
+      ));
 
       // Validate job data with Zod
       const jobData = {
-        employer_id: session.session.user.id,
-        title: newJob.title,
-        company: session.session.user.user_metadata?.company || 'Unknown Company',
-        city: newJob.location,
-        description: newJob.description,
-        apply_url: newJob.applyUrl.trim().toLowerCase(),
-        opens_at: newJob.opensAt.toISOString().split('T')[0],
-        closes_at: newJob.closesAt?.toISOString().split('T')[0] || null,
-        is_active: true,
-        sponsors_visa: newJob.sponsorsVisa,
-        skills: [],
-        type: 'internship'
+        p_role_title: newJob.title.trim(),
+        p_location: newJob.location.trim(),
+        p_description_text: newJob.description.trim(),
+        p_application_url: newJob.applyUrl.trim(),
+        p_date_posted: format(newJob.opensAt, 'yyyy-MM-dd'),
+        p_tech_stack: techStack,
+        p_is_texas: newJob.isTexas,
+        p_visa_sponsorship: newJob.sponsorsVisa ? 'Yes' : 'No',
+        ...(newJob.closesAt ? { p_deadline: format(newJob.closesAt, 'yyyy-MM-dd') } : {}),
       };
 
       // Validate data before inserting
       JobCreateSchema.parse(jobData);
 
-      const { error } = await employerSupabase.from('jobs').insert(jobData);
+      const { error } = await supabase.rpc('create_employer_internship', jobData);
 
       if (error) throw error;
 
@@ -237,7 +218,9 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
         applyUrl: "",
         opensAt: new Date(), 
         closesAt: undefined,
-        sponsorsVisa: false
+        sponsorsVisa: false,
+        techStack: "",
+        isTexas: true,
       });
       setShowCreateModal(false);
       
@@ -259,26 +242,25 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
 
   const toggleJobActive = async (jobId: string, currentStatus: boolean) => {
     try {
-      // Validate update data
       const updateData = { is_active: !currentStatus };
-      JobUpdateSchema.parse(updateData);
-      
-      const { error } = await employerSupabase
-        .from('jobs')
-        .update(updateData)
-        .eq('id', jobId);
+
+      const { data, error } = await supabase.rpc('set_employer_internship_active', {
+        p_internship_id: jobId,
+        p_is_active: updateData.is_active,
+      });
 
       if (error) throw error;
+      const result = EmployerStatusResponseSchema.parse(data);
 
-      setJobs(jobs.map(job => 
+      setJobs((currentJobs) => currentJobs.map(job =>
         job.id === jobId 
-          ? { ...job, is_active: !currentStatus }
+          ? { ...job, is_active: result.is_active }
           : job
       ));
 
       toast({
-        title: "Job status updated",
-        description: `Job ${!currentStatus ? 'activated' : 'deactivated'} successfully.`,
+        title: result.success ? "Job status updated" : "Job status unchanged",
+        description: result.message,
       });
     } catch (error) {
       console.error('Error updating job status:', error);
@@ -438,6 +420,29 @@ export function EmployerDashboard({ onLogout, onOpenSettings }: EmployerDashboar
                     onChange={(e) => setNewJob({ ...newJob, applyUrl: e.target.value })}
                     placeholder="https://company.com/apply"
                     className="mt-1"
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="techStack">Required Skills</Label>
+                  <Input
+                    id="techStack"
+                    value={newJob.techStack}
+                    onChange={(e) => setNewJob({ ...newJob, techStack: e.target.value })}
+                    placeholder="TypeScript, React, PostgreSQL"
+                    className="mt-1"
+                  />
+                  <p className="mt-1 text-xs text-muted-foreground">Separate skills with commas.</p>
+                </div>
+
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="isTexas" className="text-sm">
+                    Role is located in Texas
+                  </Label>
+                  <Switch
+                    id="isTexas"
+                    checked={newJob.isTexas}
+                    onCheckedChange={(checked) => setNewJob({ ...newJob, isTexas: checked })}
                   />
                 </div>
 

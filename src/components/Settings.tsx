@@ -6,53 +6,7 @@ import { Label } from "@/components/ui/label";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import type { SupabaseClient } from "@supabase/supabase-js";
 import { Settings2, Download, Trash2, AlertTriangle, FileText, User, Shield } from "lucide-react";
-
-type EmployerExportJobRow = {
-  id: string;
-  employer_id: string;
-} & Record<string, unknown>;
-
-type EmployerExportApplicationRow = {
-  id: string;
-  job_id: string;
-  user_id: string;
-  status: string | null;
-  hire_score: number | null;
-  applied_at: string | null;
-} & Record<string, unknown>;
-
-type EmployerExportDatabase = {
-  public: {
-    Tables: {
-      jobs: {
-        Row: EmployerExportJobRow;
-        Insert: Partial<EmployerExportJobRow>;
-        Update: Partial<EmployerExportJobRow>;
-        Relationships: [];
-      };
-      applications: {
-        Row: EmployerExportApplicationRow;
-        Insert: Partial<EmployerExportApplicationRow>;
-        Update: Partial<EmployerExportApplicationRow>;
-        Relationships: [
-          {
-            foreignKeyName: "applications_job_id_fkey";
-            columns: ["job_id"];
-            isOneToOne: false;
-            referencedRelation: "jobs";
-            referencedColumns: ["id"];
-          },
-        ];
-      };
-    };
-    Views: Record<string, never>;
-    Functions: Record<string, never>;
-  };
-};
-
-const employerExportSupabase = supabase as unknown as SupabaseClient<EmployerExportDatabase>;
 
 interface SettingsProps {
   userType: 'student' | 'employer';
@@ -75,13 +29,14 @@ export function Settings({ userType, onAccountDeleted }: SettingsProps) {
       let userData = {};
       
       if (userType === 'student') {
-        const { data: studentData } = await supabase
+        const { data: studentData, error: studentError } = await supabase
           .from('students')
           .select('*')
           .eq('user_id', session.user.id)
           .single();
+        if (studentError) throw studentError;
         
-        const { data: applications } = await supabase
+        const { data: applications, error: applicationsError } = await supabase
           .from('applications')
           .select(`
             *,
@@ -92,6 +47,7 @@ export function Settings({ userType, onAccountDeleted }: SettingsProps) {
             )
           `)
           .eq('user_id', session.user.id);
+        if (applicationsError) throw applicationsError;
 
         userData = {
           user_info: {
@@ -103,28 +59,44 @@ export function Settings({ userType, onAccountDeleted }: SettingsProps) {
           applications: applications
         };
       } else {
-        const { data: jobs } = await employerExportSupabase
-          .from('jobs')
+        const { data: internships, error: internshipsError } = await supabase
+          .from('internships')
           .select(`
-            *,
-            applications (
-              id,
-              user_id,
-              status,
-              hire_score,
-              applied_at
-            )
+            id,
+            company,
+            role_title,
+            location,
+            description_text,
+            date_posted,
+            deadline,
+            tech_stack,
+            is_texas,
+            employment_type,
+            visa_sponsorship,
+            apply_url,
+            direct_link,
+            application_link,
+            is_active,
+            archived_at,
+            created_at,
+            updated_at
           `)
           .eq('employer_id', session.user.id);
+        if (internshipsError) throw internshipsError;
+
+        const { data: analytics, error: analyticsError } = await supabase
+          .rpc('get_employer_analytics');
+        if (analyticsError) throw analyticsError;
 
         userData = {
           user_info: {
             id: session.user.id,
             email: session.user.email,
             created_at: session.user.created_at,
-            company: session.user.user_metadata?.company
+            company: session.user.app_metadata?.company
           },
-          jobs: jobs
+          internships,
+          aggregate_applicant_analytics: analytics,
         };
       }
 
@@ -225,7 +197,7 @@ export function Settings({ userType, onAccountDeleted }: SettingsProps) {
             <CardContent className="space-y-4">
               <p className="text-muted-foreground">
                 Download a copy of all your data including profile information, 
-                {userType === 'student' ? ' applications, and resume data' : ' job postings and applicant information'}.
+                {userType === 'student' ? ' applications, and resume data' : ' internship postings and aggregate applicant analytics'}.
               </p>
               <Button 
                 onClick={handleExportData}

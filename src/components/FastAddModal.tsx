@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger,
+  Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,7 +14,6 @@ import {
 import { Textarea } from "@/components/ui/textarea";
 import { Plus, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { encodeExternalApplicationNote } from "@/lib/externalApplication";
 import { normalizeHttpUrl } from "@/lib/httpUrl";
 
 const STATUS_OPTIONS = [
@@ -65,31 +64,14 @@ export function FastAddModal({ onSuccess }: FastAddModalProps) {
     }
 
     setLoading(true);
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
-    if (authError || !user) {
-      setLoading(false);
-      toast({
-        title: "Failed to add application",
-        description: "Your session has expired. Please sign in and try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const externalNote = encodeExternalApplicationNote({
-      company: company.trim(),
-      roleTitle: roleTitle.trim(),
-      url: normalizedUrl,
-      location: location.trim() || null,
-      deadline: deadline || null,
-      note: note.trim() || null,
-    });
-    const { error } = await supabase.from("applications").insert({
-      user_id: user.id,
-      internship_id: null,
-      status,
-      applied_at: new Date().toISOString(),
-      note: externalNote,
+    const { error } = await supabase.rpc("fast_add_application", {
+      p_company: company.trim(),
+      p_role_title: roleTitle.trim(),
+      p_status: status,
+      ...(normalizedUrl ? { p_url: normalizedUrl } : {}),
+      ...(location.trim() ? { p_location: location.trim() } : {}),
+      ...(deadline ? { p_deadline: deadline } : {}),
+      ...(note.trim() ? { p_note: note.trim() } : {}),
     });
     setLoading(false);
 
@@ -126,9 +108,9 @@ export function FastAddModal({ onSuccess }: FastAddModalProps) {
       >
         <DialogHeader>
           <DialogTitle>Log an application</DialogTitle>
-          <p className="text-sm text-muted-foreground">
+          <DialogDescription>
             Applied somewhere outside RaiderMatch? Track it here so nothing slips.
-          </p>
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-3 pt-1">

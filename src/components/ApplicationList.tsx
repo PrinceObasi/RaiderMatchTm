@@ -1,10 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import {
-  encodeExternalApplicationNote,
-  parseExternalApplicationNote,
-  type ExternalApplicationEnvelope,
-} from "@/lib/externalApplication";
 import { FastAddModal } from "./FastAddModal";
 import { firstValidHttpUrl } from "@/lib/httpUrl";
 
@@ -23,6 +18,16 @@ const STATUSES = [
 
 type StatusKey = typeof STATUSES[number]["key"];
 const STATUS_MAP = Object.fromEntries(STATUSES.map((s) => [s.key, s])) as Record<string, typeof STATUSES[number]>;
+
+function availableStatuses(current: StatusKey) {
+  if (current === "saved") {
+    return STATUSES.filter((status) => status.key === "applied");
+  }
+
+  return STATUSES.filter(
+    (status) => status.key !== current && status.key !== "saved",
+  );
+}
 
 function normalizeStatus(value: string | null): StatusKey {
   return value && Object.prototype.hasOwnProperty.call(STATUS_MAP, value)
@@ -45,7 +50,13 @@ interface AppData {
   application_link: string | null;
   deadline: string | null;
   days_in_status: number;
-  externalApplication: ExternalApplicationEnvelope | null;
+  externalApplication: {
+    company: string;
+    roleTitle: string;
+    url: string | null;
+    location: string | null;
+    deadline: string | null;
+  } | null;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -266,7 +277,7 @@ function AppCard({
               Update status
             </div>
             <div style={{ display: "flex", gap: 6, flexWrap: "wrap" as const }}>
-              {STATUSES.filter((st) => st.key !== app.status).map((st) => (
+              {availableStatuses(app.status).map((st) => (
                 <button
                   key={st.key}
                   onClick={() => onStatusChange(app.application_id, st.key)}
@@ -391,7 +402,7 @@ function BoardCard({ app, onStatusChange, expanded, onToggleExpand }: {
             Move to
           </div>
           <div style={{ display: "flex", gap: 4, flexWrap: "wrap" as const }}>
-            {STATUSES.filter((st) => st.key !== app.status).map((st) => (
+            {availableStatuses(app.status).map((st) => (
               <button
                 key={st.key}
                 onClick={() => onStatusChange(app.application_id, st.key)}
@@ -455,6 +466,12 @@ export function ApplicationList() {
         status_changed_at,
         last_updated_at,
         note,
+        source,
+        external_company,
+        external_role_title,
+        external_url,
+        external_location,
+        deadline,
         internships!internship_id (
           role_title,
           company,
@@ -476,14 +493,20 @@ export function ApplicationList() {
     } else {
       const mapped: AppData[] = (data ?? []).map((row) => {
         const internship = row.internships;
-        const externalApplication = (!row.internship_id || !internship)
-          ? parseExternalApplicationNote(row.note)
+        const externalApplication = (row.source === "external" || !row.internship_id || !internship)
+          ? {
+              company: row.external_company || "Unknown",
+              roleTitle: row.external_role_title || "Internship",
+              url: row.external_url,
+              location: row.external_location,
+              deadline: row.deadline,
+            }
           : null;
         return {
           application_id: row.id,
           status: normalizeStatus(row.status),
-          applied_at: row.applied_at || new Date().toISOString(),
-          note: externalApplication ? externalApplication.note : row.note,
+          applied_at: row.applied_at || row.last_updated_at,
+          note: row.note,
           company: internship?.company || externalApplication?.company || "Unknown",
           role_title: internship?.role_title || externalApplication?.roleTitle || "Internship",
           location: internship?.location || externalApplication?.location || "",
@@ -519,14 +542,12 @@ export function ApplicationList() {
         : a
       )
     );
-    const { data, error } = await supabase
-      .from("applications")
-      .update({ status: newStatus })
-      .eq("id", appId)
-      .select("id")
-      .maybeSingle();
+    const { error } = await supabase.rpc("update_application_status", {
+      p_application_id: appId,
+      p_new_status: newStatus,
+    });
 
-    if (error || !data) {
+    if (error) {
       console.error("Error updating application status:", error);
       setApps((current) => current.map((app) =>
         app.application_id === appId && app.status === newStatus
@@ -544,31 +565,23 @@ export function ApplicationList() {
     const previous = apps.find((app) => app.application_id === appId);
     if (!previous) return;
     const nextNote = note.trim() || null;
-    const nextExternalApplication = previous.externalApplication
-      ? { ...previous.externalApplication, note: nextNote }
-      : null;
-    const persistedNote = nextExternalApplication
-      ? encodeExternalApplicationNote(nextExternalApplication)
-      : nextNote;
 
     setApps((prev) =>
       prev.map((a) => a.application_id === appId
-        ? { ...a, note: nextNote, externalApplication: nextExternalApplication }
+        ? { ...a, note: nextNote }
         : a)
     );
 
-    const { data, error } = await supabase
-      .from("applications")
-      .update({ note: persistedNote })
-      .eq("id", appId)
-      .select("id")
-      .maybeSingle();
+    const { error } = await supabase.rpc("update_application_note", {
+      p_application_id: appId,
+      p_note: nextNote || "",
+    });
 
-    if (error || !data) {
+    if (error) {
       console.error("Error updating application note:", error);
       setApps((current) => current.map((app) =>
         app.application_id === appId && app.note === nextNote
-          ? { ...app, note: previous.note, externalApplication: previous.externalApplication }
+          ? { ...app, note: previous.note }
           : app
       ));
       showToast("Note update failed. Please try again.");
