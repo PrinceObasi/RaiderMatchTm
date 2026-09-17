@@ -1,4 +1,4 @@
-import { createClient } from "npm:@supabase/supabase-js@2.107.0";
+import { createClient } from "npm:@supabase/supabase-js@2.116.0";
 import { bearerToken } from "../_shared/edge-input.ts";
 
 const corsHeaders = {
