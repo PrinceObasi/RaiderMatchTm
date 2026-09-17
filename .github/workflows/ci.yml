@@ -16,7 +16,7 @@ jobs:
 
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.4.2
 
       - uses: denoland/setup-deno@v2
         with:
@@ -25,8 +25,13 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Audit dependencies
+        run: bun run audit
+
       - name: Type check
-        run: bunx tsc -p tsconfig.app.json --noEmit
+        run: |
+          bunx tsc -p tsconfig.app.json --noEmit
+          bunx tsc -p tsconfig.node.json --noEmit
 
       - name: Lint
         run: bunx eslint .
@@ -45,7 +50,10 @@ jobs:
           deno check supabase/functions/update-company-logos/index.ts
           deno check supabase/functions/match/index.ts
           deno check supabase/functions/auto-sync-simplify/index.ts
+          deno check supabase/functions/enrich-internship/index.ts
+          deno check supabase/functions/enrich-missing/index.ts
           deno check supabase/functions/send-welcome/index.ts
+          deno check supabase/functions/weekly-digest/index.ts
           deno test --config supabase/functions/upload-resume/deno.json supabase/functions/upload-resume/resume-parser_test.ts
           deno test --config supabase/functions/upload-resume/deno.json supabase/functions/upload-resume/resume-upload-validation_test.ts
           deno check --config supabase/functions/upload-resume/deno.json supabase/functions/upload-resume/index.ts
@@ -54,4 +62,4 @@ jobs:
         run: bun run build
         env:
           VITE_SUPABASE_URL: https://placeholder.supabase.co
-          VITE_SUPABASE_ANON_KEY: placeholder
+          VITE_SUPABASE_PUBLISHABLE_KEY: placeholder
