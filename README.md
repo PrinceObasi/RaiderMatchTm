@@ -2,6 +2,8 @@
 
 **Intelligent internship matching for Texas Tech CS students.**
 
+> Serving **100+ Texas Tech CS students** · **140+ active internships** synced and AI-enriched automatically · Supported by the Texas Tech CS department
+
 [![CI](https://github.com/PrinceObasi/RaiderMatchTm/actions/workflows/ci.yml/badge.svg)](https://github.com/PrinceObasi/RaiderMatchTm/actions/workflows/ci.yml)
 [![Live Demo](https://img.shields.io/badge/demo-raider--hire--match.vercel.app-CC0000)](https://raider-hire-match.vercel.app)
 [![Built with React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev)
