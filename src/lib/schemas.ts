@@ -13,7 +13,7 @@ export const JobSchema = z.object({
 }).superRefine((job, context) => {
   if (job.p_deadline && job.p_deadline < job.p_date_posted) {
     context.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['p_deadline'],
       message: 'Deadline must not precede the post date',
     });
