@@ -3,7 +3,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/hooks/use-toast";
@@ -16,12 +15,20 @@ import {
   CalendarClock,
   CheckCircle2,
   ChevronRight,
+  Circle,
   ClipboardList,
+  ExternalLink,
   Eye,
   FileText,
   Filter,
+  Github,
+  Globe,
+  GraduationCap,
+  Linkedin,
   LogOut,
+  Mail,
   MapPin,
+  Pencil,
   RefreshCw,
   Search,
   Settings2,
@@ -34,7 +41,19 @@ import {
 } from "lucide-react";
 import { ApplicationList } from "./ApplicationList";
 import { JobCard, type JobCardJob, type JobTrackingStatus } from "./JobCard";
-import { ProfileWizard } from "./ProfileWizard";
+import { ProfileEditDialog } from "./ProfileEditDialog";
+import { MONTHS } from "@/lib/profile";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { isNew } from "./CompanyLogo";
 import { firstValidHttpUrl } from "@/lib/httpUrl";
 
@@ -567,13 +586,20 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     });
   };
 
-  const profileChecks = [
-    Boolean(profile?.graduation_year),
-    Boolean(profile?.location_city || profile?.location_state),
-    hasResume,
-    Boolean(profile?.skills?.length),
+  const showUpload = () => fileInputRef.current?.click();
+  const openProfileEditor = () => setShowProfileWizard(true);
+
+  const profileChecklist = [
+    { key: "resume", label: "Upload your resume", doneLabel: "Resume uploaded", done: hasResume, onFix: showUpload },
+    { key: "skills", label: hasResume ? "Re-upload a text-based resume" : "Get your skills detected", doneLabel: "Skills detected", done: Boolean(profile?.skills?.length), onFix: showUpload },
+    { key: "graduation", label: "Add your graduation date", doneLabel: "Graduation date added", done: Boolean(profile?.graduation_year), onFix: openProfileEditor },
+    { key: "major", label: "Add your major", doneLabel: "Major added", done: Boolean(profile?.degree), onFix: openProfileEditor },
+    { key: "location", label: "Add your location", doneLabel: "Location added", done: Boolean(profile?.location_city || profile?.location_state), onFix: openProfileEditor },
+    { key: "github", label: "Link your GitHub", doneLabel: "GitHub linked", done: Boolean(profile?.github), onFix: openProfileEditor },
   ];
-  const profileCompletion = Math.round((profileChecks.filter(Boolean).length / profileChecks.length) * 100);
+  const profileCompletion = Math.round(
+    (profileChecklist.filter((item) => item.done).length / profileChecklist.length) * 100,
+  );
   const firstName = profile?.name?.trim().split(/\s+/)[0] || "Raider";
   const trackerTotal = Object.values(trackerSummary).reduce((sum, count) => sum + count, 0);
   const activeApplications = (trackerSummary.applied ?? 0)
@@ -590,8 +616,6 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
       return days !== null && days >= 0 && days <= 14;
     })
     .sort((a, b) => dateValue(a.deadline) - dateValue(b.deadline));
-
-  const showUpload = () => fileInputRef.current?.click();
 
   const runPrimaryAction = () => {
     if (!profile?.graduation_year) {
@@ -930,7 +954,40 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
     </section>
   );
 
-  const renderProfile = () => (
+  const renderProfile = () => {
+    const nameText = profile?.name?.trim() || "TTU Student";
+    const initials = nameText
+      .split(/\s+/)
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "R";
+    const graduationText = profile?.graduation_year
+      ? `${profile.grad_month ? `${MONTHS[profile.grad_month - 1]} ` : ""}${profile.graduation_year}`
+      : null;
+    const locationText = [profile?.location_city, profile?.location_state].filter(Boolean).join(", ");
+    const links = [
+      { label: "GitHub", icon: Github, href: profile?.github ? `https://github.com/${encodeURIComponent(profile.github)}` : null },
+      { label: "LinkedIn", icon: Linkedin, href: firstValidHttpUrl(profile?.linkedin_url) },
+      { label: "Portfolio", icon: Globe, href: firstValidHttpUrl(profile?.portfolio_url) },
+    ];
+    const projectDepth = Math.round(Math.max(0, Math.min(1, profile?.project_depth ?? 0)) * 100);
+    const skills = profile?.skills ?? [];
+    const remainingSteps = profileChecklist.filter((item) => !item.done).length;
+    const matchDetails = [
+      {
+        label: "Work authorization",
+        value: profile?.is_international ? "International student" : "Authorized to work in the U.S.",
+      },
+      { label: "Prior internship", value: profile?.has_prev_intern ? "Yes" : "Not yet" },
+      { label: "GPA", value: profile?.gpa != null ? profile.gpa.toFixed(2) : "Not added" },
+      {
+        label: "Text updates",
+        value: profile?.phone ? (profile.sms_opt_in ? "On" : "Off") : "No phone added",
+      },
+    ];
+
+    return (
     <section aria-labelledby="profile-heading" className="space-y-5">
       <div>
         <p className="text-sm font-medium text-primary">Your recommendation inputs</p>
@@ -945,43 +1002,198 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
         </div>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr),320px]">
-        <Card className="rounded-2xl border-border/70 shadow-none">
-          <CardHeader className="flex-row items-center justify-between space-y-0">
-            <CardTitle className="text-lg">About you</CardTitle>
-            <Button size="sm" onClick={() => setShowProfileWizard(true)}><User className="h-4 w-4" /> Edit profile</Button>
-          </CardHeader>
-          <CardContent>
-            {isProfileLoading ? (
-              <div className="grid gap-5 sm:grid-cols-2">
-                {[0, 1, 2, 3, 4, 5].map((item) => <Skeleton key={item} className="h-12 w-full" />)}
-              </div>
-            ) : (
-              <div className="grid gap-x-8 gap-y-6 sm:grid-cols-2">
-                {[
-                  { label: "Name", value: profile?.name },
-                  { label: "Email", value: profile?.email },
-                  { label: "Graduation", value: profile?.graduation_year ? `Class of ${profile.graduation_year}` : null },
-                  { label: "Location", value: [profile?.location_city, profile?.location_state].filter(Boolean).join(", ") },
-                  { label: "Work authorization", value: profile?.is_international ? "International student" : "U.S. work authorized" },
-                  { label: "Prior internship", value: profile?.has_prev_intern ? "Yes" : "Not yet" },
-                ].map((item) => (
-                  <div key={item.label}>
-                    <Label className="text-xs uppercase tracking-wide text-muted-foreground">{item.label}</Label>
-                    <p className="mt-1 text-sm font-medium">{item.value || "Not added"}</p>
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr),340px]">
+        <div className="min-w-0 space-y-5">
+          <Card className="rounded-2xl border-border/70 shadow-none">
+            <CardContent className="p-5 sm:p-6">
+              {isProfileLoading ? (
+                <div className="flex gap-4" role="status" aria-label="Loading profile">
+                  <Skeleton className="h-16 w-16 rounded-2xl" />
+                  <div className="flex-1 space-y-3">
+                    <Skeleton className="h-6 w-1/2" />
+                    <Skeleton className="h-4 w-2/3" />
+                    <Skeleton className="h-4 w-full" />
+                  </div>
+                </div>
+              ) : (
+                <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
+                  <div
+                    className="flex h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-primary text-xl font-bold text-primary-foreground"
+                    aria-hidden="true"
+                  >
+                    {initials}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h2 className="truncate text-xl font-semibold tracking-tight">{nameText}</h2>
+                        <p className="mt-0.5 text-sm text-muted-foreground">
+                          {profile?.degree || "Major not added"} · {profile?.university || "Texas Tech University"}
+                        </p>
+                      </div>
+                      <Button size="sm" variant="outline" onClick={openProfileEditor}>
+                        <Pencil className="h-4 w-4" /> Edit profile
+                      </Button>
+                    </div>
+
+                    <ul className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
+                      <li className="flex items-center gap-1.5">
+                        <GraduationCap className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        {graduationText ? `Graduating ${graduationText}` : "Graduation date not added"}
+                      </li>
+                      <li className="flex items-center gap-1.5">
+                        <MapPin className="h-4 w-4 shrink-0" aria-hidden="true" />
+                        {locationText || "Location not added"}
+                      </li>
+                      {profile?.email && (
+                        <li className="flex min-w-0 items-center gap-1.5">
+                          <Mail className="h-4 w-4 shrink-0" aria-hidden="true" />
+                          <span className="truncate">{profile.email}</span>
+                        </li>
+                      )}
+                    </ul>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {links.map(({ label, icon: Icon, href }) => href ? (
+                        <Button key={label} asChild size="sm" variant="secondary">
+                          <a href={href} target="_blank" rel="noopener noreferrer">
+                            <Icon className="h-4 w-4" /> {label}
+                            <ExternalLink className="h-3 w-3 opacity-60" aria-hidden="true" />
+                            <span className="sr-only">(opens in a new tab)</span>
+                          </a>
+                        </Button>
+                      ) : (
+                        <Button key={label} size="sm" variant="ghost" className="text-muted-foreground" onClick={openProfileEditor}>
+                          <Icon className="h-4 w-4" /> Add {label}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl border-border/70 shadow-none">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base">What we use to match you</CardTitle>
+              <p className="text-sm text-muted-foreground">Eligibility checks and fit guidance use these details.</p>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid gap-3 sm:grid-cols-2">
+                {matchDetails.map((item) => (
+                  <div key={item.label} className="rounded-xl bg-muted/50 p-3">
+                    <dt className="text-xs font-medium uppercase tracking-wide text-muted-foreground">{item.label}</dt>
+                    <dd className="mt-1 text-sm font-medium">{isProfileLoading ? <Skeleton className="h-4 w-24" /> : item.value}</dd>
                   </div>
                 ))}
-              </div>
-            )}
-
-            {profile?.skills && profile.skills.length > 0 && (
-              <div className="mt-8 border-t pt-6">
-                <Label className="text-xs uppercase tracking-wide text-muted-foreground">Skills found in your resume</Label>
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {profile.skills.map((skill) => <Badge key={skill} variant="secondary">{skill}</Badge>)}
+                <div className="rounded-xl bg-muted/50 p-3 sm:col-span-2">
+                  <dt className="flex items-center justify-between text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                    <span>Project depth</span>
+                    {profile?.github && <span className="tabular-nums normal-case tracking-normal">{projectDepth}%</span>}
+                  </dt>
+                  <dd className="mt-2">
+                    {profile?.github ? (
+                      <>
+                        <div
+                          className="h-1.5 overflow-hidden rounded-full bg-background"
+                          role="meter"
+                          aria-valuemin={0}
+                          aria-valuemax={100}
+                          aria-valuenow={projectDepth}
+                          aria-label="Project depth"
+                        >
+                          <div className="h-full rounded-full bg-primary" style={{ width: `${projectDepth}%` }} />
+                        </div>
+                        <p className="mt-2 text-xs text-muted-foreground">Estimated from your public GitHub repos (@{profile.github}).</p>
+                      </>
+                    ) : (
+                      <p className="text-sm text-muted-foreground">
+                        <button type="button" onClick={openProfileEditor} className="font-medium text-primary underline-offset-4 hover:underline">
+                          Link your GitHub
+                        </button>{" "}
+                        so we can estimate this from your public repos.
+                      </p>
+                    )}
+                  </dd>
                 </div>
-              </div>
-            )}
+              </dl>
+            </CardContent>
+          </Card>
+
+          <Card className="rounded-2xl border-border/70 shadow-none">
+            <CardHeader className="flex-row items-center justify-between space-y-0 pb-3">
+              <CardTitle className="text-base">Skills from your resume</CardTitle>
+              {skills.length > 0 && <Badge variant="outline" className="tabular-nums">{skills.length}</Badge>}
+            </CardHeader>
+            <CardContent>
+              {skills.length > 0 ? (
+                <>
+                  <div className="flex flex-wrap gap-2">
+                    {skills.map((skill) => <Badge key={skill} variant="secondary">{skill}</Badge>)}
+                  </div>
+                  <p className="mt-4 text-xs text-muted-foreground">Missing something? Add it to your resume and upload it again.</p>
+                </>
+              ) : (
+                <div className="flex flex-col items-start gap-3 rounded-xl border border-dashed p-4 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-sm text-muted-foreground">
+                    {hasResume ? "We didn't find skills in your resume. Try a text-based PDF, not a scan." : "Upload your resume and we'll pull your skills from it."}
+                  </p>
+                  <Button size="sm" variant="outline" onClick={showUpload} disabled={isUploading}>
+                    <Upload className="h-4 w-4" /> {hasResume ? "Upload again" : "Upload resume"}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+
+        <aside className={`space-y-5 ${remainingSteps > 0 ? "order-first lg:order-none" : ""}`} aria-label="Profile status">
+        <Card className="rounded-2xl border-border/70 shadow-none">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base">Profile strength</CardTitle>
+              <span className="text-sm font-semibold tabular-nums text-primary">{profileCompletion}%</span>
+            </div>
+            <div
+              className="h-1.5 overflow-hidden rounded-full bg-muted"
+              role="progressbar"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={profileCompletion}
+              aria-label="Profile strength"
+            >
+              <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${profileCompletion}%` }} />
+            </div>
+            <p className="pt-1 text-xs text-muted-foreground">
+              {remainingSteps === 0
+                ? "Your profile is search-ready."
+                : `${remainingSteps} ${remainingSteps === 1 ? "step" : "steps"} left to a search-ready profile.`}
+            </p>
+          </CardHeader>
+          <CardContent>
+            <ul className="space-y-0.5">
+              {profileChecklist.map((item) => (
+                <li key={item.key}>
+                  {item.done ? (
+                    <div className="flex items-center gap-2.5 px-2 py-1.5 text-sm text-muted-foreground">
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-600" aria-hidden="true" />
+                      {item.doneLabel}
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={item.onFix}
+                      className="flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-sm font-medium transition-colors hover:bg-muted/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <Circle className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                      <span className="flex-1">{item.label}</span>
+                      <ChevronRight className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+                    </button>
+                  )}
+                </li>
+              ))}
+            </ul>
           </CardContent>
         </Card>
 
@@ -990,6 +1202,18 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
             <CardTitle className="text-base">Resume</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
+            <div className="flex items-center gap-3 rounded-xl bg-muted/60 p-3">
+              <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-background">
+                <FileText className="h-4 w-4 text-primary" aria-hidden="true" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{hasResume ? "Resume on file" : "No resume yet"}</p>
+                <p className="text-xs text-muted-foreground">
+                  {hasResume ? `${skills.length} ${skills.length === 1 ? "skill" : "skills"} detected` : "Needed for matching"}
+                </p>
+              </div>
+              {hasResume && <CheckCircle2 className="h-4 w-4 text-emerald-600" aria-label="Uploaded" />}
+            </div>
             <div
               onDrop={handleDrop}
               onDragOver={(event) => { event.preventDefault(); setIsDragging(true); }}
@@ -1000,7 +1224,7 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
                 {isUploading ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Upload className="h-4 w-4" />}
               </div>
               <p className="mt-3 text-sm font-medium">{hasResume ? "Replace your resume" : "Upload your resume"}</p>
-              <p className="mt-1 text-xs text-muted-foreground">Drag a PDF here or choose a file. Max 2 MB.</p>
+              <p className="mt-1 text-xs text-muted-foreground [text-wrap:balance]">Drag a PDF here or choose a file. Max 2 MB.</p>
               <Button className="mt-4" variant="outline" size="sm" onClick={showUpload} disabled={isUploading}>
                 Choose PDF
               </Button>
@@ -1008,16 +1232,39 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
             {hasResume && (
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" onClick={() => void openResume()}><Eye className="h-4 w-4" /> View</Button>
-                <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive" onClick={() => void handleDeleteResume()}>
-                  <Trash2 className="h-4 w-4" /> Remove
-                </Button>
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="ghost" size="sm" className="text-destructive hover:text-destructive">
+                      <Trash2 className="h-4 w-4" /> Remove
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Remove your resume?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This deletes the stored PDF and the skills we found in it. Your matches will clear until you upload a new resume.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Keep resume</AlertDialogCancel>
+                      <AlertDialogAction
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                        onClick={() => void handleDeleteResume()}
+                      >
+                        Remove resume
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             )}
           </CardContent>
         </Card>
+        </aside>
       </div>
     </section>
-  );
+    );
+  };
 
   return (
     <div className="min-h-screen bg-[#f7f7f8]">
@@ -1089,11 +1336,11 @@ export function StudentDashboard({ onLogout, onOpenSettings }: StudentDashboardP
         {activeView === "profile" && renderProfile()}
       </main>
 
-      <ProfileWizard
+      <ProfileEditDialog
         isOpen={showProfileWizard}
         onClose={() => setShowProfileWizard(false)}
-        userId={profile?.user_id || ""}
-        onComplete={() => void loadProfile()}
+        profile={profile}
+        onSaved={() => void loadProfile()}
       />
     </div>
   );
