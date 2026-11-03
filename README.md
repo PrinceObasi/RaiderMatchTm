@@ -2,10 +2,10 @@
 
 **Intelligent internship matching for Texas Tech CS students.**
 
-> Serving **100+ Texas Tech CS students** · **140+ active internships** synced and AI-enriched automatically · Supported by the Texas Tech CS department
+> **600+ open internships from 300+ companies** · synced every 4 hours and AI-enriched automatically · dead links checked every 6 hours · Supported by the Texas Tech CS department
 
 [![CI](https://github.com/PrinceObasi/RaiderMatchTm/actions/workflows/ci.yml/badge.svg)](https://github.com/PrinceObasi/RaiderMatchTm/actions/workflows/ci.yml)
-[![Live Demo](https://img.shields.io/badge/demo-raider--hire--match.vercel.app-CC0000)](https://raider-hire-match.vercel.app)
+[![Live site](https://img.shields.io/badge/live-raidermatch.net-CC0000)](https://www.raidermatch.net)
 [![Built with React](https://img.shields.io/badge/React-18-61DAFB?logo=react&logoColor=white)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5-3178C6?logo=typescript&logoColor=white)](https://typescriptlang.org)
 [![Supabase](https://img.shields.io/badge/Supabase-Backend-3FCF8E?logo=supabase&logoColor=white)](https://supabase.com)
@@ -20,15 +20,15 @@ RaiderMatch takes a student's resume and skill profile, runs it through an AI-po
 
 ### Key Features
 
-- **Resume Upload & Parsing** - Upload a PDF resume; skills and experience are extracted automatically
+- **Resume Upload & Parsing** - Upload a PDF resume; skills are extracted automatically
 - **AI-Enriched Matching** - Gemini 2.5 Flash enriches listings before the weighted matcher ranks fit on a 0-100 scale
-- **Student Dashboard** - View matched internships, track applications, manage profile and preferences
+- **Student Dashboard** - Ranked matches with matched and missing skills, an application tracker, and a profile page with a profile-strength checklist
 - **Employer Dashboard** - Post internships, review applicants, manage listings with analytics
 - **Application Tracking** - Full lifecycle tracking from submission to decision
 - **Email Notifications** - Employers receive alerts via Resend when students apply
 - **Company Logo Enrichment** - Automatic logo fetching for posted companies
 - **Role-Based Auth** - Separate flows for students and employers with Supabase Auth
-- **Account Management** - Profile wizard, settings, password strength validation, account deletion
+- **Account Management** - Profile editor, settings, password strength validation, account deletion
 
 ---
 
@@ -55,7 +55,7 @@ src/
     StudentDashboard   Resume upload, match results, application tracking
     EmployerDashboard  Job posting, applicant review, analytics
     AnalyticsDashboard Employer metrics and insights
-    ProfileWizard    Onboarding flow for new users
+    ProfileEditDialog  Edit school, eligibility, links, and contact details
     Settings         Account and preference management
   pages/            Route entry points
   integrations/     Supabase client and generated types
@@ -72,6 +72,7 @@ supabase/
     notify_employer/    Email notifications via Resend
     update-company-logos/  Logo fetching
     delete-account/     Account deletion with data cleanup
+    validate-internship-links/  Flags postings whose application links have gone dead
   migrations/       SQL schema migrations
 ```
 
@@ -134,6 +135,32 @@ Deploy in that order: the worker accepts both the existing single-ID calls and t
 The checked-in migration history predates the current production `internships` schema. Reconcile it before running `supabase db push` against the linked production project.
 
 ---
+
+## How Matching Works
+
+`match_internships_weighted` scores every active internship against the student's profile:
+
+| Signal | Weight |
+|--------|--------|
+| Skill overlap with the role's tech stack | 55% |
+| GPA | 10% |
+| Prior internship experience | 10% |
+| Preference fit (role, work mode, tech) | 10% |
+| Posting recency | 10% |
+| Project depth (from public GitHub repos) | 5% |
+
+Each match shows the skills the student already has and the top skill they're missing.
+
+## Keeping Listings Fresh
+
+Scheduled with Supabase Cron:
+
+| Job | Schedule | What it does |
+|-----|----------|--------------|
+| `auto-sync-simplify` | Every 4 hours | Pulls new U.S. SWE internships, deactivates closed ones |
+| `enrich-missing-mopup` | Every 10 minutes | AI-enriches new listings (summary, tech stack, deadline) |
+| `validate-internship-links` | Every 6 hours | Checks application links and flags dead ones |
+| `flag-stale-applications` | Daily | Flags tracker entries that need a follow-up |
 
 ## Database
 
