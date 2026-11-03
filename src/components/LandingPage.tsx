@@ -1,16 +1,21 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Header } from "./Header";
-import { 
-  Upload, 
-  Search, 
-  Target, 
-  CheckCircle, 
-  Building, 
-  Users,
-  TrendingUp,
-  Star
+import {
+  Upload,
+  Target,
+  ClipboardList,
+  Building,
+  GraduationCap,
 } from "lucide-react";
+
+// Counts from the production database on Nov 2, 2026 (631 active internships,
+// 330 companies; Simplify sync runs every 4 hours). Round down, never up.
+const STATS = [
+  { value: "600+", label: "Open internships right now" },
+  { value: "300+", label: "Companies hiring" },
+  { value: "Every 4 hrs", label: "New postings synced automatically" },
+];
 
 interface LandingPageProps {
   onStudentSignup: () => void;
@@ -33,8 +38,8 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
           <h1 className="text-4xl sm:text-6xl font-extrabold leading-tight text-balance mb-6">
             Upload résumé, <span className="text-primary">get matched</span>
           </h1>
-          <p className="mt-3 sm:mt-4 max-w-prose text-base sm:text-lg text-muted-foreground mb-8 mx-auto">
-            RaiderMatch™ connects Texas Tech CS students with top internship opportunities through intelligent matching.
+          <p className="mt-3 sm:mt-4 max-w-prose text-balance text-base sm:text-lg text-muted-foreground mb-8 mx-auto">
+            RaiderMatch™ ranks open internships by how well they fit your résumé, built for Texas Tech CS students.
           </p>
           <div className="mt-6 flex flex-col sm:flex-row gap-3 justify-center">
             <Button 
@@ -71,7 +76,7 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
                 </div>
                 <h3 className="text-xl font-semibold mb-3">1. Upload Your Résumé</h3>
                 <p className="text-muted-foreground">
-                  Simply upload your PDF résumé and we'll analyze your skills, experience, and qualifications.
+                  Upload a PDF and we pull your skills out of it automatically.
                 </p>
               </CardContent>
             </Card>
@@ -81,9 +86,9 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
                   <Target className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3">2. Get Perfect Matches</h3>
+                <h3 className="text-xl font-semibold mb-3">2. Get Ranked Matches</h3>
                 <p className="text-muted-foreground">
-                  Our algorithm finds exactly 10 internships ranked by HireScore (0-100) based on your profile.
+                  We score open roles on your skills, GPA, experience, and projects, and show which skills you match and which you're missing.
                 </p>
               </CardContent>
             </Card>
@@ -91,11 +96,11 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
             <Card>
               <CardContent className="p-6 text-center">
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <CheckCircle className="h-8 w-8 text-primary" />
+                  <ClipboardList className="h-8 w-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold mb-3">3. One-Click Apply</h3>
+                <h3 className="text-xl font-semibold mb-3">3. Apply and Track</h3>
                 <p className="text-muted-foreground">
-                  Apply instantly with one click. Employers see your HireScore and can invite you to interview.
+                  Apply on the company's site, then track every application's stage, deadline, and notes in one place.
                 </p>
               </CardContent>
             </Card>
@@ -106,29 +111,23 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
       {/* Stats Section */}
       <section className="py-20">
         <div className="container mx-auto px-6">
-          <div className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto text-center">
-            <div>
-              <div className="text-4xl font-bold text-primary mb-2">100+</div>
-              <div className="text-muted-foreground">CS Students Matched</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-primary mb-2">10+</div>
-              <div className="text-muted-foreground">Partner Companies</div>
-            </div>
-            <div>
-              <div className="text-4xl font-bold text-primary mb-2">65%</div>
-              <div className="text-muted-foreground">Interview Rate</div>
-            </div>
-          </div>
+          <dl className="grid md:grid-cols-3 gap-8 max-w-4xl mx-auto text-center">
+            {STATS.map((stat) => (
+              <div key={stat.label} className="flex flex-col-reverse">
+                <dt className="text-muted-foreground">{stat.label}</dt>
+                <dd className="text-4xl font-bold text-primary mb-2">{stat.value}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
       </section>
 
       {/* CTA Section */}
       <section className="py-20 bg-muted">
         <div className="container mx-auto px-6 text-center">
-          <h2 className="text-4xl font-bold mb-6">Ready to Find Your Perfect Internship?</h2>
+          <h2 className="text-4xl font-bold mb-6">Ready to Find Your Internship?</h2>
           <p className="text-xl mb-8 text-muted-foreground max-w-2xl mx-auto">
-            Join hundreds of Texas Tech CS students who've found their dream internships through RaiderMatch™.
+            Upload your résumé and see which open roles fit you best.
           </p>
           <Button 
             size="lg" 
@@ -144,8 +143,8 @@ export function LandingPage({ onStudentSignup, onEmployerSignup, onLogin }: Land
       <footer className="py-12 border-t">
         <div className="container mx-auto px-6 text-center">
           <div className="flex items-center justify-center space-x-2 mb-4">
-            <Star className="h-6 w-6 text-primary" />
-            <span className="text-lg font-semibold">RaiderMatch<span className="align-super text-[0.6em] ml-0.5">™</span></span>
+            <GraduationCap className="h-6 w-6 text-primary" aria-hidden="true" />
+            <span className="text-lg font-bold text-primary">RaiderMatch<span className="align-super text-[0.6em] ml-0.5">™</span></span>
           </div>
           <p className="text-muted-foreground">
             Built for Texas Tech Computer Science Students
